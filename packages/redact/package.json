@@ -1,0 +1,10 @@
+{
+  "name": "@formfill/redact",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PII detection and placeholder substitution at the network boundary.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" }
+}
