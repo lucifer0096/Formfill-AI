@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
@@ -25,12 +25,17 @@ const CONFIDENCE_LABEL: Record<ConfidenceBand, string> = {
   low: "Uncertain — please confirm this one",
 };
 
-export default function ReviewFieldsPage() {
-  const [stored, setStored] = useState<StoredIngest | null | undefined>(undefined);
+const noopSubscribe = () => () => {};
 
-  useEffect(() => {
-    setStored(loadIngestResult());
-  }, []);
+export default function ReviewFieldsPage() {
+  // sessionStorage is browser-only; useSyncExternalStore reads it safely
+  // across server prerendering (getServerSnapshot) and the client, without
+  // a setState-in-effect or a hydration mismatch.
+  const stored = useSyncExternalStore<StoredIngest | null | undefined>(
+    noopSubscribe,
+    loadIngestResult,
+    () => undefined,
+  );
 
   if (stored === undefined) {
     return (

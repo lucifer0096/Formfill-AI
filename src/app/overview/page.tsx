@@ -1,20 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Card from "@/components/ui/Card";
 import LinkButton from "@/components/ui/LinkButton";
 import ProgressTrail from "@/components/ProgressTrail";
 import { loadWorkingForm } from "@/lib/session-store";
 import { useRouteFocus } from "@/lib/use-route-focus";
-import type { Section } from "@/lib/form-model/types";
 
+const noopSubscribe = () => () => {};
+
+/**
+ * sessionStorage doesn't exist during server prerendering, and reading it
+ * inside an effect just to setState triggers react-hooks/set-state-in-effect
+ * (that setState is establishing initial state, not synchronizing with an
+ * external change). useSyncExternalStore is the React-sanctioned way to read
+ * a browser-only source safely: getServerSnapshot covers prerendering, and
+ * the real read only happens once, on the client, without a second render.
+ */
 export default function FormOverviewPage() {
-  const [sections, setSections] = useState<Section[] | null>(null);
+  const sections = useSyncExternalStore(
+    noopSubscribe,
+    () => loadWorkingForm().form.sections,
+    () => null,
+  );
   const headingRef = useRouteFocus<HTMLHeadingElement>();
-
-  useEffect(() => {
-    setSections(loadWorkingForm().form.sections);
-  }, []);
 
   if (!sections) {
     return (

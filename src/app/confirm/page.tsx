@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
@@ -15,21 +15,24 @@ interface ConfirmRow {
   value: string;
 }
 
+const noopSubscribe = () => () => {};
+
+function readRows(): ConfirmRow[] {
+  const fields = loadWorkingForm().form.sections.flatMap((s) => s.fields);
+  const answers = loadAnswers();
+  return fields.map((field) => ({
+    field,
+    value: answers[field.id]?.trim() ? answers[field.id] : "Not answered",
+  }));
+}
+
 export default function ConfirmPage() {
-  const [rows, setRows] = useState<ConfirmRow[] | null>(null);
+  // sessionStorage is browser-only; useSyncExternalStore reads it safely
+  // across server prerendering (getServerSnapshot) and the client, in one
+  // render, without a setState-in-effect or a hydration mismatch.
+  const rows = useSyncExternalStore(noopSubscribe, readRows, () => null);
   const [heard, setHeard] = useState<Set<string>>(new Set());
   const headingRef = useRouteFocus<HTMLHeadingElement>();
-
-  useEffect(() => {
-    const fields = loadWorkingForm().form.sections.flatMap((s) => s.fields);
-    const answers = loadAnswers();
-    setRows(
-      fields.map((field) => ({
-        field,
-        value: answers[field.id]?.trim() ? answers[field.id] : "Not answered",
-      })),
-    );
-  }, []);
 
   if (!rows) {
     return (

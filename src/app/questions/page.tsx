@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
@@ -16,19 +16,30 @@ import type { Field } from "@/lib/form-model/types";
  */
 const KEY_ACTIONS = new Set(["n", "p", " ", "h", "s"]);
 
+const noopSubscribe = () => () => {};
+
+function readFields(): Field[] {
+  return loadWorkingForm().form.sections.flatMap((s) => s.fields);
+}
+
 export default function QuestionsPage() {
-  const [fields, setFields] = useState<Field[] | null>(null);
+  // sessionStorage is browser-only; useSyncExternalStore reads it safely
+  // across server prerendering (getServerSnapshot) and the client, without
+  // a setState-in-effect or a hydration mismatch. `fields` is read once and
+  // never mutated, so it fits the external-store model directly.
+  const fields = useSyncExternalStore(noopSubscribe, readFields, () => null);
   const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  // `answers` IS mutated locally (typing updates it), so it stays real
+  // state — but its initial value still needs the same SSR-safe read.
+  // Safe here because `fields` is null during the server/first-paint
+  // render, so this value is never visually shown before hydration.
+  const [answers, setAnswers] = useState<Record<string, string>>(() =>
+    typeof window === "undefined" ? {} : loadAnswers(),
+  );
   const [showHelp, setShowHelp] = useState(false);
   const [touched, setTouched] = useState(false);
   const helpId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
-
-  useEffect(() => {
-    setFields(loadWorkingForm().form.sections.flatMap((s) => s.fields));
-    setAnswers(loadAnswers());
-  }, []);
 
   // Focus (and therefore announce, for a screen reader) the new question
   // every time it changes — not just once on mount. ACCESSIBILITY.md §3.
