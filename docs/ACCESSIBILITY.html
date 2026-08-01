@@ -186,6 +186,7 @@
     background: var(--sunk);
     padding: 0.12em 0.35em;
     border-radius: 3px;
+    overflow-wrap: break-word;
   }
 
   .lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 60ch; }
@@ -295,12 +296,20 @@
   ol.steps li {
     counter-increment: s;
     display: grid;
-    grid-template-columns: 1.9rem 1fr;
+    grid-template-columns: 1.9rem minmax(0, 1fr);
     gap: 0.9rem;
     max-width: var(--measure);
   }
+  ol.steps li > span,
+  ol.steps li > b {
+    grid-column: 2;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
   ol.steps li::before {
     content: counter(s);
+    grid-column: 1;
+    grid-row: 1 / -1;
     font-family: var(--f-mono);
     font-size: 0.75rem;
     color: var(--ink-faint);
