@@ -7,6 +7,7 @@ import LinkButton from "@/components/ui/LinkButton";
 import Notice from "@/components/ui/Notice";
 import ProgressTrail from "@/components/ProgressTrail";
 import { loadAnswers, loadWorkingForm } from "@/lib/session-store";
+import { useRouteFocus } from "@/lib/use-route-focus";
 import type { Field } from "@/lib/form-model/types";
 
 interface ConfirmRow {
@@ -17,6 +18,7 @@ interface ConfirmRow {
 export default function ConfirmPage() {
   const [rows, setRows] = useState<ConfirmRow[] | null>(null);
   const [heard, setHeard] = useState<Set<string>>(new Set());
+  const headingRef = useRouteFocus<HTMLHeadingElement>();
 
   useEffect(() => {
     const fields = loadWorkingForm().form.sections.flatMap((s) => s.fields);
@@ -46,7 +48,12 @@ export default function ConfirmPage() {
       <ProgressTrail current={5} />
 
       <section aria-labelledby="page-heading" tabIndex={0} className="mt-8 rounded-lg">
-        <h1 id="page-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          id="page-heading"
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-3xl font-bold tracking-tight sm:text-4xl focus-visible:outline-none"
+        >
           Review your answers
         </h1>
         <p className="mt-3 text-lg text-muted">
@@ -91,7 +98,7 @@ export default function ConfirmPage() {
       </Card>
 
       <div className="mt-6">
-        <Notice>
+        <Notice live>
           {allHeard
             ? "All answers confirmed. You are ready to finish."
             : `You have heard ${heard.size} of ${rows.length} answers. Read back every answer before confirming.`}

@@ -5,10 +5,12 @@ import Card from "@/components/ui/Card";
 import LinkButton from "@/components/ui/LinkButton";
 import ProgressTrail from "@/components/ProgressTrail";
 import { loadWorkingForm } from "@/lib/session-store";
+import { useRouteFocus } from "@/lib/use-route-focus";
 import type { Section } from "@/lib/form-model/types";
 
 export default function FormOverviewPage() {
   const [sections, setSections] = useState<Section[] | null>(null);
+  const headingRef = useRouteFocus<HTMLHeadingElement>();
 
   useEffect(() => {
     setSections(loadWorkingForm().form.sections);
@@ -32,7 +34,12 @@ export default function FormOverviewPage() {
       <ProgressTrail current={3} />
 
       <section aria-labelledby="page-heading" tabIndex={0} className="mt-8 rounded-lg">
-        <h1 id="page-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          id="page-heading"
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-3xl font-bold tracking-tight sm:text-4xl focus-visible:outline-none"
+        >
           Form overview
         </h1>
         <p className="mt-3 text-lg text-muted">

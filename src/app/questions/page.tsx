@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
@@ -8,17 +8,33 @@ import ProgressTrail from "@/components/ProgressTrail";
 import { loadAnswers, loadWorkingForm, saveAnswers } from "@/lib/session-store";
 import type { Field } from "@/lib/form-model/types";
 
+/**
+ * Global single-key commands from ACCESSIBILITY.md §3. Only active when
+ * focus is NOT in a text input — that suspension is a hard rule there
+ * ("the app ate my typing" is called out by name as the classic bug this
+ * causes if you get it wrong).
+ */
+const KEY_ACTIONS = new Set(["n", "p", " ", "h", "s"]);
+
 export default function QuestionsPage() {
   const [fields, setFields] = useState<Field[] | null>(null);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showHelp, setShowHelp] = useState(false);
+  const [touched, setTouched] = useState(false);
   const helpId = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     setFields(loadWorkingForm().form.sections.flatMap((s) => s.fields));
     setAnswers(loadAnswers());
   }, []);
+
+  // Focus (and therefore announce, for a screen reader) the new question
+  // every time it changes — not just once on mount. ACCESSIBILITY.md §3.
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, [index]);
 
   if (!fields) {
     return (
@@ -47,17 +63,68 @@ export default function QuestionsPage() {
   const field = fields[index];
   const isLast = index === fields.length - 1;
   const value = answers[field.id] ?? "";
+  const isInvalid = touched && field.required && value.trim() === "";
 
   function commitAndAdvance(nextValue: string) {
     const next = { ...answers, [field.id]: nextValue };
     setAnswers(next);
     saveAnswers(next);
     setShowHelp(false);
+    setTouched(false);
     if (!isLast) setIndex((i) => i + 1);
   }
 
+  function goPrevious() {
+    setTouched(false);
+    setIndex((i) => Math.max(0, i - 1));
+  }
+
+  /**
+   * ACCESSIBILITY.md §3: N/P/Space/H/S single-key nav, suspended whenever a
+   * text input has focus. This handler sits on the page root, not the
+   * document, and checks the active element itself so it works regardless
+   * of what currently has focus outside the input.
+   */
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    const target = event.target as HTMLElement;
+    const isTextInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+    if (isTextInput) return;
+
+    const key = event.key.toLowerCase();
+    if (!KEY_ACTIONS.has(key)) return;
+
+    switch (key) {
+      case "n":
+        event.preventDefault();
+        commitAndAdvance(value);
+        break;
+      case "p":
+        event.preventDefault();
+        goPrevious();
+        break;
+      case " ":
+        event.preventDefault();
+        headingRef.current?.focus();
+        break;
+      case "h":
+        event.preventDefault();
+        setShowHelp((s) => !s);
+        break;
+      case "s":
+        if (!field.required) {
+          event.preventDefault();
+          commitAndAdvance("");
+        }
+        break;
+    }
+  }
+
   return (
-    <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
+    <main
+      id="main-content"
+      className="mx-auto w-full max-w-2xl flex-1 px-6 py-10"
+      onKeyDown={handleKeyDown}
+    >
       <ProgressTrail current={4} />
 
       <p className="mt-8 text-sm font-medium text-muted" role="status" aria-live="polite">
@@ -65,7 +132,12 @@ export default function QuestionsPage() {
       </p>
 
       <Card as="section" aria-labelledby="question-heading" className="mt-4">
-        <h1 id="question-heading" tabIndex={-1} className="text-2xl font-bold">
+        <h1
+          id="question-heading"
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-2xl font-bold focus-visible:outline-none"
+        >
           {field.spokenLabel}
         </h1>
         {!field.required && <p className="mt-1 text-sm text-muted">This one is optional.</p>}
@@ -74,6 +146,8 @@ export default function QuestionsPage() {
           className="mt-6"
           onSubmit={(event) => {
             event.preventDefault();
+            setTouched(true);
+            if (field.required && value.trim() === "") return;
             commitAndAdvance(value);
           }}
         >
@@ -85,9 +159,19 @@ export default function QuestionsPage() {
             type="text"
             value={value}
             aria-describedby={showHelp ? helpId : undefined}
+            aria-invalid={isInvalid}
+            aria-required={field.required}
             onChange={(event) => setAnswers((prev) => ({ ...prev, [field.id]: event.target.value }))}
-            className="w-full rounded-md border-2 border-muted/40 bg-background px-4 py-3 text-lg focus-visible:outline-3 focus-visible:outline-accent-strong"
+            className={`w-full rounded-md border-2 bg-background px-4 py-3 text-lg focus-visible:outline-3 focus-visible:outline-accent-strong ${
+              isInvalid ? "border-accent-strong" : "border-muted/40"
+            }`}
           />
+
+          {isInvalid && (
+            <p role="alert" className="mt-2 text-sm font-medium text-accent-strong">
+              {field.spokenLabel} — this one is required.
+            </p>
+          )}
 
           {showHelp && (
             <p id={helpId} role="status" className="mt-3 text-sm text-muted">
@@ -99,12 +183,7 @@ export default function QuestionsPage() {
             <Button type="submit" variant="primary">
               {isLast ? "Finish" : "Next"}
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIndex((i) => Math.max(0, i - 1))}
-              disabled={index === 0}
-            >
+            <Button type="button" variant="secondary" onClick={goPrevious} disabled={index === 0}>
               Previous
             </Button>
             <Button type="button" variant="secondary" onClick={() => setShowHelp((s) => !s)}>
@@ -116,6 +195,11 @@ export default function QuestionsPage() {
               </Button>
             )}
           </div>
+
+          <p className="mt-4 text-xs text-muted">
+            Keyboard: N next, P previous, Space repeats the question, H toggles help
+            {!field.required ? ", S skips" : ""}. Suspended while typing in the answer box.
+          </p>
         </form>
       </Card>
 

@@ -2,11 +2,17 @@ import type { ReactNode } from "react";
 
 interface NoticeProps {
   children: ReactNode;
+  /** Set when this Notice's content changes in response to user action and should be announced — e.g. a running count. Static notices should leave this unset. */
+  live?: boolean;
 }
 
-export default function Notice({ children }: NoticeProps) {
+export default function Notice({ children, live = false }: NoticeProps) {
   return (
-    <div className="flex items-start gap-3 rounded-md border border-muted/30 bg-muted/10 p-4">
+    <div
+      role={live ? "status" : undefined}
+      aria-live={live ? "polite" : undefined}
+      className="flex items-start gap-3 rounded-md border border-muted/30 bg-muted/10 p-4"
+    >
       <svg
         aria-hidden="true"
         viewBox="0 0 24 24"

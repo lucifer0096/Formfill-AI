@@ -7,6 +7,7 @@ import LinkButton from "@/components/ui/LinkButton";
 import Notice from "@/components/ui/Notice";
 import ProgressTrail from "@/components/ProgressTrail";
 import { loadIngestResult, PLACEHOLDER_FIELDS, saveIngestResult, type StoredIngest } from "@/lib/session-store";
+import { useRouteFocus } from "@/lib/use-route-focus";
 import type { Field, Form } from "@/lib/form-model/types";
 import type { TextBlock, TextLayerResult } from "@/lib/ingest/text-layer";
 
@@ -58,12 +59,18 @@ export default function ReviewFieldsPage() {
 }
 
 function ReviewFields({ fields }: { fields: Field[] }) {
+  const headingRef = useRouteFocus<HTMLHeadingElement>();
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
       <ProgressTrail current={2} />
 
       <section aria-labelledby="page-heading" tabIndex={0} className="mt-8 rounded-lg">
-        <h1 id="page-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          id="page-heading"
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-3xl font-bold tracking-tight sm:text-4xl focus-visible:outline-none"
+        >
           Review extracted fields
         </h1>
         <p className="mt-3 text-lg text-muted">
@@ -132,6 +139,7 @@ function ClassifyAndReview({ fileName, result }: { fileName: string; result: Tex
   const [status, setStatus] = useState<"loading" | "done" | "error">("loading");
   const [form, setForm] = useState<Form | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const loadingRef = useRouteFocus<HTMLParagraphElement>();
 
   useEffect(() => {
     let cancelled = false;
@@ -166,7 +174,13 @@ function ClassifyAndReview({ fileName, result }: { fileName: string; result: Tex
     return (
       <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <ProgressTrail current={2} />
-        <p className="mt-8 text-lg text-muted" role="status" aria-live="polite">
+        <p
+          ref={loadingRef}
+          tabIndex={-1}
+          role="status"
+          aria-live="polite"
+          className="mt-8 text-lg text-muted focus-visible:outline-none"
+        >
           Reading the questions on <strong>{fileName}</strong>…
         </p>
       </main>
@@ -191,6 +205,7 @@ function ExtractedText({
   result: TextLayerResult;
   errorMessage: string;
 }) {
+  const headingRef = useRouteFocus<HTMLHeadingElement>();
   const byPage = new Map<number, TextBlock[]>();
   for (const block of result.blocks) {
     const list = byPage.get(block.page) ?? [];
@@ -203,7 +218,12 @@ function ExtractedText({
       <ProgressTrail current={2} />
 
       <section aria-labelledby="page-heading" tabIndex={0} className="mt-8 rounded-lg">
-        <h1 id="page-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          id="page-heading"
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-3xl font-bold tracking-tight sm:text-4xl focus-visible:outline-none"
+        >
           Couldn&apos;t classify this form
         </h1>
         <p className="mt-3 text-lg text-muted">
@@ -256,11 +276,17 @@ function orderedText(blocks: TextBlock[]): string {
 }
 
 function NeedsVision({ fileName }: { fileName: string }) {
+  const headingRef = useRouteFocus<HTMLHeadingElement>();
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
       <ProgressTrail current={2} />
       <section aria-labelledby="page-heading" tabIndex={0} className="mt-8 rounded-lg">
-        <h1 id="page-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          id="page-heading"
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-3xl font-bold tracking-tight sm:text-4xl focus-visible:outline-none"
+        >
           Almost there
         </h1>
         <p className="mt-3 text-lg text-muted">
