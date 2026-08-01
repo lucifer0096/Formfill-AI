@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+/*
+ * Site palette. Fixed set — do not introduce ad-hoc colors elsewhere;
+ * reference these tokens (or the Tailwind utilities mapped below) instead.
+ *
+ * Measured contrast ratios (WCAG 2.2), against their paired background:
+ *   --accent-strong (#9A3412) on white background:  7.31:1  (AA + AAA, normal text)
+ *   --accent        (#D9480F) on black background:  4.88:1  (AA, normal text)
+ *   --accent        (#D9480F) on white background:  4.30:1  (AA large text / icons only)
+ *   --muted         (#6B7280) on white background:  4.83:1  (AA, normal text)
+ *   --foreground/--background (black/white):        21:1    (AAA)
+ * Role split: accent-strong carries orange TEXT on light backgrounds;
+ * accent carries orange TEXT on dark backgrounds. Swap which one is used
+ * as a fill/background so the paired text color keeps meeting AA.
+ */
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+  --accent: #d9480f;
+  --accent-strong: #9a3412;
+  --muted: #6b7280;
+  --border: #d9480f33;
+  --focus-ring: var(--accent-strong);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --font-sans: var(--font-atkinson-hyperlegible), var(--font-inter), Arial, "Segoe UI",
+    sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #000000;
+    --foreground: #ffffff;
+    --accent: #d9480f;
+    --accent-strong: #9a3412;
+    --muted: #9ca3af;
+    --border: #d9480f4d;
+    --focus-ring: var(--accent);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Visible, high-contrast focus indicator for every interactive element */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  z-index: 50;
+  background: var(--background);
+  color: var(--foreground);
+  padding: 0.75rem 1.25rem;
+  border: 2px solid var(--focus-ring);
+  border-radius: 4px;
+  font-weight: 700;
+  transition: top 0.2s ease-in-out;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+/*
+ * Home page layout. DOM order of the 4 direct children stays 1-2-3-4 (that's
+ * also the Tab order); this only changes where each one is drawn on md+
+ * screens: 1 (intro) and 2 (supported file types) stack in the left column,
+ * 3 (what happens next) sits beside them in the right column, 4 (upload
+ * workflow) spans the full width underneath. Below md everything is a single
+ * stacked column, so visual order and Tab order match exactly.
+ */
+@media (min-width: 768px) {
+  .session-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .session-grid > :nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .session-grid > :nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .session-grid > :nth-child(3) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .session-grid > :nth-child(4) {
+    grid-column: 1 / span 2;
+    grid-row: 3;
+  }
+}
