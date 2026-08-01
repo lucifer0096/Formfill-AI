@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FormFill — AI Integration (rahul branch)</title>
+<style>
+  :root {
+    --paper:      #F7F7F4;
+    --surface:    #FFFFFF;
+    --sunk:       #EDEEE9;
+    --ink:        #16181C;
+    --ink-soft:   #4C5158;
+    --ink-faint:  #7B8189;
+    --rule:       #DCDDD6;
+    --accent:     #1F4FD8;
+    --accent-bg:  #E7ECFB;
+    --guard:      #8A5A00;
+    --guard-bg:   #F7EEDC;
+    --built:      #2F6B47;
+    --built-bg:   #E2EEE7;
+
+    --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --rail: 4.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:     #0E1116;
+      --surface:   #161A21;
+      --sunk:      #1C212A;
+      --ink:       #E7EAEF;
+      --ink-soft:  #A9B0BA;
+      --ink-faint: #7C848F;
+      --rule:      #2A303A;
+      --accent:    #8FAEFF;
+      --accent-bg: #1A2340;
+      --guard:     #E0AC5B;
+      --guard-bg:  #302512;
+      --built:     #7FC79B;
+      --built-bg:  #172A1F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #0E1116;
+    --surface:   #161A21;
+    --sunk:      #1C212A;
+    --ink:       #E7EAEF;
+    --ink-soft:  #A9B0BA;
+    --ink-faint: #7C848F;
+    --rule:      #2A303A;
+    --accent:    #8FAEFF;
+    --accent-bg: #1A2340;
+    --guard:     #E0AC5B;
+    --guard-bg:  #302512;
+    --built:     #7FC79B;
+    --built-bg:  #172A1F;
+  }
+  :root[data-theme="light"] {
+    --paper:     #F7F7F4;
+    --surface:   #FFFFFF;
+    --sunk:      #EDEEE9;
+    --ink:       #16181C;
+    --ink-soft:  #4C5158;
+    --ink-faint: #7B8189;
+    --rule:      #DCDDD6;
+    --accent:    #1F4FD8;
+    --accent-bg: #E7ECFB;
+    --guard:     #8A5A00;
+    --guard-bg:  #F7EEDC;
+    --built:     #2F6B47;
+    --built-bg:  #E2EEE7;
+  }
+
+  * { box-sizing: border-box; }
+  html { font-size: 125%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-underline-offset: 0.15em; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap {
+    max-width: calc(var(--measure) + var(--rail) + 4rem);
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  /* ---- masthead ---- */
+  .mast {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 4rem 0 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mast h1 {
+    font-family: var(--f-display);
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.4rem;
+    text-wrap: balance;
+  }
+  .mast p {
+    margin: 0;
+    max-width: 34ch;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.9rem;
+  }
+  #themeToggle {
+    font: inherit;
+    font-size: 0.8rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: var(--surface);
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  /* ---- sections on a numbered rail ---- */
+  section {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    gap: 0 1.5rem;
+    padding: 3.5rem 0 0;
+  }
+  section > .num {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    padding-top: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+  section > .body { min-width: 0; display: flex; flex-direction: column; gap: 1.1rem; }
+  section > .body > * { margin: 0; }
+
+  h2 {
+    font-family: var(--f-display);
+    font-size: 1.85rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  p, li { max-width: var(--measure); }
+  ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.85em;
+    background: var(--sunk);
+    padding: 0.12em 0.35em;
+    border-radius: 3px;
+  }
+
+  .lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 60ch; }
+
+  /* ---- pipeline diagram ---- */
+  .pipe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: stretch;
+  }
+  .stage {
+    flex: 1 1 8rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.85rem 0.9rem;
+  }
+  .stage b {
+    display: block;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.35rem;
+  }
+  .stage span { font-size: 0.85rem; color: var(--ink-soft); }
+  .stage.core { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .stage.done { border-color: var(--built); box-shadow: inset 0 0 0 1px var(--built); }
+  .stage.done b { color: var(--built); }
+
+  /* ---- callouts ---- */
+  .note {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 1rem 1.15rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .note.guard { border-left-color: var(--guard); background: var(--guard-bg); }
+  .note.built { border-left-color: var(--built); background: var(--built-bg); }
+  .note b { font-family: var(--f-body); }
+
+  /* ---- module table ---- */
+  .scroll { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 34rem;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.8rem 0.6rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  td.mod { font-family: var(--f-mono); font-size: 0.82rem; white-space: nowrap; }
+  td.st { white-space: nowrap; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+  .tag.built  { color: var(--built); background: var(--built-bg); border-color: var(--built); }
+  .tag.todo   { color: var(--ink-soft); background: var(--sunk); border-color: var(--rule); }
+  .tag.later  { color: var(--ink-faint); background: transparent; border-color: var(--rule); }
+  .tag.guard  { color: var(--guard); background: var(--guard-bg); border-color: var(--guard); }
+
+  /* ---- code / shape blocks ---- */
+  pre {
+    font-family: var(--f-mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    margin: 0;
+  }
+  pre .c { color: var(--ink-faint); }
+  pre .k { color: var(--accent); }
+
+  /* ---- walkthrough steps ---- */
+  ol.steps {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    counter-reset: s;
+  }
+  ol.steps li {
+    counter-increment: s;
+    display: grid;
+    grid-template-columns: 1.9rem 1fr;
+    gap: 0.9rem;
+    max-width: var(--measure);
+  }
+  ol.steps li::before {
+    content: counter(s);
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    width: 1.9rem;
+    height: 1.9rem;
+    display: grid;
+    place-items: center;
+    margin-top: 0.15rem;
+  }
+  ol.steps li.done::before {
+    content: "✓";
+    color: var(--built);
+    border-color: var(--built);
+  }
+  ol.steps b { display: block; }
+  ol.steps span { color: var(--ink-soft); font-size: 0.95rem; }
+
+  /* ---- glossary ---- */
+  dl.gloss { display: flex; flex-direction: column; gap: 0.9rem; margin: 0; }
+  dl.gloss > div { max-width: var(--measure); }
+  dl.gloss dt { font-family: var(--f-mono); font-size: 0.85rem; color: var(--accent); }
+  dl.gloss dd { margin: 0.15rem 0 0; color: var(--ink-soft); font-size: 0.95rem; }
+
+  /* ---- questions / files ---- */
+  .qs { display: flex; flex-direction: column; gap: 0.9rem; }
+  .q {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.9rem 1.05rem;
+    max-width: var(--measure);
+  }
+  .q b { display: block; margin-bottom: 0.2rem; }
+  .q span { font-size: 0.92rem; color: var(--ink-soft); }
+
+  footer {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 46rem) {
+    :root { --rail: 0px; }
+    section { grid-template-columns: 1fr; gap: 0; }
+    section > .num { padding: 0 0 0.6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <p class="eyebrow">FormFill · rahul branch · AI integration log</p>
+      <h1>What's been built on the AI-integration side</h1>
+      <p>A working record of the ingest, classification and UI-wiring work done on <code>rahul</code>, and what's still open.</p>
+    </div>
+    <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
+  </header>
+
+  <section>
+    <div class="num">01</div>
+    <div class="body">
+      <h2>Scope of this branch</h2>
+      <p class="lede">Arya's <code>Arya</code> branch has the first page (upload) and the visual system. <code>rahul</code> branches off that and adds the four remaining session pages, plus a real pipeline behind them: a PDF goes in, and — for a growing set of cases — a set of classified questions comes out the other end.</p>
+      <div class="note">
+        <span><b>Not merged into <code>main</code> or <code>Arya</code>.</b> The team's existing <code>packages/*</code> on <code>main</code> (form-model, conversation engine, redact, validate) are the eventual source of truth for this logic, but reconciling this branch with them is deliberately deferred until the next sync with Nigel. Until then, the IR types here are hand-duplicated to match <code>main</code>'s shape, not imported.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">02</div>
+    <div class="body">
+      <h2>The pipeline, and how far it currently reaches</h2>
+      <p>A file dropped on the upload page moves through three possible paths, in order, exactly as <code>ARCHITECTURE.md</code> §5.1 describes it. The first two are fully built; the third is a named, honest placeholder.</p>
+
+      <div class="pipe" role="img" aria-label="Pipeline: AcroForm fast path, text-layer plus classification, and image path not yet built.">
+        <div class="stage done">
+          <b>1 · AcroForm</b>
+          <span>Real PDF form fields read directly with pdf-lib. No model call, no network. Exact fidelity.</span>
+        </div>
+        <div class="stage done">
+          <b>2 · Text-layer + classify</b>
+          <span>pdfjs-dist extracts text and position; OpenRouter turns it into labelled questions.</span>
+        </div>
+        <div class="stage">
+          <b>3 · Image / scan</b>
+          <span>Flagged as <code>needs-vision</code> when there's no text layer at all. Not implemented.</span>
+        </div>
+      </div>
+
+      <p>Two real forms were used to test this — a NZ patient enrolment form and an IRD KiwiSaver deduction form. Both turned out to have <strong>no AcroForm fields</strong>, which is the common case for real-world forms, not an edge case. Both correctly fell through to path 2.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">03</div>
+    <div class="body">
+      <h2>What each new file does</h2>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">File</th><th scope="col">What it does</th><th scope="col">State</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mod">lib/form-model/types.ts</td><td>The Form IR — mirrors <code>main</code>'s <code>packages/form-model</code> types by hand</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/acroform.ts</td><td>pdf-lib: reads real PDF form fields directly</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/text-layer.ts</td><td>pdfjs-dist: extracts text + position for flat PDFs</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/index.ts</td><td>Decides which of the three paths a file needs</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/openrouter/client.ts</td><td>Minimal OpenRouter chat-completions wrapper, server-side only</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/openrouter/classify.ts</td><td>Prompt + parsing: text blocks → sections and fields</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">app/api/understand/route.ts</td><td>The server route that calls the model. Key never reaches the browser</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/session-store.ts</td><td>Hands the ingest result and in-progress answers between pages via sessionStorage</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">app/review, /overview, /questions, /confirm</td><td>Read and write real session data instead of hardcoded arrays</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">OPENROUTER_API_KEY</td><td>Required for path 2's classification step to actually run</td><td class="st"><span class="tag guard">not set yet</span></td></tr>
+            <tr><td class="mod">Vision / OCR path</td><td>Scanned images and image-only PDFs</td><td class="st"><span class="tag todo">not started</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Without a key, path 2 doesn't fail silently — <code>/review</code> shows exactly what was read off the page as plain text, with a retry button, rather than pretending classification happened.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04</div>
+    <div class="body">
+      <h2>The shape the model has to produce</h2>
+      <p>The classification prompt in <code>classify.ts</code> asks the model to return sections and fields matching this shape — the same <code>Field</code> contract the rest of the app (and eventually <code>main</code>'s conversation engine) already expects.</p>
+
+<pre><span class="c">// src/lib/openrouter/classify.ts → src/lib/form-model/types.ts</span>
+Field {
+  <span class="k">label</span>        <span class="c">// VERBATIM from the source text. Never paraphrased.</span>
+  <span class="k">spokenLabel</span>  <span class="c">// plain-language rewrite, phrased as a question</span>
+  <span class="k">help</span>         <span class="c">// optional — only if the label alone isn't self-explanatory</span>
+  <span class="k">type</span>         <span class="c">// date | currency | choice | name | address | …</span>
+  <span class="k">required</span>     <span class="c">// boolean, best guess from the source text</span>
+  <span class="k">constraints</span>  <span class="c">// options[] for choice/multichoice fields</span>
+  <span class="k">confidence</span>   <span class="c">// 0..1 — the model's own honesty check, never faked high</span>
+  <span class="k">anchor</span>       <span class="c">// { region, page, rect } — flat-page anchor, no acroform to point to</span>
+}</pre>
+
+      <p>Low-confidence fields aren't hidden — <code>/review</code> tags anything under 0.5 as "uncertain, please confirm this one," the same pattern <code>main</code>'s <code>packages/conversation</code> already uses at the review gate.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">05</div>
+    <div class="body">
+      <h2>One form, end to end, today</h2>
+      <ol class="steps">
+        <li class="done"><b>Upload</b><span>File is picked or dropped. Nothing leaves the browser at this point.</span></li>
+        <li class="done"><b>Extract, locally</b><span>pdf-lib checks for AcroForm fields; if none, pdfjs-dist pulls text and position instead.</span></li>
+        <li class="done"><b>Classify, if needed</b><span>Only the extracted text (never the PDF file) is sent to <code>/api/understand</code>, which calls OpenRouter and returns a classified Form.</span></li>
+        <li class="done"><b>Review</b><span><code>/review</code> shows the detected questions with a confidence badge on each.</span></li>
+        <li class="done"><b>Overview → Answer → Confirm</b><span>The remaining three pages read the same stored Form and the user's actual answers — no more hardcoded sample data anywhere in the flow.</span></li>
+      </ol>
+      <div class="note built">
+        <span><b>What's genuinely new here</b> is that this is no longer four independent UI mockups. Upload a real form and the fields you see on every subsequent page are the ones actually read from that file.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">06</div>
+    <div class="body">
+      <h2>Deliberate gaps — not bugs</h2>
+      <div class="qs">
+        <div class="q"><b>No image/OCR path yet.</b><span>A scanned photo or image-only PDF is flagged <code>needs-vision</code> and told plainly it isn't supported yet, rather than silently failing or guessing.</span></div>
+        <div class="q"><b>Not reconciled with <code>main</code>'s <code>packages/*</code>.</b><span>The IR types are duplicated by hand, not imported, so this branch can build and demo independently. Reconciling is a team decision, deferred to the Nigel sync.</span></div>
+        <div class="q"><b>Model choice is hardcoded.</b><span><code>CLASSIFICATION_MODEL</code> in <code>client.ts</code> is fixed to one model for now, to prove the pipeline works before deciding on static-vs-dynamic model selection.</span></div>
+        <div class="q"><b>"Confirm and finish" doesn't do anything yet.</b><span>The review gate UI exists and correctly blocks on unheard answers, but there's no emit step (filled PDF, print overlay) behind it — that's downstream of this integration work.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Reflects the state of the <code>rahul</code> branch as of this commit. Where this page and <code>docs/ARCHITECTURE.md</code> on <code>main</code> disagree on the target design, <code>main</code> is the source of truth — this page only describes what's actually built here.</p>
+    <p>Follows the same visual language as <code>docs/OVERVIEW.html</code> on <code>main</code>: 20&nbsp;px base type, light and dark themes, no meaning carried by colour alone.</p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var root = document.documentElement;
+    var stored = null;
+    try { stored = localStorage.getItem('formfill-integration-theme'); } catch (e) {}
+    if (stored) { root.setAttribute('data-theme', stored); }
+
+    function isDark() {
+      var attr = root.getAttribute('data-theme');
+      if (attr) { return attr === 'dark'; }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function sync() {
+      var dark = isDark();
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.textContent = dark ? 'Light theme' : 'Dark theme';
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('formfill-integration-theme', next); } catch (e) {}
+      sync();
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>
