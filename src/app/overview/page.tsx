@@ -1,21 +1,32 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
 import LinkButton from "@/components/ui/LinkButton";
 import ProgressTrail from "@/components/ProgressTrail";
-
-/*
- * Placeholder data shaped like packages/form-model's Section[]. Once wired to
- * a real Form, this becomes a map over form.sections instead.
- */
-const SECTIONS = [
-  { title: "About you", fieldCount: 4 },
-  { title: "Your address", fieldCount: 3 },
-  { title: "Declaration", fieldCount: 1 },
-];
-
-const TOTAL_FIELDS = SECTIONS.reduce((sum, s) => sum + s.fieldCount, 0);
-const ESTIMATED_MINUTES = Math.max(2, Math.round(TOTAL_FIELDS * 0.6));
+import { loadWorkingForm } from "@/lib/session-store";
+import type { Section } from "@/lib/form-model/types";
 
 export default function FormOverviewPage() {
+  const [sections, setSections] = useState<Section[] | null>(null);
+
+  useEffect(() => {
+    setSections(loadWorkingForm().form.sections);
+  }, []);
+
+  if (!sections) {
+    return (
+      <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+        <p role="status" aria-live="polite" className="text-muted">
+          Loading…
+        </p>
+      </main>
+    );
+  }
+
+  const totalFields = sections.reduce((sum, s) => sum + s.fields.length, 0);
+  const estimatedMinutes = Math.max(2, Math.round(totalFields * 0.6));
+
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
       <ProgressTrail current={3} />
@@ -25,8 +36,9 @@ export default function FormOverviewPage() {
           Form overview
         </h1>
         <p className="mt-3 text-lg text-muted">
-          {SECTIONS.length} sections, {TOTAL_FIELDS} questions in total. This should take about{" "}
-          {ESTIMATED_MINUTES} minutes.
+          {sections.length} {sections.length === 1 ? "section" : "sections"}, {totalFields}{" "}
+          {totalFields === 1 ? "question" : "questions"} in total. This should take about{" "}
+          {estimatedMinutes} minutes.
         </p>
       </section>
 
@@ -35,8 +47,8 @@ export default function FormOverviewPage() {
           Sections
         </h2>
         <ol className="mt-5 space-y-4">
-          {SECTIONS.map((section, index) => (
-            <li key={section.title} className="flex items-center gap-4">
+          {sections.map((section, index) => (
+            <li key={section.id} className="flex items-center gap-4">
               <span
                 aria-hidden="true"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-muted text-sm font-bold"
@@ -44,9 +56,9 @@ export default function FormOverviewPage() {
                 {index + 1}
               </span>
               <span>
-                <span className="block font-semibold">{section.title}</span>
+                <span className="block font-semibold">{section.title ?? `Section ${index + 1}`}</span>
                 <span className="block text-sm text-muted">
-                  {section.fieldCount} {section.fieldCount === 1 ? "question" : "questions"}
+                  {section.fields.length} {section.fields.length === 1 ? "question" : "questions"}
                 </span>
               </span>
             </li>

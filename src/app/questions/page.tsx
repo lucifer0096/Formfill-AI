@@ -1,50 +1,57 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
 import ProgressTrail from "@/components/ProgressTrail";
-
-/*
- * Placeholder questions shaped like packages/form-model's Field. Once wired
- * up, this becomes packages/conversation's step()/initialState() driving a
- * real Form — this page only needs to render whatever Announcement[] the
- * engine produces and dispatch ConversationEvents back into it.
- */
-const QUESTIONS = [
-  {
-    id: "fullName",
-    spokenLabel: "What is your full name?",
-    help: "Enter your name exactly as it appears on official documents.",
-    required: true,
-  },
-  {
-    id: "dob",
-    spokenLabel: "What is your date of birth?",
-    help: "Use the format day, month, year.",
-    required: true,
-  },
-  {
-    id: "address",
-    spokenLabel: "What is your home address?",
-    help: "Include your street, city, and postcode.",
-    required: true,
-  },
-];
+import { loadAnswers, loadWorkingForm, saveAnswers } from "@/lib/session-store";
+import type { Field } from "@/lib/form-model/types";
 
 export default function QuestionsPage() {
+  const [fields, setFields] = useState<Field[] | null>(null);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showHelp, setShowHelp] = useState(false);
   const helpId = useId();
 
-  const field = QUESTIONS[index];
-  const isLast = index === QUESTIONS.length - 1;
+  useEffect(() => {
+    setFields(loadWorkingForm().form.sections.flatMap((s) => s.fields));
+    setAnswers(loadAnswers());
+  }, []);
+
+  if (!fields) {
+    return (
+      <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
+        <p role="status" aria-live="polite" className="text-muted">
+          Loading…
+        </p>
+      </main>
+    );
+  }
+
+  if (fields.length === 0) {
+    return (
+      <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
+        <ProgressTrail current={4} />
+        <p className="mt-8 text-lg text-muted">This form has no questions to answer.</p>
+        <div className="mt-8">
+          <LinkButton href="/overview" variant="secondary">
+            Back to overview
+          </LinkButton>
+        </div>
+      </main>
+    );
+  }
+
+  const field = fields[index];
+  const isLast = index === fields.length - 1;
   const value = answers[field.id] ?? "";
 
   function commitAndAdvance(nextValue: string) {
-    setAnswers((prev) => ({ ...prev, [field.id]: nextValue }));
+    const next = { ...answers, [field.id]: nextValue };
+    setAnswers(next);
+    saveAnswers(next);
     setShowHelp(false);
     if (!isLast) setIndex((i) => i + 1);
   }
@@ -54,7 +61,7 @@ export default function QuestionsPage() {
       <ProgressTrail current={4} />
 
       <p className="mt-8 text-sm font-medium text-muted" role="status" aria-live="polite">
-        Question {index + 1} of {QUESTIONS.length}
+        Question {index + 1} of {fields.length}
       </p>
 
       <Card as="section" aria-labelledby="question-heading" className="mt-4">
@@ -78,15 +85,13 @@ export default function QuestionsPage() {
             type="text"
             value={value}
             aria-describedby={showHelp ? helpId : undefined}
-            onChange={(event) =>
-              setAnswers((prev) => ({ ...prev, [field.id]: event.target.value }))
-            }
+            onChange={(event) => setAnswers((prev) => ({ ...prev, [field.id]: event.target.value }))}
             className="w-full rounded-md border-2 border-muted/40 bg-background px-4 py-3 text-lg focus-visible:outline-3 focus-visible:outline-accent-strong"
           />
 
           {showHelp && (
             <p id={helpId} role="status" className="mt-3 text-sm text-muted">
-              {field.help}
+              {field.help ?? `This is asking for: ${field.spokenLabel}`}
             </p>
           )}
 

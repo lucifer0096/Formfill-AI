@@ -1,26 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
 import Notice from "@/components/ui/Notice";
 import ProgressTrail from "@/components/ProgressTrail";
+import { loadAnswers, loadWorkingForm } from "@/lib/session-store";
+import type { Field } from "@/lib/form-model/types";
 
-/*
- * Placeholder answers. Once wired to packages/conversation, this page reads
- * the engine's AnswerSet and only enables Confirm after every answer has
- * actually been heard/displayed — see machine.ts's reviewHeard gate.
- */
-const ANSWERS = [
-  { label: "Full name", value: "Jordan Smith" },
-  { label: "Date of birth", value: "3rd of March 1990" },
-  { label: "Home address", value: "12 Elm Street, Springfield" },
-];
+interface ConfirmRow {
+  field: Field;
+  value: string;
+}
 
 export default function ConfirmPage() {
+  const [rows, setRows] = useState<ConfirmRow[] | null>(null);
   const [heard, setHeard] = useState<Set<string>>(new Set());
-  const allHeard = heard.size === ANSWERS.length;
+
+  useEffect(() => {
+    const fields = loadWorkingForm().form.sections.flatMap((s) => s.fields);
+    const answers = loadAnswers();
+    setRows(
+      fields.map((field) => ({
+        field,
+        value: answers[field.id]?.trim() ? answers[field.id] : "Not answered",
+      })),
+    );
+  }, []);
+
+  if (!rows) {
+    return (
+      <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+        <p role="status" aria-live="polite" className="text-muted">
+          Loading…
+        </p>
+      </main>
+    );
+  }
+
+  const allHeard = rows.length > 0 && heard.size === rows.length;
 
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
@@ -40,16 +59,16 @@ export default function ConfirmPage() {
           Your answers
         </h2>
         <ul className="divide-y divide-muted/20">
-          {ANSWERS.map((answer) => {
-            const isHeard = heard.has(answer.label);
+          {rows.map(({ field, value }) => {
+            const isHeard = heard.has(field.id);
             return (
               <li
-                key={answer.label}
+                key={field.id}
                 className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
               >
                 <div>
-                  <p className="font-medium">{answer.label}</p>
-                  <p className="text-sm text-muted">{answer.value}</p>
+                  <p className="font-medium">{field.spokenLabel}</p>
+                  <p className="text-sm text-muted">{value}</p>
                 </div>
                 <Button
                   type="button"
@@ -58,7 +77,7 @@ export default function ConfirmPage() {
                   onClick={() =>
                     setHeard((prev) => {
                       const next = new Set(prev);
-                      next.add(answer.label);
+                      next.add(field.id);
                       return next;
                     })
                   }
@@ -75,7 +94,7 @@ export default function ConfirmPage() {
         <Notice>
           {allHeard
             ? "All answers confirmed. You are ready to finish."
-            : `You have heard ${heard.size} of ${ANSWERS.length} answers. Read back every answer before confirming.`}
+            : `You have heard ${heard.size} of ${rows.length} answers. Read back every answer before confirming.`}
         </Notice>
       </div>
 
