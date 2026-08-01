@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Button from "@/components/ui/Button";
 import Notice from "@/components/ui/Notice";
@@ -7,6 +8,7 @@ import AccessibilityHighlights from "@/components/AccessibilityHighlights";
 import UploadDropzone from "@/components/upload/UploadDropzone";
 
 export default function UploadWorkflow() {
+  const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   return (
@@ -34,6 +36,7 @@ export default function UploadWorkflow() {
           variant="primary"
           disabled={!selectedFile}
           aria-describedby="continue-hint"
+          onClick={() => router.push("/review")}
         >
           Continue
         </Button>
