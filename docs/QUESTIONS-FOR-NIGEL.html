@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FormFill — Questions for Nigel</title>
+<style>
+  :root {
+    --paper:      #F7F7F4;
+    --surface:    #FFFFFF;
+    --sunk:       #EDEEE9;
+    --ink:        #16181C;
+    --ink-soft:   #4C5158;
+    --ink-faint:  #7B8189;
+    --rule:       #DCDDD6;
+    --accent:     #1F4FD8;
+    --accent-bg:  #E7ECFB;
+    --guard:      #8A5A00;
+    --guard-bg:   #F7EEDC;
+    --built:      #2F6B47;
+    --built-bg:   #E2EEE7;
+    --crit:       #B3261E;
+    --crit-bg:    #FBE9E7;
+
+    --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --rail: 4.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:     #0E1116;
+      --surface:   #161A21;
+      --sunk:      #1C212A;
+      --ink:       #E7EAEF;
+      --ink-soft:  #A9B0BA;
+      --ink-faint: #7C848F;
+      --rule:      #2A303A;
+      --accent:    #8FAEFF;
+      --accent-bg: #1A2340;
+      --guard:     #E0AC5B;
+      --guard-bg:  #302512;
+      --built:     #7FC79B;
+      --built-bg:  #172A1F;
+      --crit:      #FF8A80;
+      --crit-bg:   #3A1613;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #0E1116;
+    --surface:   #161A21;
+    --sunk:      #1C212A;
+    --ink:       #E7EAEF;
+    --ink-soft:  #A9B0BA;
+    --ink-faint: #7C848F;
+    --rule:      #2A303A;
+    --accent:    #8FAEFF;
+    --accent-bg: #1A2340;
+    --guard:     #E0AC5B;
+    --guard-bg:  #302512;
+    --built:     #7FC79B;
+    --built-bg:  #172A1F;
+    --crit:      #FF8A80;
+    --crit-bg:   #3A1613;
+  }
+  :root[data-theme="light"] {
+    --paper:     #F7F7F4;
+    --surface:   #FFFFFF;
+    --sunk:      #EDEEE9;
+    --ink:       #16181C;
+    --ink-soft:  #4C5158;
+    --ink-faint: #7B8189;
+    --rule:      #DCDDD6;
+    --accent:    #1F4FD8;
+    --accent-bg: #E7ECFB;
+    --guard:     #8A5A00;
+    --guard-bg:  #F7EEDC;
+    --built:     #2F6B47;
+    --built-bg:  #E2EEE7;
+    --crit:      #B3261E;
+    --crit-bg:   #FBE9E7;
+  }
+
+  * { box-sizing: border-box; }
+  html { font-size: 125%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-underline-offset: 0.15em; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap {
+    max-width: calc(var(--measure) + var(--rail) + 4rem);
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  .mast {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 4rem 0 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mast h1 {
+    font-family: var(--f-display);
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.4rem;
+    text-wrap: balance;
+  }
+  .mast p {
+    margin: 0;
+    max-width: 34ch;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.9rem;
+  }
+  #themeToggle {
+    font: inherit;
+    font-size: 0.8rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: var(--surface);
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  section {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    gap: 0 1.5rem;
+    padding: 3.5rem 0 0;
+  }
+  section > .num {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    padding-top: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+  section > .body { min-width: 0; display: flex; flex-direction: column; gap: 1.1rem; }
+  section > .body > * { margin: 0; }
+
+  h2 {
+    font-family: var(--f-display);
+    font-size: 1.85rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  p, li { max-width: var(--measure); }
+  ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.85em;
+    background: var(--sunk);
+    padding: 0.12em 0.35em;
+    border-radius: 3px;
+    overflow-wrap: break-word;
+  }
+
+  .lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 60ch; }
+
+  .note {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 1rem 1.15rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .note.guard { border-left-color: var(--guard); background: var(--guard-bg); }
+  .note.built { border-left-color: var(--built); background: var(--built-bg); }
+  .note b { font-family: var(--f-body); }
+
+  /* Question cards */
+  .q-list { display: flex; flex-direction: column; gap: 1rem; }
+  .q-card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .q-card b.question {
+    font-family: var(--f-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .q-card .context {
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--rule);
+  }
+  .q-card .context b { font-family: var(--f-body); color: var(--ink); }
+
+  footer {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 46rem) {
+    :root { --rail: 0px; }
+    section { grid-template-columns: 1fr; gap: 0; }
+    section > .num { padding: 0 0 0.6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <p class="eyebrow">FormFill · rahul branch · for Nigel</p>
+      <h1>Questions, grounded in what's actually built</h1>
+      <p>Not hypotheticals — every question below points at a real, specific decision or tradeoff already made on this branch.</p>
+    </div>
+    <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
+  </header>
+
+  <section>
+    <div class="num">01</div>
+    <div class="body">
+      <h2>Architecture &amp; reconciliation</h2>
+      <div class="q-list">
+        <div class="q-card">
+          <b class="question">Four of your packages (form-model, conversation, validate, redact) are now hand-copied into this branch with unmodified logic. Is that copy accurate enough to reconcile as a straight import, or has anything on <code>main</code> moved on since?</b>
+          <p class="context"><b>Why this matters:</b> the copies were made from a specific point-in-time read of <code>main</code>'s packages. If those have changed since, the merge isn't a simple "delete the copy, add the workspace dependency" swap.</p>
+        </div>
+        <div class="q-card">
+          <b class="question">This branch never imported <code>packages/*</code> as a real npm workspace dependency, by design, so it could build and demo independently of the monorepo. Is that still the right call, or should the next piece of work be wiring the workspace up properly instead of building more features on the hand-copy?</b>
+          <p class="context"><b>Why this matters:</b> every feature built from here forward either widens the gap to reconcile later, or gets built on top of code that's about to be replaced. Worth deciding which, deliberately.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">02</div>
+    <div class="body">
+      <h2>Model &amp; cost</h2>
+      <div class="q-list">
+        <div class="q-card">
+          <b class="question">Your architecture doc specifies calling Claude directly. This branch goes through OpenRouter instead, currently on a free-tier model, chosen specifically because cost isn't a concern for a hackathon demo. Is OpenRouter an acceptable long-term choice, or was Claude-direct a firmer requirement than "what we happened to use for the prototype"?</b>
+          <p class="context"><b>Why this matters:</b> switching back to Claude direct is a small code change but a real one, and it changes the pricing/latency tradeoffs documented in MODELS.html.</p>
+        </div>
+        <div class="q-card">
+          <b class="question">The free model has taken up to 75 seconds on a large real form during testing. Is that an acceptable ceiling for a real (non-demo) user, or does moving to a paid model need to happen before this goes anywhere beyond a hackathon context?</b>
+          <p class="context"><b>Why this matters:</b> this is a one-line swap technically, but a real budget decision, not something to default into silently.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">03</div>
+    <div class="body">
+      <h2>Privacy &amp; security</h2>
+      <div class="q-list">
+        <div class="q-card">
+          <b class="question">PII redaction (stripping names, emails, national ID numbers, etc. before any model call) has now been ported and verified working. Does the detector list need expanding for the jurisdictions you actually care about, beyond what's currently covered (UK/US patterns)?</b>
+          <p class="context"><b>Why this matters:</b> DESIGN.md's open questions section explicitly flags UK-vs-US jurisdiction as an undecided call that changes the PII detector, the validators, and the fixture set. This branch inherited whatever <code>main</code> already had, not a jurisdiction decision of its own.</p>
+        </div>
+        <div class="q-card">
+          <b class="question">A real OpenRouter API key was shared directly in a chat session during development and has been in active use since. Does it need rotating before this branch is treated as anything other than a private demo?</b>
+          <p class="context"><b>Why this matters:</b> low urgency for a hackathon, genuinely relevant the moment this becomes anything more permanent or gets a wider audience.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04</div>
+    <div class="body">
+      <h2>Scope &amp; sequencing</h2>
+      <div class="q-list">
+        <div class="q-card">
+          <b class="question">This branch built P1 and P2 of your roadmap (AcroForm PDFs, then flat PDFs/scans) before P0's conversation engine actually existed as its own thing, which has since been back-filled. Given that history, what should the next phase actually be: P2's remaining piece (image/OCR support), or should the priority be closing gaps against the P0/P1 definition of done first (autofill profile, screen-reader testing)?</b>
+          <p class="context"><b>Why this matters:</b> both are legitimate next steps and both are real work. Worth a team call on sequencing rather than continuing to build in whatever order testing happens to surface next.</p>
+        </div>
+        <div class="q-card">
+          <b class="question">Large real-world forms with repeated grids (a per-row property checklist, a per-person schedule) currently surface every individual cell as its own question, no grouping. Is this worth solving as its own piece of work, or is it acceptable to treat as a known edge case for now?</b>
+          <p class="context"><b>Why this matters:</b> it's not on your original roadmap at all, found only through testing against real government/legal PDFs. Worth deciding whether it's in scope before more effort goes toward it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Every question above is grounded in a specific, real decision or gap documented elsewhere in this branch's <code>docs/</code> folder. See <a href="ROADMAP.html">ROADMAP.html</a> for the full built/planned picture, <a href="KNOWN-ISSUES.html">KNOWN-ISSUES.html</a> for the complete risk list, and <a href="WHATS-NEW.html">WHATS-NEW.html</a> for everything added since the <code>Arya</code> branch point.</p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var root = document.documentElement;
+    var stored = null;
+    try { stored = localStorage.getItem('formfill-questions-theme'); } catch (e) {}
+    if (stored) { root.setAttribute('data-theme', stored); }
+
+    function isDark() {
+      var attr = root.getAttribute('data-theme');
+      if (attr) { return attr === 'dark'; }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function sync() {
+      var dark = isDark();
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.textContent = dark ? 'Light theme' : 'Dark theme';
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('formfill-questions-theme', next); } catch (e) {}
+      sync();
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>

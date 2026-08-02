@@ -37,6 +37,8 @@ If nothing has been uploaded this session (e.g. a page is opened directly), the 
 | [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) | Non-technical | Known risks and limitations, tested not guessed |
 | [`docs/WHATS-NEW.html`](docs/WHATS-NEW.html) | Non-technical | Summary of what's new since the `Arya` branch point, for review |
 | [`docs/ROADMAP.html`](docs/ROADMAP.html) | Non-technical | What's built vs planned vs P0-demo-worthy, checked against `main`'s roadmap |
+| [`docs/PRE-MEETING-CHECKLIST.html`](docs/PRE-MEETING-CHECKLIST.html) | Non-technical | What to build, verify, or decide before the next Nigel meeting |
+| [`docs/QUESTIONS-FOR-NIGEL.html`](docs/QUESTIONS-FOR-NIGEL.html) | Non-technical | Specific questions grounded in what's actually implemented, for his feedback |
 | [`docs/INTEGRATION.html`](docs/INTEGRATION.html) | Technical | The AI/PDF pipeline implementation, file by file |
 | [`docs/ACCESSIBILITY.html`](docs/ACCESSIBILITY.html) | Technical | Accessibility status against `main`'s normative spec, section by section |
 

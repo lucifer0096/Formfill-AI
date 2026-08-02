@@ -437,10 +437,14 @@
             <tr><td>Print-alignment overlay for flat/paper forms</td><td class="mod">P2 / P3</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Browser extension for live web-DOM forms</td><td class="mod">P4</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Speech synthesis / spoken mode (screen-reader detection + own voice)</td><td class="mod">P0 (per ACCESSIBILITY.md)</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Voice input: speak an answer, app transcribes and fills it in</td><td class="mod">not on <code>main</code>'s roadmap</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Field grouping for repeated grids/tables</td><td class="mod">not on <code>main</code>'s roadmap</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Real workspace merge with <code>main</code>'s packages</td><td class="mod">team decision</td><td><span class="tag guard">deferred, not forgotten</span></td></tr>
           </tbody>
         </table>
+      </div>
+      <div class="note guard">
+        <span><b>On voice input specifically:</b> <code>DESIGN.md</code> §6 already flags browser speech-to-text as a known-hard problem, because the built-in Web Speech API is cloud-backed (sends audio to Apple/Google) and inconsistent across browsers. The one option that could satisfy the "answers never leave the device" rule properly, rather than just disclosing around it, is an on-device model like Whisper running fully in the browser (via WASM/WebGPU, no server call). Real and buildable, but a substantial feature on its own: a multi-megabyte model download and cache on first use, real transcription latency on lower-end devices, and voice-activity detection to know when the user has stopped speaking, all before it even reaches the conversation engine. Scoped out for now rather than half-built.</span>
       </div>
     </div>
   </section>
