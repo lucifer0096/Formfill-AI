@@ -387,7 +387,7 @@
       <h2>Scope of this branch</h2>
       <p class="lede">Arya's <code>Arya</code> branch has the first page (upload) and the visual system. <code>rahul</code> branches off that and adds the four remaining session pages, plus a real pipeline behind them: a PDF goes in, and — for a growing set of cases — a set of classified questions comes out the other end.</p>
       <div class="note">
-        <span><b>Not merged into <code>main</code> or <code>Arya</code>.</b> The team's existing <code>packages/*</code> on <code>main</code> (form-model, conversation engine, redact, validate) are the eventual source of truth for this logic, but reconciling this branch with them is deliberately deferred until the next sync with Nigel. Until then, the IR types here are hand-duplicated to match <code>main</code>'s shape, not imported.</span>
+        <span><b>Not merged into <code>main</code> or <code>Arya</code>.</b> The team's existing <code>packages/*</code> on <code>main</code> are the eventual source of truth for this logic, but reconciling this branch with them (a real npm workspace import, not a copy) is deliberately deferred until the next sync with Nigel. Until then, <code>form-model</code>, <code>conversation</code>, <code>validate</code>, and <code>redact</code> are all hand-ported here, unmodified logic, matching <code>main</code>'s shape rather than importing it.</span>
       </div>
     </div>
   </section>
@@ -432,8 +432,14 @@
           </thead>
           <tbody>
             <tr><td class="mod">lib/form-model/types.ts</td><td>The Form IR — mirrors <code>main</code>'s <code>packages/form-model</code> types by hand</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/ingest/acroform.ts</td><td>pdf-lib: reads real PDF form fields directly</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/ingest/text-layer.ts</td><td>pdfjs-dist: extracts text + position for flat PDFs</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/form-model/traverse.ts</td><td>Skip-logic evaluation, applicable/outstanding/needs-attention field lookups — ported from <code>main</code>'s <code>packages/form-model</code></td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/conversation/machine.ts</td><td>The pure conversation state machine (ask, skip, review, confirm), ported from <code>main</code>'s <code>packages/conversation</code>, unmodified logic</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/conversation/announce.ts</td><td>Turns engine state into spoken-style text — question phrasing, value read-back, review-line summaries</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/validate/index.ts</td><td>Locale-aware field validation (dates, postcodes, National Insurance numbers, etc.), ported from <code>main</code>'s <code>packages/validate</code></td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/acroform.ts</td><td>pdf-lib: reads real PDF form fields directly, covers every field kind pdf-lib exposes (text, checkbox, radio, dropdown, multi-select, signature), excludes push buttons</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/acroform-position.ts</td><td>Resolves each AcroForm field's on-page position via pdf-lib's widget /P and /Rect</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/nearby-text.ts</td><td>Finds the text layer text physically next to a field (left, right for small boxes, or above) to use as its label when the field's own internal name is meaningless</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/text-layer.ts</td><td>pdfjs-dist: extracts text + position for flat PDFs, also reused by the AcroForm path for label detection</td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">lib/ingest/index.ts</td><td>Decides which of the three paths a file needs</td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">lib/redact/detectors.ts</td><td>PII pattern matching (names, emails, national ID numbers, addresses, etc.), ported from <code>main</code>'s <code>packages/redact</code></td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">lib/redact/index.ts</td><td>Replaces detected PII with typed placeholders before the model call, restores real values in the response afterward, locally</td><td class="st"><span class="tag built">done</span></td></tr>
@@ -448,6 +454,7 @@
             <tr><td class="mod">OPENROUTER_API_KEY</td><td>Set locally and on the live deployment; required for path 2's classification step to run</td><td class="st"><span class="tag built">set</span></td></tr>
             <tr><td class="mod">Vision / OCR path</td><td>Scanned images and image-only PDFs</td><td class="st"><span class="tag todo">not started</span></td></tr>
             <tr><td class="mod">Print overlay / drawn-answer emit</td><td>Drawing answers onto a flat PDF at their original position, instead of a separate summary document</td><td class="st"><span class="tag todo">not started</span></td></tr>
+            <tr><td class="mod">Field grouping for repeated grids</td><td>Large forms with per-row checkbox grids (e.g. a property inspection table) surface every cell as its own question — no grouping heuristic yet</td><td class="st"><span class="tag todo">not started</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -462,7 +469,7 @@
     <div class="num">04</div>
     <div class="body">
       <h2>The shape the model has to produce</h2>
-      <p>The classification prompt in <code>classify.ts</code> asks the model to return sections and fields matching this shape — the same <code>Field</code> contract the rest of the app (and eventually <code>main</code>'s conversation engine) already expects.</p>
+      <p>The classification prompt in <code>classify.ts</code> asks the model to return sections and fields matching this shape — the same <code>Field</code> contract the rest of the app, including the conversation engine now ported into this branch, already expects.</p>
 
 <pre><span class="c">// src/lib/openrouter/classify.ts → src/lib/form-model/types.ts</span>
 Field {
@@ -476,7 +483,7 @@ Field {
   <span class="k">anchor</span>       <span class="c">// { region, page, rect } — flat-page anchor, no acroform to point to</span>
 }</pre>
 
-      <p>Low-confidence fields aren't hidden — <code>/review</code> tags anything under 0.5 as "uncertain, please confirm this one," the same pattern <code>main</code>'s <code>packages/conversation</code> already uses at the review gate.</p>
+      <p>Low-confidence fields aren't hidden — <code>/review</code> tags anything under 0.5 as "uncertain, please confirm this one," and the conversation engine surfaces the same signal again at the review gate on <code>/confirm</code>.</p>
     </div>
   </section>
 

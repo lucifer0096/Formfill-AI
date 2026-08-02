@@ -399,7 +399,7 @@
       </div>
 
       <div class="note guard">
-        <span><b>Suspended while typing.</b> §3 calls out "the app ate my typing" as the classic bug here — these single-key commands are disabled the moment focus is inside the answer <code>&lt;input&gt;</code>, checked directly against the event target rather than a global mode flag.</span>
+        <span><b>Suspended while typing.</b> §3 calls out "the app ate my typing" as the classic bug here — these single-key commands are disabled the moment focus is inside any <code>&lt;input&gt;</code> or <code>&lt;textarea&gt;</code>, checked directly against the event target rather than a global mode flag. This check is by tag name, not input type, so it also suspends single-key commands while focus is on a checkbox or radio button (e.g. answering a Yes/No question) — overly cautious there since no text is being typed, but consistent and never wrong in the direction that matters.</span>
       </div>
 
       <p>The remaining pages (<code>/review</code>, <code>/overview</code>, <code>/confirm</code>) don't yet have the global <kbd>R</kbd> (jump to review) or <kbd>L</kbd> (verbatim label) commands from §3's global table — see §4.</p>

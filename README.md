@@ -13,8 +13,8 @@ This branch builds on [Arya](https://github.com/lucifer0096/Hackathon-AI/tree/Ar
 | `/` | Upload a form (PDF, PNG, or JPG) |
 | `/review` | Review the fields detected on the form |
 | `/overview` | See the form's sections and estimated completion time |
-| `/questions` | Answer questions one field at a time |
-| `/confirm` | Mandatory read-back of every answer, then download the finished document |
+| `/questions` | Answer questions one field at a time, skipping any that don't apply |
+| `/confirm` | Mandatory read-back of every answer (hear one twice to override), then download the finished document |
 | `/help` | How a form session works, keyboard shortcuts, FAQ |
 | `/accessibility` | What's supported today and what's still in progress |
 
@@ -57,6 +57,8 @@ npm run lint    # eslint
 ## Stack
 
 Next.js (App Router, Turbopack) · React · Tailwind CSS · Atkinson Hyperlegible font for readability · `pdf-lib` + `pdfjs-dist` for client-side PDF parsing · OpenRouter for form classification.
+
+The Answer/Confirm flow runs on a pure conversation-engine reducer ported from `main`'s `packages/conversation`, `form-model`, and `validate` (unmodified logic, hand-copied until this branch is reconciled with the workspace) — real skip-logic, locale-aware validation, and a two-step review gate instead of a simpler independent implementation.
 
 Classification currently runs on a free OpenRouter model (`nvidia/nemotron-3-super-120b-a12b:free`), a deliberate choice for a hackathon demo where cost isn't a concern. See [`docs/MODELS.html`](docs/MODELS.html) for the reasoning and paid alternatives, and [`docs/RISKS.html`](docs/RISKS.html) for the reliability tradeoff (occasional slowness on large forms).
 

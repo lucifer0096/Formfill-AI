@@ -360,6 +360,14 @@
           </div>
           <p>Text extracted from flat forms was sent to the classification model as-is, with no check for names, emails, national ID numbers, or similar personal details it might contain. Fixed by porting the same detection logic the team's shared codebase already uses, and confirmed by inspecting the exact text sent to the model during testing: real names and email addresses were replaced with placeholders before leaving the server.</p>
         </div>
+
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Checkboxes on real PDFs showed as a text box, and field labels were meaningless</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>Testing against a real government form with real fillable fields surfaced two separate bugs: checkboxes and multiple-choice fields rendered as a free-text box instead of something you tick, and on a form whose fields were auto-named by whatever tool built it (things like "001", "002"), those meaningless internal names were shown as the question itself. Fixed by rendering the right control per field type, and by finding the actual label text printed next to each field on the page (no AI model involved — a local, position-based lookup) instead of relying on the field's internal name.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -381,7 +389,14 @@
             <b>Not yet reconciled with the team's shared code (<code>main</code> branch)</b>
             <span class="sev low">Known gap</span>
           </div>
-          <p>This branch was built independently to move quickly for the hackathon. It isn't yet connected to the shared engine code Nigel's team built on <code>main</code>. That reconciliation is intentionally scheduled for after the next team sync, not something skipped by accident.</p>
+          <p>This branch was built independently to move quickly for the hackathon. Four of <code>main</code>'s engine packages (form-model, conversation, validate, redact) have since been ported over with their logic unmodified, so the two branches now behave the same way in those areas — but this is still a hand-copy, not a real npm workspace import, so a genuine merge is intentionally scheduled for after the next team sync, not something skipped by accident.</p>
+        </div>
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Large forms with repeated grids surface every cell as its own question</b>
+            <span class="sev low">Known gap</span>
+          </div>
+          <p>A form built as a table (e.g. a per-room property condition checklist, or a per-person schedule) has no concept of "this is one row" in the current field model — every individual box shows up as a separate question in the flow. Real for genuinely large government/legal forms; no grouping heuristic has been built for it yet.</p>
         </div>
         <div class="risk low">
           <div class="risk-head">
