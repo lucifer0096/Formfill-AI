@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FormFill — Project Scope &amp; P0 Demo Plan</title>
+<style>
+  :root {
+    --paper:      #F7F7F4;
+    --surface:    #FFFFFF;
+    --sunk:       #EDEEE9;
+    --ink:        #16181C;
+    --ink-soft:   #4C5158;
+    --ink-faint:  #7B8189;
+    --rule:       #DCDDD6;
+    --accent:     #1F4FD8;
+    --accent-bg:  #E7ECFB;
+    --guard:      #8A5A00;
+    --guard-bg:   #F7EEDC;
+    --built:      #2F6B47;
+    --built-bg:   #E2EEE7;
+    --crit:       #B3261E;
+    --crit-bg:    #FBE9E7;
+
+    --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --rail: 4.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:     #0E1116;
+      --surface:   #161A21;
+      --sunk:      #1C212A;
+      --ink:       #E7EAEF;
+      --ink-soft:  #A9B0BA;
+      --ink-faint: #7C848F;
+      --rule:      #2A303A;
+      --accent:    #8FAEFF;
+      --accent-bg: #1A2340;
+      --guard:     #E0AC5B;
+      --guard-bg:  #302512;
+      --built:     #7FC79B;
+      --built-bg:  #172A1F;
+      --crit:      #FF8A80;
+      --crit-bg:   #3A1613;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #0E1116;
+    --surface:   #161A21;
+    --sunk:      #1C212A;
+    --ink:       #E7EAEF;
+    --ink-soft:  #A9B0BA;
+    --ink-faint: #7C848F;
+    --rule:      #2A303A;
+    --accent:    #8FAEFF;
+    --accent-bg: #1A2340;
+    --guard:     #E0AC5B;
+    --guard-bg:  #302512;
+    --built:     #7FC79B;
+    --built-bg:  #172A1F;
+    --crit:      #FF8A80;
+    --crit-bg:   #3A1613;
+  }
+  :root[data-theme="light"] {
+    --paper:     #F7F7F4;
+    --surface:   #FFFFFF;
+    --sunk:      #EDEEE9;
+    --ink:       #16181C;
+    --ink-soft:  #4C5158;
+    --ink-faint: #7B8189;
+    --rule:      #DCDDD6;
+    --accent:    #1F4FD8;
+    --accent-bg: #E7ECFB;
+    --guard:     #8A5A00;
+    --guard-bg:  #F7EEDC;
+    --built:     #2F6B47;
+    --built-bg:  #E2EEE7;
+    --crit:      #B3261E;
+    --crit-bg:   #FBE9E7;
+  }
+
+  * { box-sizing: border-box; }
+  html { font-size: 125%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-underline-offset: 0.15em; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap {
+    max-width: calc(var(--measure) + var(--rail) + 4rem);
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  .mast {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 4rem 0 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mast h1 {
+    font-family: var(--f-display);
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.4rem;
+    text-wrap: balance;
+  }
+  .mast p {
+    margin: 0;
+    max-width: 34ch;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.9rem;
+  }
+  #themeToggle {
+    font: inherit;
+    font-size: 0.8rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: var(--surface);
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  section {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    gap: 0 1.5rem;
+    padding: 3.5rem 0 0;
+  }
+  section > .num {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    padding-top: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+  section > .body { min-width: 0; display: flex; flex-direction: column; gap: 1.1rem; }
+  section > .body > * { margin: 0; }
+
+  h2 {
+    font-family: var(--f-display);
+    font-size: 1.85rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  p, li { max-width: var(--measure); }
+  ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.85em;
+    background: var(--sunk);
+    padding: 0.12em 0.35em;
+    border-radius: 3px;
+    overflow-wrap: break-word;
+  }
+
+  .lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 60ch; }
+
+  .note {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 1rem 1.15rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .note.guard { border-left-color: var(--guard); background: var(--guard-bg); }
+  .note.built { border-left-color: var(--built); background: var(--built-bg); }
+  .note b { font-family: var(--f-body); }
+
+  .scroll { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 32rem;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.8rem 0.6rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  td.mod { font-family: var(--f-mono); font-size: 0.82rem; white-space: nowrap; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .tag.built  { color: var(--built); background: var(--built-bg); border-color: var(--built); }
+  .tag.todo   { color: var(--ink-soft); background: var(--sunk); border-color: var(--rule); }
+  .tag.guard  { color: var(--guard); background: var(--guard-bg); border-color: var(--guard); }
+  .tag.cut    { color: var(--crit); background: var(--crit-bg); border-color: var(--crit); }
+
+  /* Scope grid — the "what's built / planned / P0-worthy" cards */
+  .scope-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1rem;
+  }
+  .scope-card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left-width: 4px;
+    border-radius: 0 6px 6px 0;
+    padding: 1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .scope-card.built { border-left-color: var(--built); }
+  .scope-card.partial { border-left-color: var(--guard); }
+  .scope-card.todo { border-left-color: var(--ink-faint); }
+  .scope-card b { font-size: 0.98rem; }
+  .scope-card span { font-size: 0.88rem; color: var(--ink-soft); }
+
+  ol.steps {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    counter-reset: s;
+  }
+  ol.steps li {
+    counter-increment: s;
+    display: grid;
+    grid-template-columns: 1.9rem minmax(0, 1fr);
+    gap: 0.9rem;
+    max-width: var(--measure);
+  }
+  ol.steps li > span,
+  ol.steps li > b {
+    grid-column: 2;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  ol.steps li::before {
+    content: counter(s);
+    grid-column: 1;
+    grid-row: 1 / -1;
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    width: 1.9rem;
+    height: 1.9rem;
+    display: grid;
+    place-items: center;
+    margin-top: 0.15rem;
+  }
+  ol.steps li.done::before {
+    content: "✓";
+    color: var(--built);
+    border-color: var(--built);
+  }
+  ol.steps b { display: block; }
+  ol.steps span { color: var(--ink-soft); font-size: 0.95rem; }
+
+  footer {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 46rem) {
+    :root { --rail: 0px; }
+    section { grid-template-columns: 1fr; gap: 0; }
+    section > .num { padding: 0 0 0.6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <p class="eyebrow">FormFill · rahul branch · scope for review</p>
+      <h1>What's built, what's planned, and what the P0 demo should show</h1>
+      <p>A single picture of scope, checked against <code>main</code>'s own roadmap, not a guess at what "done" means.</p>
+    </div>
+    <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
+  </header>
+
+  <section>
+    <div class="num">01</div>
+    <div class="body">
+      <h2>How to read this</h2>
+      <p class="lede">Three separate questions, often blurred together: what actually works today, what the project's own design docs call for eventually, and what's actually worth putting in front of someone at a demo. This page keeps those three apart on purpose.</p>
+      <div class="note">
+        <span><b>Source of truth:</b> <code>main</code>'s <code>docs/DESIGN.md</code> §7 defines the roadmap as five phases, P0 through P4. This branch (<code>rahul</code>) was built independently and doesn't map onto those phases in strict order. It jumped straight to a working P1/P2 slice (real PDFs, both AcroForm and flat) without first building P0's standalone conversation engine on fixture forms, then back-filled P0's actual engine once the gap was noticed. That history is why the sections below are organised by capability, not by phase number.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">02</div>
+    <div class="body">
+      <h2>What's genuinely working today</h2>
+      <p>Verified by testing against real PDFs, not just by reading the code. Each of these has been exercised end to end at least once with real input.</p>
+
+      <div class="scope-grid">
+        <div class="scope-card built">
+          <b>AcroForm PDF reading</b>
+          <span>Real fillable-field PDFs are read directly via pdf-lib. Every field kind (text, checkbox, radio, dropdown, multi-select, signature), instant, no model call.</span>
+        </div>
+        <div class="scope-card built">
+          <b>AcroForm label detection</b>
+          <span>When a field's own internal name is meaningless (common on auto-generated PDFs), the label physically printed next to it on the page is found instead, using the same text-layer extraction as the flat-PDF path. Local heuristic, no model.</span>
+        </div>
+        <div class="scope-card built">
+          <b>Flat-PDF text extraction + classification</b>
+          <span>PDFs with no real fields have their text and position extracted locally, then turned into plain-language questions by a model call, the one place in the app a network request happens.</span>
+        </div>
+        <div class="scope-card built">
+          <b>PII redaction before every model call</b>
+          <span>Names, emails, national ID numbers, addresses, and similar are stripped and replaced with placeholders before the classification request leaves the device, restored locally afterward. Fail-closed: if redaction itself fails, the call is aborted.</span>
+        </div>
+        <div class="scope-card built">
+          <b>Conversation engine</b>
+          <span>A pure state-machine reducer (ported from <code>main</code>'s own <code>packages/conversation</code>) drives Answer and Confirm: real skip-logic, a two-step review gate, consistent spoken-style value formatting.</span>
+        </div>
+        <div class="scope-card built">
+          <b>Document output</b>
+          <span>Confirming produces a real download: a genuinely filled, flattened PDF for AcroForm uploads, or a question/answer summary PDF for classified ones.</span>
+        </div>
+        <div class="scope-card built">
+          <b>Accessibility fundamentals</b>
+          <span>Keyboard-only navigation, single-key commands in the Answer flow, focus management on every route/question change, <code>aria-live</code> regions, skip-to-content. Checked section by section against <code>main</code>'s normative spec; see ACCESSIBILITY.html for the honest gap list.</span>
+        </div>
+        <div class="scope-card built">
+          <b>Live deployment</b>
+          <span>Deployed and redeployed after every change; testable by anyone at a public URL, not just locally.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">03</div>
+    <div class="body">
+      <h2>Working, but with a known limitation</h2>
+      <div class="scope-grid">
+        <div class="scope-card partial">
+          <b>Large forms with repeated grids</b>
+          <span>A per-row checklist (e.g. a property inspection table) has no "this is one row" concept yet, so every cell surfaces as its own question. Fine for most forms; a real problem on a few of the largest real-world ones tested.</span>
+        </div>
+        <div class="scope-card partial">
+          <b>Free-tier classification model</b>
+          <span>Deliberately chosen for a $0 hackathon demo. Can be slow (up to 75s on a large form) or occasionally rate-limited. A one-line swap to a paid model removes this; see MODELS.html.</span>
+        </div>
+        <div class="scope-card partial">
+          <b>Emit for flat forms is a summary, not a marked-up copy</b>
+          <span>No coordinate data exists yet to draw an answer back onto a flat PDF at its original position, so the download is a clean question/answer summary document instead. Honest, but not what DESIGN.md §4.5 ultimately describes for this case (a print-alignment overlay).</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04</div>
+    <div class="body">
+      <h2>Not started</h2>
+      <p>Real gaps against <code>main</code>'s own roadmap. Nothing here is secretly half-done.</p>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Capability</th><th scope="col">Roadmap phase</th><th scope="col">Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Image / scanned-form support (OCR or vision model)</td><td class="mod">P2</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Local autofill profile (name/address/DOB remembered across forms)</td><td class="mod">P1</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Camera capture with audio framing guidance</td><td class="mod">P3</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Print-alignment overlay for flat/paper forms</td><td class="mod">P2 / P3</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Browser extension for live web-DOM forms</td><td class="mod">P4</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Speech synthesis / spoken mode (screen-reader detection + own voice)</td><td class="mod">P0 (per ACCESSIBILITY.md)</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Field grouping for repeated grids/tables</td><td class="mod">not on <code>main</code>'s roadmap</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Real workspace merge with <code>main</code>'s packages</td><td class="mod">team decision</td><td><span class="tag guard">deferred, not forgotten</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">05</div>
+    <div class="body">
+      <h2>Recommendation: what the P0 demo should actually show</h2>
+      <p class="lede">The goal of a demo is a clean story, not a feature count. Everything below is either strong enough to show as-is, or strong enough to show <em>with a caveat said out loud</em>; nothing here needs to be hidden or apologised for.</p>
+
+      <ol class="steps">
+        <li class="done">
+          <b>Upload a real AcroForm PDF (a genuine fillable government form)</b>
+          <span>The strongest path end to end: instant local reading, real labels found even when the PDF's own field names are meaningless, every field type rendered correctly, a genuinely filled PDF downloaded at the end. No caveats needed.</span>
+        </li>
+        <li class="done">
+          <b>Upload a flat/scanned-text PDF as a second example</b>
+          <span>Shows the AI piece specifically: plain-language questions generated from officialese, PII redaction happening invisibly, low-confidence fields honestly flagged. Say the model is a free tier for cost reasons, note it can be slower.</span>
+        </li>
+        <li class="done">
+          <b>Walk the Answer flow with keyboard only</b>
+          <span>N/P/Space/H/S single-key commands, focus always landing on the new question. This is the accessibility story, and it's real. Don't just describe it, drive it live.</span>
+        </li>
+        <li class="done">
+          <b>Trigger the review gate deliberately</b>
+          <span>Try to confirm without reading every answer back first, show the exact "you haven't heard N of M" message, then confirm again to demonstrate the expert override. This single moment demonstrates the whole product thesis from DESIGN.md §3.5 ("nothing is submitted without read-back").</span>
+        </li>
+      </ol>
+
+      <h3>Worth mentioning, not worth demoing live</h3>
+      <ul>
+        <li><strong>PII redaction</strong> is real and load-bearing, but invisible by design. Say it happens; don't try to visually prove it mid-demo (the earlier proof was inspecting server logs, not something to reproduce live).</li>
+        <li><strong>The free-model latency risk</strong>: test the actual demo form against the live deployment beforehand. If it's borderline, either switch that one form for a smaller one, or be ready to narrate "usually a few seconds" while it loads.</li>
+      </ul>
+
+      <h3>Recommend leaving out entirely</h3>
+      <ul>
+        <li><strong>A very large form with repeated grids</strong> (like the residential tenancy agreement used in testing): the "every cell is its own question" gap is real and would derail the demo's pacing. Save it for a "here's what we're tackling next" slide instead, framed as a known scope decision, not a bug.</li>
+        <li><strong>An image or photo of a form</strong> is currently a dead end (correctly flagged, but a dead end). Don't open the door to "what about photos" unless asked.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p>Built from a direct read of <code>main</code>'s <code>docs/DESIGN.md</code> §5-7 and every status doc in this branch's own <code>docs/</code> folder. See <a href="INTEGRATION.html">INTEGRATION.html</a> for file-level detail, <a href="RISKS.html">RISKS.html</a> for the full known-issues list, and <a href="CHANGELOG-VS-MAIN.html">CHANGELOG-VS-MAIN.html</a> for what's new since the <code>Arya</code> branch point.</p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var root = document.documentElement;
+    var stored = null;
+    try { stored = localStorage.getItem('formfill-scope-theme'); } catch (e) {}
+    if (stored) { root.setAttribute('data-theme', stored); }
+
+    function isDark() {
+      var attr = root.getAttribute('data-theme');
+      if (attr) { return attr === 'dark'; }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function sync() {
+      var dark = isDark();
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.textContent = dark ? 'Light theme' : 'Dark theme';
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('formfill-scope-theme', next); } catch (e) {}
+      sync();
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>

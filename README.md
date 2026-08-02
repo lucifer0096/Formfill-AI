@@ -36,6 +36,7 @@ If nothing has been uploaded this session (e.g. a page is opened directly), the 
 | [`docs/MODELS.html`](docs/MODELS.html) | Non-technical | AI model choice and live OpenRouter pricing |
 | [`docs/RISKS.html`](docs/RISKS.html) | Non-technical | Known risks and limitations, tested not guessed |
 | [`docs/CHANGELOG-VS-MAIN.html`](docs/CHANGELOG-VS-MAIN.html) | Non-technical | Summary of what's new since the `Arya` branch point, for review |
+| [`docs/SCOPE.html`](docs/SCOPE.html) | Non-technical | What's built vs planned vs P0-demo-worthy, checked against `main`'s roadmap |
 | [`docs/INTEGRATION.html`](docs/INTEGRATION.html) | Technical | The AI/PDF pipeline implementation, file by file |
 | [`docs/ACCESSIBILITY.html`](docs/ACCESSIBILITY.html) | Technical | Accessibility status against `main`'s normative spec, section by section |
 
