@@ -1,7 +1,6 @@
 const FEATURES = [
   "Keyboard-first navigation",
   "Works with screen readers",
-  "Optional text-to-speech support",
 ];
 
 export default function AccessibilityHighlights() {
