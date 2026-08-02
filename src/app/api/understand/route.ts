@@ -7,7 +7,14 @@ import type { TextBlock } from "@/lib/ingest/text-layer";
  * fields, plain-language labels). See docs/ARCHITECTURE.md §5.1 and §9 on
  * `main` — stateless, no payload logging, the raw PDF never reaches this
  * route (only its extracted text does; extraction happens client-side).
+ *
+ * The free-tier classification model can take 20–75s on a large real form
+ * (observed on a 30+ field enrolment PDF) — well past Vercel's Hobby-plan
+ * default serverless timeout (10s). 60 is the actual max Hobby allows;
+ * this doesn't guarantee success on the biggest forms but removes the
+ * platform default as the limiting factor.
  */
+export const maxDuration = 60;
 export async function POST(request: Request) {
   let body: { blocks: TextBlock[]; fileName: string; pageCount: number };
   try {
