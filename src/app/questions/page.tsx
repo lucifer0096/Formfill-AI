@@ -18,8 +18,20 @@ const KEY_ACTIONS = new Set(["n", "p", " ", "h", "s"]);
 
 const noopSubscribe = () => () => {};
 
+// Memoized on the underlying Form's identity (loadWorkingForm/loadIngestResult
+// are themselves cached in session-store.ts and return a stable reference
+// when nothing changed). Without this, .flatMap() below would allocate a new
+// array on every call, and useSyncExternalStore requires getSnapshot to
+// return a stable reference across calls or React re-renders forever — see
+// the comment in session-store.ts's loadIngestResult for the full story.
+let fieldsCache: { form: unknown; fields: Field[] } | null = null;
+
 function readFields(): Field[] {
-  return loadWorkingForm().form.sections.flatMap((s) => s.fields);
+  const { form } = loadWorkingForm();
+  if (fieldsCache && fieldsCache.form === form) return fieldsCache.fields;
+  const fields = form.sections.flatMap((s) => s.fields);
+  fieldsCache = { form, fields };
+  return fields;
 }
 
 export default function QuestionsPage() {

@@ -17,13 +17,26 @@ interface ConfirmRow {
 
 const noopSubscribe = () => () => {};
 
+// useSyncExternalStore requires getSnapshot to return a stable reference
+// across calls when nothing changed, or React re-renders forever (see the
+// comment in session-store.ts's loadIngestResult). loadWorkingForm's `form`
+// is already cached there; loadAnswers() is not, so it's read once per call
+// here and only re-derived when either input's identity actually changes.
+let rowsCache: { form: unknown; answers: unknown; rows: ConfirmRow[] } | null = null;
+
 function readRows(): ConfirmRow[] {
-  const fields = loadWorkingForm().form.sections.flatMap((s) => s.fields);
+  const { form } = loadWorkingForm();
   const answers = loadAnswers();
-  return fields.map((field) => ({
+  if (rowsCache && rowsCache.form === form && rowsCache.answers === answers) {
+    return rowsCache.rows;
+  }
+  const fields = form.sections.flatMap((s) => s.fields);
+  const rows = fields.map((field) => ({
     field,
     value: answers[field.id]?.trim() ? answers[field.id] : "Not answered",
   }));
+  rowsCache = { form, answers, rows };
+  return rows;
 }
 
 export default function ConfirmPage() {

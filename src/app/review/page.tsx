@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
@@ -146,15 +146,30 @@ function ClassifyAndReview({ fileName, result }: { fileName: string; result: Tex
   const [errorMessage, setErrorMessage] = useState("");
   const loadingRef = useRouteFocus<HTMLParagraphElement>();
 
+  // `result` comes from useSyncExternalStore in the parent, which re-parses
+  // sessionStorage (a fresh object) on every render — it is NOT a stable
+  // reference even when the underlying data hasn't changed. Putting it in
+  // the fetch effect's deps caused an infinite loop: effect runs ->
+  // setStatus -> re-render -> new `result` object -> effect deps look
+  // "changed" -> runs again. A ref captures the latest value for that
+  // effect to read without making it a reactive dependency; only
+  // `fileName` (a real primitive) should restart the classification.
+  // Refs must be written in an effect, not during render itself.
+  const resultRef = useRef(result);
+  useEffect(() => {
+    resultRef.current = result;
+  });
+
   useEffect(() => {
     let cancelled = false;
 
     async function run() {
       try {
+        const { blocks, pageCount } = resultRef.current;
         const response = await fetch("/api/understand", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ blocks: result.blocks, fileName, pageCount: result.pageCount }),
+          body: JSON.stringify({ blocks, fileName, pageCount }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "Classification failed.");
@@ -173,7 +188,7 @@ function ClassifyAndReview({ fileName, result }: { fileName: string; result: Tex
     return () => {
       cancelled = true;
     };
-  }, [fileName, result]);
+  }, [fileName]);
 
   if (status === "loading") {
     return (
