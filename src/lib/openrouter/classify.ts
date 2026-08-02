@@ -1,6 +1,6 @@
 import type { Field, FieldType, Form, Section } from "@/lib/form-model/types";
 import type { TextBlock } from "@/lib/ingest/text-layer";
-import { callOpenRouter } from "./client";
+import { callOpenRouter, CLASSIFICATION_MODEL } from "./client";
 
 const FIELD_TYPES: FieldType[] = [
   "text", "longtext", "number", "currency", "date", "email", "phone",
@@ -119,7 +119,7 @@ export async function classifyTextLayer(
       capturedAt: new Date().toISOString(),
       pageCount,
       extractor: "pdfjs-textlayer+openrouter",
-      modelVersion: "anthropic/claude-sonnet-4.5",
+      modelVersion: CLASSIFICATION_MODEL,
       localOnly: false,
     },
     sections,

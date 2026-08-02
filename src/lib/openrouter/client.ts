@@ -6,8 +6,15 @@
  */
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-/** Hardcoded for now to get the pipeline working; revisit static-vs-dynamic model selection later. */
-export const CLASSIFICATION_MODEL = "anthropic/claude-sonnet-4.5";
+/**
+ * Hardcoded for now to get the pipeline working; revisit static-vs-dynamic
+ * model selection later. Free-tier for the hackathon demo — real output
+ * tokens are still generated (that's the classification result), but
+ * OpenRouter bills both prompt and completion at $0 for this model. Swap to
+ * a paid model only if this one's classification quality proves too weak
+ * on real forms.
+ */
+export const CLASSIFICATION_MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
