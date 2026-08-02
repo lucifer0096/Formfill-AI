@@ -1,6 +1,6 @@
 import { PDFDocument, PDFTextField, PDFCheckBox, PDFRadioGroup, PDFDropdown, PDFOptionList } from "pdf-lib";
-import type { Field } from "@/lib/form-model/types";
-import type { AnswerMap } from "@/lib/session-store";
+import type { AnswerSet, Field } from "@/lib/form-model/types";
+import { isAnswered } from "@/lib/form-model/traverse";
 
 /**
  * Writes real answers into a real PDF's AcroForm fields. Only meaningful for
@@ -10,7 +10,7 @@ import type { AnswerMap } from "@/lib/session-store";
 export async function fillAcroForm(
   originalFile: File,
   fields: Field[],
-  answers: AnswerMap,
+  answers: AnswerSet,
 ): Promise<Uint8Array> {
   const bytes = await originalFile.arrayBuffer();
   const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
@@ -18,24 +18,25 @@ export async function fillAcroForm(
 
   for (const field of fields) {
     if (field.anchor.kind !== "acroform") continue;
-    const value = answers[field.id];
-    if (!value?.trim()) continue;
+    const answer = answers[field.id];
+    if (!isAnswered(answer)) continue;
+    const value = answer!.value;
 
     const acroField = form.getFieldMaybe(field.anchor.fieldName);
     if (!acroField) continue;
 
     try {
       if (acroField instanceof PDFTextField) {
-        acroField.setText(value);
+        acroField.setText(String(value));
       } else if (acroField instanceof PDFCheckBox) {
-        if (value === "true" || value.toLowerCase() === "yes") acroField.check();
+        if (value === true || (typeof value === "string" && value.toLowerCase() === "yes")) acroField.check();
         else acroField.uncheck();
       } else if (acroField instanceof PDFRadioGroup) {
-        acroField.select(value);
+        acroField.select(String(value));
       } else if (acroField instanceof PDFDropdown) {
-        acroField.select(value);
+        acroField.select(String(value));
       } else if (acroField instanceof PDFOptionList) {
-        acroField.select(value);
+        acroField.select(Array.isArray(value) ? value[0] ?? "" : String(value));
       }
     } catch {
       // A value that doesn't match the field's constraints (e.g. an option

@@ -6,41 +6,18 @@ import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
 import Notice from "@/components/ui/Notice";
 import ProgressTrail from "@/components/ProgressTrail";
-import { loadAnswers, loadWorkingForm, type AnswerMap } from "@/lib/session-store";
+import { loadAnswers, loadWorkingForm, saveAnswers } from "@/lib/session-store";
 import { useRouteFocus } from "@/lib/use-route-focus";
 import { loadOriginalFile } from "@/lib/original-file-store";
 import { fillAcroForm } from "@/lib/emit/fill-acroform";
 import { buildSummaryPdf } from "@/lib/emit/summary-pdf";
-import type { Field } from "@/lib/form-model/types";
-
-interface ConfirmRow {
-  field: Field;
-  value: string;
-}
-
-const noopSubscribe = () => () => {};
-
-// useSyncExternalStore requires getSnapshot to return a stable reference
-// across calls when nothing changed, or React re-renders forever (see the
-// comment in session-store.ts's loadIngestResult). loadWorkingForm's `form`
-// is already cached there; loadAnswers() is not, so it's read once per call
-// here and only re-derived when either input's identity actually changes.
-let rowsCache: { form: unknown; answers: unknown; rows: ConfirmRow[] } | null = null;
-
-function readRows(): ConfirmRow[] {
-  const { form } = loadWorkingForm();
-  const answers = loadAnswers();
-  if (rowsCache && rowsCache.form === form && rowsCache.answers === answers) {
-    return rowsCache.rows;
-  }
-  const fields = form.sections.flatMap((s) => s.fields);
-  const rows = fields.map((field) => ({
-    field,
-    value: answers[field.id]?.trim() ? answers[field.id] : "Not answered",
-  }));
-  rowsCache = { form, answers, rows };
-  return rows;
-}
+import {
+  initialState,
+  step,
+  type ConversationState,
+} from "@/lib/conversation/machine";
+import { speakValue, type Announcement } from "@/lib/conversation/announce";
+import { applicableFields } from "@/lib/form-model/traverse";
 
 function downloadBytes(bytes: Uint8Array, fileName: string) {
   // pdf-lib's Uint8Array is typed against ArrayBufferLike (can include
@@ -55,17 +32,53 @@ function downloadBytes(bytes: Uint8Array, fileName: string) {
   URL.revokeObjectURL(url);
 }
 
+interface Bootstrapped {
+  state: ConversationState;
+  announcements: Announcement[];
+}
+
+const noopSubscribe = () => () => {};
+
+// See the matching comment in /questions/page.tsx: a lazy useState
+// initializer that branches on `typeof window` produces a genuinely
+// different render tree on the client's first paint than what the server
+// sent down (React re-runs the initializer during hydration too), which is
+// a real hydration-mismatch bug, not just a lint nag. useSyncExternalStore's
+// getServerSnapshot is the API actually designed for "server and the
+// client's first paint must agree, a later commit can differ."
+let bootstrapCache: { form: unknown; answers: unknown; value: Bootstrapped } | null = null;
+
+function readBootstrap(): Bootstrapped {
+  const { form } = loadWorkingForm();
+  const savedAnswers = loadAnswers();
+  if (bootstrapCache && bootstrapCache.form === form && bootstrapCache.answers === savedAnswers) {
+    return bootstrapCache.value;
+  }
+  const state: ConversationState = { ...initialState(form), answers: savedAnswers };
+  const value = step(state, { type: "REVIEW" });
+  bootstrapCache = { form, answers: savedAnswers, value };
+  return value;
+}
+
 export default function ConfirmPage() {
-  // sessionStorage is browser-only; useSyncExternalStore reads it safely
-  // across server prerendering (getServerSnapshot) and the client, in one
-  // render, without a setState-in-effect or a hydration mismatch.
-  const rows = useSyncExternalStore(noopSubscribe, readRows, () => null);
-  const [heard, setHeard] = useState<Set<string>>(new Set());
-  const [status, setStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
+  const bootstrapped = useSyncExternalStore<Bootstrapped | null>(
+    noopSubscribe,
+    readBootstrap,
+    () => null,
+  );
+  // No effect just to copy the bootstrapped value into state (that's the
+  // exact pattern react-hooks/set-state-in-effect flags) — `override` only
+  // holds what the user's own actions have changed since. Until the first
+  // dispatch, engine/lastAnnouncements are simply whatever
+  // useSyncExternalStore already gives us.
+  const [override, setOverride] = useState<Bootstrapped | null>(null);
+  const engine = (override ?? bootstrapped)?.state ?? null;
+  const lastAnnouncements = (override ?? bootstrapped)?.announcements ?? [];
+  const [downloadStatus, setDownloadStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const headingRef = useRouteFocus<HTMLHeadingElement>();
 
-  if (!rows) {
+  if (!engine) {
     return (
       <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <p role="status" aria-live="polite" className="text-muted">
@@ -75,16 +88,33 @@ export default function ConfirmPage() {
     );
   }
 
-  const allHeard = rows.length > 0 && heard.size === rows.length;
-  const fields = rows.map((r) => r.field);
+  const fields = applicableFields(engine.form, engine.answers);
   const isAcroForm = fields.some((f) => f.anchor.kind === "acroform");
+  const allHeard = fields.length > 0 && fields.every((f) => engine.reviewHeard.has(f.id));
+
+  function dispatch(event: Parameters<typeof step>[1]) {
+    if (!engine) return;
+    setOverride(step(engine, event));
+  }
 
   async function handleFinish() {
-    setStatus("generating");
+    if (!engine) return;
+
+    // First CONFIRM with unheard answers arms the gate and returns without
+    // completing (machine.ts's own override pattern); only dispatch again
+    // once we know we're actually complete.
+    const result = step(engine, { type: "CONFIRM" });
+    setOverride(result);
+
+    if (result.state.phase !== "complete") return;
+
+    saveAnswers(result.state.answers);
+
+    setDownloadStatus("generating");
     setErrorMessage("");
     try {
       const { form } = loadWorkingForm();
-      const answers: AnswerMap = loadAnswers();
+      const finalFields = applicableFields(form, result.state.answers);
 
       if (isAcroForm) {
         const originalFile = await loadOriginalFile();
@@ -93,19 +123,21 @@ export default function ConfirmPage() {
             "The original file for this form could not be found. Try uploading it again.",
           );
         }
-        const bytes = await fillAcroForm(originalFile, fields, answers);
+        const bytes = await fillAcroForm(originalFile, finalFields, result.state.answers);
         downloadBytes(bytes, `${form.title || "filled-form"}.pdf`);
       } else {
-        const bytes = await buildSummaryPdf(form.title || "Form summary", fields, answers);
+        const bytes = await buildSummaryPdf(form.title || "Form summary", finalFields, result.state.answers);
         downloadBytes(bytes, `${form.title || "form-summary"}-summary.pdf`);
       }
 
-      setStatus("done");
+      setDownloadStatus("done");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Something went wrong.");
-      setStatus("error");
+      setDownloadStatus("error");
     }
   }
+
+  const gateWarning = lastAnnouncements.find((a) => a.kind === "error");
 
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
@@ -130,8 +162,10 @@ export default function ConfirmPage() {
           Your answers
         </h2>
         <ul className="divide-y divide-muted/20">
-          {rows.map(({ field, value }) => {
-            const isHeard = heard.has(field.id);
+          {fields.map((field) => {
+            const answer = engine.answers[field.id];
+            const value = answer ? speakValue(field, answer.value, engine.locale) : "Not answered";
+            const isHeard = engine.reviewHeard.has(field.id);
             return (
               <li
                 key={field.id}
@@ -145,13 +179,7 @@ export default function ConfirmPage() {
                   type="button"
                   variant="secondary"
                   aria-pressed={isHeard}
-                  onClick={() =>
-                    setHeard((prev) => {
-                      const next = new Set(prev);
-                      next.add(field.id);
-                      return next;
-                    })
-                  }
+                  onClick={() => dispatch({ type: "GOTO", fieldId: field.id })}
                 >
                   {isHeard ? "Heard ✓" : "Read back"}
                 </Button>
@@ -163,19 +191,21 @@ export default function ConfirmPage() {
 
       <div className="mt-6">
         <Notice live>
-          {status === "done"
+          {downloadStatus === "done"
             ? isAcroForm
               ? "Your filled form has been downloaded."
               : "Your answer summary has been downloaded. This form has no fillable fields, so a filled copy of the original isn't possible yet — the summary lists every question and answer instead."
-            : allHeard
-              ? isAcroForm
-                ? "All answers confirmed. Ready to download your filled form."
-                : "All answers confirmed. This form has no fillable fields, so you'll get a downloadable summary instead of a filled copy."
-              : `You have heard ${heard.size} of ${rows.length} answers. Read back every answer before confirming.`}
+            : gateWarning
+              ? gateWarning.text
+              : allHeard
+                ? isAcroForm
+                  ? "All answers confirmed. Ready to download your filled form."
+                  : "All answers confirmed. This form has no fillable fields, so you'll get a downloadable summary instead of a filled copy."
+                : `You have heard ${engine.reviewHeard.size} of ${fields.length} answers. Read back every answer, or press confirm again to proceed anyway.`}
         </Notice>
       </div>
 
-      {status === "error" && (
+      {downloadStatus === "error" && (
         <p role="alert" className="mt-4 text-sm font-medium text-accent-strong">
           {errorMessage}
         </p>
@@ -188,10 +218,10 @@ export default function ConfirmPage() {
         <Button
           type="button"
           variant="primary"
-          disabled={!allHeard || status === "generating"}
+          disabled={downloadStatus === "generating"}
           onClick={handleFinish}
         >
-          {status === "generating"
+          {downloadStatus === "generating"
             ? "Preparing your document…"
             : isAcroForm
               ? "Confirm and download filled form"

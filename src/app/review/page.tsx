@@ -8,7 +8,7 @@ import Notice from "@/components/ui/Notice";
 import ProgressTrail from "@/components/ProgressTrail";
 import { loadIngestResult, PLACEHOLDER_FIELDS, saveIngestResult, type StoredIngest } from "@/lib/session-store";
 import { useRouteFocus } from "@/lib/use-route-focus";
-import type { Field, Form } from "@/lib/form-model/types";
+import type { Field, FieldType, Form } from "@/lib/form-model/types";
 import type { TextBlock, TextLayerResult } from "@/lib/ingest/text-layer";
 
 type ConfidenceBand = "high" | "medium" | "low";
@@ -18,6 +18,23 @@ function bandFor(confidence: number): ConfidenceBand {
   if (confidence >= 0.5) return "medium";
   return "low";
 }
+
+const TYPE_LABEL: Record<FieldType, string> = {
+  text: "Text",
+  longtext: "Long text",
+  number: "Number",
+  currency: "Amount",
+  date: "Date",
+  email: "Email",
+  phone: "Phone number",
+  name: "Name",
+  address: "Address",
+  choice: "Choose one",
+  multichoice: "Choose any that apply",
+  boolean: "Checkbox",
+  signature: "Signature",
+  unknown: "Unclear field type",
+};
 
 const CONFIDENCE_LABEL: Record<ConfidenceBand, string> = {
   high: "Detected with high confidence",
@@ -98,7 +115,7 @@ function ReviewFields({ fields }: { fields: Field[] }) {
               >
                 <div>
                   <p className="font-medium">{field.spokenLabel}</p>
-                  <p className="text-sm text-muted">{field.type}</p>
+                  <p className="text-sm text-muted">{TYPE_LABEL[field.type]}</p>
                 </div>
                 <span
                   className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${

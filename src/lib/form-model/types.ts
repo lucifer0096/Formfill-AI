@@ -115,3 +115,27 @@ export interface Form {
   provenance: Provenance;
   sections: Section[];
 }
+
+/* -------------------------------------------------------------------------- */
+/* Answers                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Answers are deliberately stored OUTSIDE the Form. Keeping the two in separate
+ * object graphs is what makes "structure may go to the cloud, answers never do"
+ * enforceable rather than aspirational — you cannot serialise a Form and
+ * accidentally include a value. See docs/PRIVACY.md on main §1.
+ */
+export type AnswerState = 'empty' | 'filled' | 'skipped' | 'needsReview' | 'confirmed';
+
+export type AnswerSource = 'typed' | 'dictated' | 'profile' | 'extracted';
+
+export interface Answer {
+  fieldId: string;
+  value: string | string[] | boolean | null;
+  state: AnswerState;
+  source: AnswerSource;
+  enteredAt: string;
+}
+
+export type AnswerSet = Readonly<Record<string, Answer>>;

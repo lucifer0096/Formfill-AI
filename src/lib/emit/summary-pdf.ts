@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import type { Field } from "@/lib/form-model/types";
-import type { AnswerMap } from "@/lib/session-store";
+import type { AnswerSet, Field } from "@/lib/form-model/types";
+import { speakValue } from "@/lib/conversation/announce";
 
 /**
  * For forms with no real fields to write into (the flat/classified path —
@@ -8,7 +8,7 @@ import type { AnswerMap } from "@/lib/session-store";
  * PDF isn't achievable without real coordinate data. This produces an
  * honest alternative: a plain question/answer summary, not a pretend fill.
  */
-export async function buildSummaryPdf(title: string, fields: Field[], answers: AnswerMap): Promise<Uint8Array> {
+export async function buildSummaryPdf(title: string, fields: Field[], answers: AnswerSet): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -59,7 +59,8 @@ export async function buildSummaryPdf(title: string, fields: Field[], answers: A
   y -= 24;
 
   for (const field of fields) {
-    const value = answers[field.id]?.trim() || "Not answered";
+    const answer = answers[field.id];
+    const value = answer ? speakValue(field, answer.value) : "Not answered";
 
     const questionLines = wrapText(field.spokenLabel, bold, 11);
     newPageIfNeeded(questionLines.length * 14 + 4);

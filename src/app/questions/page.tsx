@@ -6,108 +6,99 @@ import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
 import ProgressTrail from "@/components/ProgressTrail";
 import { loadAnswers, loadWorkingForm, saveAnswers } from "@/lib/session-store";
-import type { Field } from "@/lib/form-model/types";
+import {
+  initialState,
+  step,
+  type ConversationState,
+} from "@/lib/conversation/machine";
+import type { Announcement } from "@/lib/conversation/announce";
+import { fieldById } from "@/lib/form-model/traverse";
 
 /**
  * Global single-key commands from ACCESSIBILITY.md §3. Only active when
  * focus is NOT in a text input — that suspension is a hard rule there
  * ("the app ate my typing" is called out by name as the classic bug this
- * causes if you get it wrong).
+ * causes if you get it wrong). Mapped straight onto the conversation
+ * engine's own event vocabulary (main's packages/conversation).
  */
 const KEY_ACTIONS = new Set(["n", "p", " ", "h", "s"]);
 
 const noopSubscribe = () => () => {};
 
-// Memoized on the underlying Form's identity (loadWorkingForm/loadIngestResult
-// are themselves cached in session-store.ts and return a stable reference
-// when nothing changed). Without this, .flatMap() below would allocate a new
-// array on every call, and useSyncExternalStore requires getSnapshot to
-// return a stable reference across calls or React re-renders forever — see
-// the comment in session-store.ts's loadIngestResult for the full story.
-let fieldsCache: { form: unknown; fields: Field[] } | null = null;
+interface Bootstrapped {
+  state: ConversationState;
+  announcements: Announcement[];
+}
 
-function readFields(): Field[] {
+// useState's lazy initializer runs on the client's very first render too
+// (hydration is still "first render" from the component's point of view),
+// so a `typeof window === "undefined"` guard there produces a DIFFERENT
+// tree client-side than what the server sent down — a real hydration
+// mismatch, not just a lint nag. useSyncExternalStore's getServerSnapshot
+// is the part of React's API actually designed for this split: it forces
+// server AND the client's first paint to both return null, and only a
+// later commit (after hydration settles) re-reads the real client value.
+// Cache keyed by identity so repeated calls during one commit are stable.
+let bootstrapCache: { form: unknown; answers: unknown; value: Bootstrapped } | null = null;
+
+function readBootstrap(): Bootstrapped {
   const { form } = loadWorkingForm();
-  if (fieldsCache && fieldsCache.form === form) return fieldsCache.fields;
-  const fields = form.sections.flatMap((s) => s.fields);
-  fieldsCache = { form, fields };
-  return fields;
+  const savedAnswers = loadAnswers();
+  if (bootstrapCache && bootstrapCache.form === form && bootstrapCache.answers === savedAnswers) {
+    return bootstrapCache.value;
+  }
+  const state: ConversationState = { ...initialState(form), answers: savedAnswers };
+  const value = step(state, { type: "START" });
+  bootstrapCache = { form, answers: savedAnswers, value };
+  return value;
 }
 
 export default function QuestionsPage() {
-  // sessionStorage is browser-only; useSyncExternalStore reads it safely
-  // across server prerendering (getServerSnapshot) and the client, without
-  // a setState-in-effect or a hydration mismatch. `fields` is read once and
-  // never mutated, so it fits the external-store model directly.
-  const fields = useSyncExternalStore(noopSubscribe, readFields, () => null);
-  const [index, setIndex] = useState(0);
-  // `answers` IS mutated locally (typing updates it), so it stays real
-  // state — but its initial value still needs the same SSR-safe read.
-  // Safe here because `fields` is null during the server/first-paint
-  // render, so this value is never visually shown before hydration.
-  const [answers, setAnswers] = useState<Record<string, string>>(() =>
-    typeof window === "undefined" ? {} : loadAnswers(),
+  const bootstrapped = useSyncExternalStore<Bootstrapped | null>(
+    noopSubscribe,
+    readBootstrap,
+    () => null,
   );
-  const [showHelp, setShowHelp] = useState(false);
+  // No effect-driven "adopt the bootstrapped value" step: that pattern
+  // (setState from an effect just to copy a prop/store value into state)
+  // is exactly what react-hooks/set-state-in-effect flags, and rightly —
+  // it's an extra render for no reason. `override` holds only what the
+  // user's own actions have changed; until the first dispatch, the
+  // engine's effective value is simply whatever useSyncExternalStore
+  // already gives us, no copying required.
+  const [override, setOverride] = useState<Bootstrapped | null>(null);
+  const engine = (override ?? bootstrapped)?.state ?? null;
+  const lastAnnouncements = (override ?? bootstrapped)?.announcements ?? [];
+  const [inputValue, setInputValue] = useState("");
   const [touched, setTouched] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const helpId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
+
+  const currentField = engine?.cursor ? fieldById(engine.form, engine.cursor) : undefined;
 
   // Focus (and therefore announce, for a screen reader) the new question
   // every time it changes — not just once on mount. ACCESSIBILITY.md §3.
   useEffect(() => {
-    headingRef.current?.focus();
-  }, [index]);
+    if (currentField) headingRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentField?.id]);
 
-  if (!fields) {
-    return (
-      <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
-        <p role="status" aria-live="polite" className="text-muted">
-          Loading…
-        </p>
-      </main>
-    );
+  function dispatch(event: Parameters<typeof step>[1]) {
+    if (!engine) return;
+    const result = step(engine, event);
+    saveAnswers(result.state.answers);
+    setOverride(result);
   }
 
-  if (fields.length === 0) {
-    return (
-      <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
-        <ProgressTrail current={4} />
-        <p className="mt-8 text-lg text-muted">This form has no questions to answer.</p>
-        <div className="mt-8">
-          <LinkButton href="/overview" variant="secondary">
-            Back to overview
-          </LinkButton>
-        </div>
-      </main>
-    );
-  }
-
-  const field = fields[index];
-  const isLast = index === fields.length - 1;
-  const value = answers[field.id] ?? "";
-  const isInvalid = touched && field.required && value.trim() === "";
-
-  function commitAndAdvance(nextValue: string) {
-    const next = { ...answers, [field.id]: nextValue };
-    setAnswers(next);
-    saveAnswers(next);
+  function submitAnswer() {
+    setTouched(true);
+    dispatch({ type: "ANSWER", value: inputValue });
+    setInputValue("");
+    setTouched(false);
     setShowHelp(false);
-    setTouched(false);
-    if (!isLast) setIndex((i) => i + 1);
   }
 
-  function goPrevious() {
-    setTouched(false);
-    setIndex((i) => Math.max(0, i - 1));
-  }
-
-  /**
-   * ACCESSIBILITY.md §3: N/P/Space/H/S single-key nav, suspended whenever a
-   * text input has focus. This handler sits on the page root, not the
-   * document, and checks the active element itself so it works regardless
-   * of what currently has focus outside the input.
-   */
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement;
     const isTextInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
@@ -119,28 +110,60 @@ export default function QuestionsPage() {
     switch (key) {
       case "n":
         event.preventDefault();
-        commitAndAdvance(value);
+        dispatch({ type: "NEXT" });
         break;
       case "p":
         event.preventDefault();
-        goPrevious();
+        dispatch({ type: "PREV" });
         break;
       case " ":
         event.preventDefault();
+        dispatch({ type: "REPEAT" });
         headingRef.current?.focus();
         break;
       case "h":
         event.preventDefault();
-        setShowHelp((s) => !s);
+        dispatch({ type: "HELP" });
+        setShowHelp(true);
         break;
       case "s":
-        if (!field.required) {
-          event.preventDefault();
-          commitAndAdvance("");
-        }
+        event.preventDefault();
+        dispatch({ type: "SKIP" });
         break;
     }
   }
+
+  if (!engine) {
+    return (
+      <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
+        <p role="status" aria-live="polite" className="text-muted">
+          Loading…
+        </p>
+      </main>
+    );
+  }
+
+  if (engine.phase === "complete" || !currentField) {
+    return (
+      <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
+        <ProgressTrail current={4} />
+        <p className="mt-8 text-lg text-muted" role="status" aria-live="polite">
+          {lastAnnouncements.at(-1)?.text ?? "This form has no questions to answer."}
+        </p>
+        <div className="mt-8">
+          <LinkButton href="/overview" variant="secondary">
+            Back to overview
+          </LinkButton>
+        </div>
+      </main>
+    );
+  }
+
+  const field = currentField;
+  const isInvalid = touched && field.required && inputValue.trim() === "";
+  const questionAnnouncement = lastAnnouncements.find((a) => a.kind === "question");
+  const errorAnnouncement = lastAnnouncements.find((a) => a.kind === "error");
+  const suggestionAnnouncement = lastAnnouncements.find((a) => a.kind === "suggestion");
 
   return (
     <main
@@ -150,9 +173,14 @@ export default function QuestionsPage() {
     >
       <ProgressTrail current={4} />
 
-      <p className="mt-8 text-sm font-medium text-muted" role="status" aria-live="polite">
-        Question {index + 1} of {fields.length}
+      <p className="sr-only" role="status" aria-live="assertive">
+        {questionAnnouncement?.text}
       </p>
+      {errorAnnouncement && (
+        <p role="alert" className="mt-4 text-sm font-medium text-accent-strong">
+          {errorAnnouncement.text}
+        </p>
+      )}
 
       <Card as="section" aria-labelledby="question-heading" className="mt-4">
         <h1
@@ -165,55 +193,134 @@ export default function QuestionsPage() {
         </h1>
         {!field.required && <p className="mt-1 text-sm text-muted">This one is optional.</p>}
 
+        {engine.suggestion && suggestionAnnouncement && (
+          <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md bg-accent-strong/10 px-4 py-3">
+            <p className="text-sm">{suggestionAnnouncement.text}</p>
+            <Button type="button" variant="secondary" onClick={() => dispatch({ type: "ACCEPT_SUGGESTION" })}>
+              Use this
+            </Button>
+          </div>
+        )}
+
         <form
           className="mt-6"
           onSubmit={(event) => {
             event.preventDefault();
-            setTouched(true);
-            if (field.required && value.trim() === "") return;
-            commitAndAdvance(value);
+            submitAnswer();
           }}
         >
-          <label htmlFor="answer" className="sr-only">
-            {field.spokenLabel}
-          </label>
-          <input
-            id="answer"
-            type="text"
-            value={value}
-            aria-describedby={showHelp ? helpId : undefined}
-            aria-invalid={isInvalid}
-            aria-required={field.required}
-            onChange={(event) => setAnswers((prev) => ({ ...prev, [field.id]: event.target.value }))}
-            className={`w-full rounded-md border-2 bg-background px-4 py-3 text-lg focus-visible:outline-3 focus-visible:outline-accent-strong ${
-              isInvalid ? "border-accent-strong" : "border-muted/40"
-            }`}
-          />
-
-          {isInvalid && (
-            <p role="alert" className="mt-2 text-sm font-medium text-accent-strong">
-              {field.spokenLabel} — this one is required.
-            </p>
+          {field.type === "boolean" ? (
+            <div
+              role="radiogroup"
+              aria-labelledby="question-heading"
+              aria-invalid={isInvalid}
+              aria-required={field.required}
+              className="flex gap-4"
+            >
+              {(["yes", "no"] as const).map((option) => (
+                <label
+                  key={option}
+                  className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border-2 px-4 py-3 text-lg capitalize focus-within:outline-3 focus-within:outline-accent-strong ${
+                    inputValue === option ? "border-accent-strong bg-accent-strong/10" : "border-muted/40"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="answer"
+                    value={option}
+                    checked={inputValue === option}
+                    onChange={(event) => setInputValue(event.target.value)}
+                    className="sr-only"
+                  />
+                  {option}
+                </label>
+              ))}
+            </div>
+          ) : field.type === "choice" || field.type === "multichoice" ? (
+            <div
+              role={field.type === "choice" ? "radiogroup" : "group"}
+              aria-labelledby="question-heading"
+              aria-invalid={field.type === "choice" ? isInvalid : undefined}
+              aria-required={field.type === "choice" ? field.required : undefined}
+              className="flex flex-col gap-3"
+            >
+              {(field.constraints.options ?? []).map((option) => {
+                const selectedValues = field.type === "multichoice" ? inputValue.split(",").filter(Boolean) : [];
+                const isChecked =
+                  field.type === "multichoice" ? selectedValues.includes(option.value) : inputValue === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex cursor-pointer items-center gap-3 rounded-md border-2 px-4 py-3 text-lg focus-within:outline-3 focus-within:outline-accent-strong ${
+                      isChecked ? "border-accent-strong bg-accent-strong/10" : "border-muted/40"
+                    }`}
+                  >
+                    <input
+                      type={field.type === "multichoice" ? "checkbox" : "radio"}
+                      name="answer"
+                      value={option.value}
+                      checked={isChecked}
+                      onChange={(event) => {
+                        if (field.type === "multichoice") {
+                          const next = event.target.checked
+                            ? [...selectedValues, option.value]
+                            : selectedValues.filter((v) => v !== option.value);
+                          setInputValue(next.join(","));
+                        } else {
+                          setInputValue(option.value);
+                        }
+                      }}
+                    />
+                    {option.spokenLabel ?? option.label}
+                  </label>
+                );
+              })}
+            </div>
+          ) : (
+            <>
+              <label htmlFor="answer" className="sr-only">
+                {field.spokenLabel}
+              </label>
+              <input
+                id="answer"
+                type={field.type === "email" ? "email" : "text"}
+                value={inputValue}
+                aria-describedby={showHelp ? helpId : undefined}
+                aria-invalid={isInvalid}
+                aria-required={field.required}
+                onChange={(event) => setInputValue(event.target.value)}
+                className={`w-full rounded-md border-2 bg-background px-4 py-3 text-lg focus-visible:outline-3 focus-visible:outline-accent-strong ${
+                  isInvalid ? "border-accent-strong" : "border-muted/40"
+                }`}
+              />
+            </>
           )}
 
           {showHelp && (
             <p id={helpId} role="status" className="mt-3 text-sm text-muted">
-              {field.help ?? `This is asking for: ${field.spokenLabel}`}
+              {lastAnnouncements.find((a) => a.kind === "help")?.text ?? field.help ?? `This is asking for: ${field.spokenLabel}`}
             </p>
           )}
 
           <div className="mt-6 flex flex-wrap gap-4">
             <Button type="submit" variant="primary">
-              {isLast ? "Finish" : "Next"}
+              Next
             </Button>
-            <Button type="button" variant="secondary" onClick={goPrevious} disabled={index === 0}>
+            <Button type="button" variant="secondary" onClick={() => dispatch({ type: "PREV" })}>
               Previous
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setShowHelp((s) => !s)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                dispatch({ type: "HELP" });
+                setShowHelp((s) => !s);
+              }}
+            >
               {showHelp ? "Hide help" : "Help"}
             </Button>
             {!field.required && (
-              <Button type="button" variant="secondary" onClick={() => commitAndAdvance("")}>
+              <Button type="button" variant="secondary" onClick={() => dispatch({ type: "SKIP" })}>
                 Skip
               </Button>
             )}
@@ -230,11 +337,9 @@ export default function QuestionsPage() {
         <LinkButton href="/overview" variant="secondary">
           Back to overview
         </LinkButton>
-        {isLast && (
-          <LinkButton href="/confirm" variant="primary">
-            Review answers
-          </LinkButton>
-        )}
+        <LinkButton href="/confirm" variant="primary">
+          Review answers
+        </LinkButton>
       </div>
     </main>
   );

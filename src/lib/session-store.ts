@@ -1,4 +1,4 @@
-import type { Field, Form } from "@/lib/form-model/types";
+import type { AnswerSet, Field, Form } from "@/lib/form-model/types";
 import type { TextLayerResult } from "@/lib/ingest/text-layer";
 
 /**
@@ -57,30 +57,34 @@ export function clearIngestResult(): void {
 /* Answers                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export type AnswerMap = Record<string, string>;
-
-export function saveAnswers(answers: AnswerMap): void {
+/**
+ * Stores the conversation engine's real AnswerSet (fieldId -> Answer, with
+ * state/source/enteredAt), not just raw strings — the engine's review gate
+ * and skip-logic depend on Answer.state, and emit (fill-acroform, summary
+ * PDF) needs a real Answer.value to read from.
+ */
+export function saveAnswers(answers: AnswerSet): void {
   sessionStorage.setItem(ANSWERS_KEY, JSON.stringify(answers));
 }
 
-const EMPTY_ANSWERS: AnswerMap = {};
+const EMPTY_ANSWERS: AnswerSet = {};
 
 // Same raw-string cache as loadIngestResult above, and for the same reason:
 // callers using this via useSyncExternalStore need a stable reference when
 // the underlying sessionStorage value hasn't actually changed.
-let answersCache: { raw: string | null; value: AnswerMap } = {
+let answersCache: { raw: string | null; value: AnswerSet } = {
   raw: undefined as unknown as string | null,
   value: EMPTY_ANSWERS,
 };
 
-export function loadAnswers(): AnswerMap {
+export function loadAnswers(): AnswerSet {
   const raw = sessionStorage.getItem(ANSWERS_KEY);
   if (raw === answersCache.raw) return answersCache.value;
 
-  let value: AnswerMap = EMPTY_ANSWERS;
+  let value: AnswerSet = EMPTY_ANSWERS;
   if (raw) {
     try {
-      value = JSON.parse(raw) as AnswerMap;
+      value = JSON.parse(raw) as AnswerSet;
     } catch {
       value = EMPTY_ANSWERS;
     }
