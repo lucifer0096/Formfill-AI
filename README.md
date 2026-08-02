@@ -73,7 +73,3 @@ Deployed via the Vercel CLI from this branch:
 ```bash
 npx vercel --prod
 ```
-
-The `OPENROUTER_API_KEY` environment variable also needs to be set on the Vercel project (Production environment) for classification to work on the live site.
-
-This project is not currently connected to GitHub for auto-deploy. Redeploy manually after pushing changes, or connect the repo in the Vercel dashboard for deploys on every push.
