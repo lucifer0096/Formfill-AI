@@ -10,6 +10,7 @@ import {
   type PDFField,
 } from "pdf-lib";
 import type { Field, FieldType, Form, Section } from "@/lib/form-model/types";
+import { formatHintFor } from "@/lib/form-model/format-hint";
 import { extractTextLayer } from "./text-layer";
 import { resolveFieldPosition } from "./acroform-position";
 import { nearbyLabelText } from "./nearby-text";
@@ -56,6 +57,7 @@ export async function extractAcroForm(file: File): Promise<Form | null> {
       // capped below the "detected with high confidence" band.
       spokenLabel: hasRealLabel ? label : humanize(name),
       type,
+      formatHint: formatHintFor(type),
       required: false,
       constraints: options ? { options } : {},
       sensitivity: "none",

@@ -1,4 +1,5 @@
 import type { Field, FieldType, Form, Section } from "@/lib/form-model/types";
+import { formatHintFor } from "@/lib/form-model/format-hint";
 import type { TextBlock } from "@/lib/ingest/text-layer";
 import { callOpenRouter, CLASSIFICATION_MODEL } from "./client";
 import { redactBlocks, rehydrate, RedactionError, type TextBlock as RedactBlock } from "@/lib/redact";
@@ -125,6 +126,7 @@ export async function classifyTextLayer(
         spokenLabel: f.spokenLabel,
         help: f.help,
         type,
+        formatHint: formatHintFor(type),
         required: f.required,
         constraints: f.options ? { options: f.options } : {},
         // Never let a bad/missing value from the model look more certain

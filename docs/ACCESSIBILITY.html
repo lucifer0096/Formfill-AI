@@ -396,13 +396,15 @@
         <div><kbd>Space</kbd><span>Repeat the current question (moves focus back to it)</span></div>
         <div><kbd>H</kbd><span>Toggle the plain-language help text</span></div>
         <div><kbd>S</kbd><span>Skip — only fires when the field is optional</span></div>
+        <div><kbd>L</kbd><span>Read the field's label verbatim, as printed on the source form</span></div>
+        <div><kbd>R</kbd><span>Save the current answer set and jump straight to <code>/confirm</code> for review</span></div>
       </div>
 
       <div class="note guard">
         <span><b>Suspended while typing.</b> §3 calls out "the app ate my typing" as the classic bug here — these single-key commands are disabled the moment focus is inside any <code>&lt;input&gt;</code> or <code>&lt;textarea&gt;</code>, checked directly against the event target rather than a global mode flag. This check is by tag name, not input type, so it also suspends single-key commands while focus is on a checkbox or radio button (e.g. answering a Yes/No question) — overly cautious there since no text is being typed, but consistent and never wrong in the direction that matters.</span>
       </div>
 
-      <p>The remaining pages (<code>/review</code>, <code>/overview</code>, <code>/confirm</code>) don't yet have the global <kbd>R</kbd> (jump to review) or <kbd>L</kbd> (verbatim label) commands from §3's global table — see §4.</p>
+      <p>On this branch <code>/questions</code> and <code>/confirm</code> are separate routes rather than one page with an internal "reviewing" phase, so <kbd>R</kbd> is implemented as a real navigation (save answers, then <code>router.push("/confirm")</code>) rather than dispatching the engine's own <code>REVIEW</code> event — dispatching that event would just leave the user on <code>/questions</code> in an internal phase no UI on this branch renders. <kbd>L</kbd> dispatches the engine's existing <code>VERBATIM</code> event and shows the resulting announcement on screen (previously only spoken via the sr-only live region). The remaining pages (<code>/review</code>, <code>/overview</code>) still don't have these commands, since neither presents a single field to act on.</p>
     </div>
   </section>
 
@@ -425,11 +427,16 @@
             <tr><td>§5 — <code>aria-invalid</code> / <code>aria-required</code> reflect real state</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
             <tr><td>§3 — a changing count is announced, not just redrawn</td><td class="mod">/confirm ("heard N of M")</td><td class="st"><span class="tag built">fixed</span></td></tr>
             <tr><td>§4 — 4.5:1 / 7:1 contrast on non-text UI</td><td class="mod">/review confidence badges</td><td class="st"><span class="tag built">verified, already OK</span></td></tr>
+            <tr><td>§5 — format hints shown/spoken before input, not just after a failed submit</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>§3 — global <kbd>R</kbd> (jump to review) and <kbd>L</kbd> (verbatim label) commands</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>§4 — 44×44px minimum touch target on interactive controls</td><td class="mod">all 4 pages</td><td class="st"><span class="tag built">verified, already OK</span></td></tr>
           </tbody>
         </table>
       </div>
 
       <p>Implementation note for anyone extending these pages: focus handling now lives in one shared hook, <code>src/lib/use-route-focus.ts</code> — attach its ref to a page's <code>&lt;h1 tabIndex={-1}&gt;</code> rather than re-deriving this per page.</p>
+
+      <p>The touch-target check covered every real interactive element: <code>Button</code>/<code>LinkButton</code> share a <code>px-6 py-3</code> base that clears 44px well past the minimum; on <code>/questions</code> the radio/checkbox inputs for boolean and choice/multichoice fields are visually <code>sr-only</code>, but each is wrapped in a full-width <code>&lt;label&gt;</code> with its own <code>px-4 py-3</code> padding, and that label — not the native control — is the actual click target. The only sub-44px element found was <code>ProgressTrail</code>'s 24×24px step-number circles, which are <code>aria-hidden</code> and non-interactive (the step label text next to them isn't a link or button either), so they're decorative and out of scope for this check.</p>
     </div>
   </section>
 
@@ -440,8 +447,6 @@
       <p>Named explicitly so they don't get mistaken for "done" by omission.</p>
       <div class="qs">
         <div class="q"><b>No <code>sr</code> / <code>spoken</code> mode distinction.</b><span>§1's two-audience problem — a screen-reader user needs the app acoustically silent, a non-screen-reader user needs it to speak aloud — isn't implemented at all on this branch. Everything here relies on the browser's own screen-reader support via correct markup; there's no <code>speechSynthesis</code> integration, no mode detection, and no <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> toggle. That's <code>packages/speech</code>'s job on <code>main</code>, not yet wired into this branch.</span></div>
-        <div class="q"><b>Global <kbd>R</kbd> and <kbd>L</kbd> commands missing.</b><span>Jump-to-review and verbatim-label-readback exist in the spec's global keyboard table but aren't implemented on any page yet.</span></div>
-        <div class="q"><b>No format hints spoken before input.</b><span>§5: "Date of birth, day month year, for example 3 3 1954" — spoken/displayed <em>before</em> the user types, not after a validation failure. Not implemented; validation here only fires on submit.</span></div>
         <div class="q"><b>No 400% zoom / reflow testing done.</b><span>§4 and the definition-of-done checklist in §8 call for this on every PR. Not verified on this branch yet.</span></div>
         <div class="q"><b><code>forced-colors</code> / Windows High Contrast mode untested.</b><span>Also part of §8's per-PR checklist; not verified here.</span></div>
         <div class="q"><b>No screen-reader testing with a real AT.</b><span>§8 requires NVDA or VoiceOver testing per PR. Everything on this page is markup-level correctness (roles, live regions, focus), not a substitute for that manual pass.</span></div>

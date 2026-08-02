@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
@@ -21,7 +22,7 @@ import { fieldById } from "@/lib/form-model/traverse";
  * causes if you get it wrong). Mapped straight onto the conversation
  * engine's own event vocabulary (main's packages/conversation).
  */
-const KEY_ACTIONS = new Set(["n", "p", " ", "h", "s"]);
+const KEY_ACTIONS = new Set(["n", "p", " ", "h", "s", "r", "l"]);
 
 const noopSubscribe = () => () => {};
 
@@ -54,6 +55,7 @@ function readBootstrap(): Bootstrapped {
 }
 
 export default function QuestionsPage() {
+  const router = useRouter();
   const bootstrapped = useSyncExternalStore<Bootstrapped | null>(
     noopSubscribe,
     readBootstrap,
@@ -71,11 +73,18 @@ export default function QuestionsPage() {
   const lastAnnouncements = (override ?? bootstrapped)?.announcements ?? [];
   const [inputValue, setInputValue] = useState("");
   const [touched, setTouched] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
+  // Tracks which field's id the panel was opened for, rather than a plain
+  // boolean, so switching questions closes the panel automatically (derived
+  // state) instead of needing an effect to reset it — see the note below.
+  const [helpOpenFor, setHelpOpenFor] = useState<string | null>(null);
+  const [verbatimOpenFor, setVerbatimOpenFor] = useState<string | null>(null);
   const helpId = useId();
+  const verbatimId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const currentField = engine?.cursor ? fieldById(engine.form, engine.cursor) : undefined;
+  const showHelp = helpOpenFor === currentField?.id;
+  const showVerbatim = verbatimOpenFor === currentField?.id;
 
   // Focus (and therefore announce, for a screen reader) the new question
   // every time it changes — not just once on mount. ACCESSIBILITY.md §3.
@@ -96,7 +105,7 @@ export default function QuestionsPage() {
     dispatch({ type: "ANSWER", value: inputValue });
     setInputValue("");
     setTouched(false);
-    setShowHelp(false);
+    setHelpOpenFor(null);
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -124,11 +133,21 @@ export default function QuestionsPage() {
       case "h":
         event.preventDefault();
         dispatch({ type: "HELP" });
-        setShowHelp(true);
+        if (currentField) setHelpOpenFor(currentField.id);
         break;
       case "s":
         event.preventDefault();
         dispatch({ type: "SKIP" });
+        break;
+      case "l":
+        event.preventDefault();
+        dispatch({ type: "VERBATIM" });
+        if (currentField) setVerbatimOpenFor(currentField.id);
+        break;
+      case "r":
+        event.preventDefault();
+        if (engine) saveAnswers(engine.answers);
+        router.push("/confirm");
         break;
     }
   }
@@ -164,6 +183,7 @@ export default function QuestionsPage() {
   const questionAnnouncement = lastAnnouncements.find((a) => a.kind === "question");
   const errorAnnouncement = lastAnnouncements.find((a) => a.kind === "error");
   const suggestionAnnouncement = lastAnnouncements.find((a) => a.kind === "suggestion");
+  const verbatimAnnouncement = lastAnnouncements.find((a) => a.kind === "verbatim");
 
   return (
     <main
@@ -191,7 +211,23 @@ export default function QuestionsPage() {
         >
           {field.spokenLabel}
         </h1>
+        {/*
+          formatHint was already spoken via the sr-only live region above
+          (questionText() in announce.ts includes it), but never shown on
+          screen — a real gap for someone low-vision but not using a screen
+          reader, who gets no format guidance until a failed submit.
+          ACCESSIBILITY.md §5 calls for this to be visible/spoken BEFORE
+          input, not just surfaced after a validation error.
+        */}
+        {field.formatHint && (
+          <p className="mt-1 text-sm text-muted">{field.formatHint}</p>
+        )}
         {!field.required && <p className="mt-1 text-sm text-muted">This one is optional.</p>}
+        {showVerbatim && verbatimAnnouncement && (
+          <p id={verbatimId} role="status" className="mt-3 text-sm text-muted">
+            {verbatimAnnouncement.text}
+          </p>
+        )}
 
         {engine.suggestion && suggestionAnnouncement && (
           <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md bg-accent-strong/10 px-4 py-3">
@@ -314,7 +350,7 @@ export default function QuestionsPage() {
               variant="secondary"
               onClick={() => {
                 dispatch({ type: "HELP" });
-                setShowHelp((s) => !s);
+                setHelpOpenFor(showHelp ? null : field.id);
               }}
             >
               {showHelp ? "Hide help" : "Help"}
@@ -324,10 +360,30 @@ export default function QuestionsPage() {
                 Skip
               </Button>
             )}
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                dispatch({ type: "VERBATIM" });
+                setVerbatimOpenFor(showVerbatim ? null : field.id);
+              }}
+            >
+              {showVerbatim ? "Hide as printed" : "Read as printed"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                saveAnswers(engine.answers);
+                router.push("/confirm");
+              }}
+            >
+              Review answers
+            </Button>
           </div>
 
           <p className="mt-4 text-xs text-muted">
-            Keyboard: N next, P previous, Space repeats the question, H toggles help
+            Keyboard: N next, P previous, Space repeats the question, H toggles help, L reads the label as printed, R jumps to review
             {!field.required ? ", S skips" : ""}. Suspended while typing in the answer box.
           </p>
         </form>
