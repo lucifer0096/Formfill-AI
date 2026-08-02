@@ -363,10 +363,10 @@
       <div class="qs">
         <div class="risk low">
           <div class="risk-head">
-            <b>No filled-in document is produced yet</b>
+            <b>Filled-document output only covers two cases</b>
             <span class="sev low">Known gap</span>
           </div>
-          <p>The last step ("Confirm and finish") reads every answer back but doesn't yet generate an actual filled PDF or document to download. This is planned as the next major piece of work, not a bug.</p>
+          <p>"Confirm and finish" now produces a real download: a genuinely filled PDF for forms with real fillable fields, or a plain question/answer summary for forms that were read as flat text. There's no in-between yet, for example drawing answers onto a flat PDF at their original position, so a flat form's output is a summary document rather than a marked-up copy of the original.</p>
         </div>
         <div class="risk low">
           <div class="risk-head">

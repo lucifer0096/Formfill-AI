@@ -14,7 +14,7 @@ This branch builds on [Arya](https://github.com/lucifer0096/Hackathon-AI/tree/Ar
 | `/review` | Review the fields detected on the form |
 | `/overview` | See the form's sections and estimated completion time |
 | `/questions` | Answer questions one field at a time |
-| `/confirm` | Mandatory read-back of every answer before finishing |
+| `/confirm` | Mandatory read-back of every answer, then download the finished document |
 | `/help` | How a form session works, keyboard shortcuts, FAQ |
 | `/accessibility` | What's supported today and what's still in progress |
 
@@ -23,6 +23,8 @@ Upload a real PDF and the rest of the flow uses what was actually read from it:
 - **PDFs with real form fields (AcroForm):** read directly with `pdf-lib`. No model call, no network, exact fidelity.
 - **Flat PDFs with no form fields** (the common case for real-world forms): text is extracted locally with `pdfjs-dist`, then classified into questions by a model call to OpenRouter via `/api/understand`. Requires `OPENROUTER_API_KEY`, see [Getting started](#getting-started). Without a key, `/review` falls back to showing the raw extracted text with a retry option, rather than failing silently.
 - **Scanned images / image-only PDFs:** not supported yet, flagged clearly rather than guessed at.
+
+Confirming on `/confirm` downloads a real document: a genuinely filled, flattened PDF for AcroForm uploads (answers written into the real fields), or a question/answer summary PDF for classified ones (no real field coordinates to draw into yet).
 
 If nothing has been uploaded this session (e.g. a page is opened directly), the four session pages fall back to sample placeholder data so they're still browsable during development. Data shapes match `packages/form-model`'s `Form`/`Section`/`Field` types on `main`.
 

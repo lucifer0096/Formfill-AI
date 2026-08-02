@@ -213,6 +213,8 @@
   }
   .stage span { font-size: 0.85rem; color: var(--ink-soft); }
   .stage.core { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .stage.done { border-color: var(--built); box-shadow: inset 0 0 0 1px var(--built); }
+  .stage.done b { color: var(--built); }
 
   .note {
     border-left: 4px solid var(--accent);
@@ -341,8 +343,8 @@
     <div class="num">01</div>
     <div class="body">
       <h2>The five pages of a session</h2>
-      <p class="lede">A person using FormFill moves through five screens, in order, to go from "I have a form" to "it's filled in and I've checked every answer."</p>
-      <div class="pipe" role="img" aria-label="Five stages: Upload, Review, Overview, Answer, Confirm">
+      <p class="lede">A person using FormFill moves through five screens, in order, to go from "I have a form" to a downloaded, completed document.</p>
+      <div class="pipe" role="img" aria-label="Five stages: Upload, Review, Overview, Answer, Confirm and download">
         <div class="stage">
           <b>1 · Upload</b>
           <span>Choose or drag in a PDF, PNG, or JPG.</span>
@@ -359,9 +361,9 @@
           <b>4 · Answer</b>
           <span>Answer one question at a time.</span>
         </div>
-        <div class="stage">
-          <b>5 · Confirm</b>
-          <span>Hear every answer read back before finishing.</span>
+        <div class="stage done">
+          <b>5 · Confirm &amp; download</b>
+          <span>Hear every answer read back, then download the finished document.</span>
         </div>
       </div>
     </div>
@@ -416,7 +418,7 @@
             <tr><td class="mod">Review</td><td>Every detected question, each tagged as high, medium, or low confidence. Low-confidence ones are flagged for a closer look, never guessed silently.</td><td><span class="tag built">working</span></td></tr>
             <tr><td class="mod">Overview</td><td>The form broken into its sections, with an estimate of how many minutes it'll take.</td><td><span class="tag built">working</span></td></tr>
             <tr><td class="mod">Answer</td><td>One question at a time, in plain language, with keyboard shortcuts to move forward, back, repeat, or get help.</td><td><span class="tag built">working</span></td></tr>
-            <tr><td class="mod">Confirm</td><td>Every answer read back before the session can be marked complete. This step cannot be skipped.</td><td><span class="tag built">working</span></td></tr>
+            <tr><td class="mod">Confirm</td><td>Every answer read back before the session can be marked complete. This step cannot be skipped. Confirming downloads a real document.</td><td><span class="tag built">working</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -427,9 +429,12 @@
   <section>
     <div class="num">05</div>
     <div class="body">
-      <h2>What's not built yet</h2>
-      <div class="note guard">
-        <span><b>No final output file yet.</b> "Confirm and finish" reads every answer back and lets the person confirm, but there's no step after that which produces a filled-in PDF or document to download. That's the next major phase.</span>
+      <h2>What downloading actually produces</h2>
+      <div class="note built">
+        <span><b>Forms with real fillable fields:</b> a genuinely filled copy of the original PDF, with every answer written into its real field and the file flattened so it looks and prints correctly.</span>
+      </div>
+      <div class="note built">
+        <span><b>Flat forms (the common case):</b> a plain summary document listing every question and answer. This isn't a marked-up copy of the original form, since there's no reliable way yet to know exactly where on the page each answer should be drawn.</span>
       </div>
       <div class="note guard">
         <span><b>Photos and scanned images aren't handled.</b> Only PDFs with real fields, and flat PDFs with a text layer, work today.</span>
