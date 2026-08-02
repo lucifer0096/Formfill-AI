@@ -158,10 +158,15 @@ export default function ConfirmPage() {
       </section>
 
       <Card as="section" aria-labelledby="answers-heading" tabIndex={0} className="mt-8">
-        <h2 id="answers-heading" className="sr-only">
-          Your answers
-        </h2>
-        <ul className="divide-y divide-muted/20">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 id="answers-heading" className="sr-only">
+            Your answers
+          </h2>
+          <p className="text-sm font-medium text-muted" aria-hidden="true">
+            {engine.reviewHeard.size} of {fields.length} heard
+          </p>
+        </div>
+        <ul className="mt-4 divide-y divide-muted/20">
           {fields.map((field) => {
             const answer = engine.answers[field.id];
             const value = answer ? speakValue(field, answer.value, engine.locale) : "Not answered";
@@ -190,7 +195,7 @@ export default function ConfirmPage() {
       </Card>
 
       <div className="mt-6">
-        <Notice live>
+        <Notice live tone={downloadStatus !== "done" && (gateWarning || !allHeard) ? "warning" : "info"}>
           {downloadStatus === "done"
             ? isAcroForm
               ? "Your filled form has been downloaded."

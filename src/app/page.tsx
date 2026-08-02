@@ -29,7 +29,7 @@ export default function Home() {
             Upload a PDF, PNG, or JPG form and complete it in an accessible, guided workflow.
           </p>
           <p className="mt-3 text-lg text-muted">
-            Keyboard first navigation , Works with Screen readers, Optional text-to-speech support
+            Keyboard-first navigation, works with screen readers
           </p>
         </section>
 
