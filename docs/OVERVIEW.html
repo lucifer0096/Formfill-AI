@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FormFill — Orientation</title>
+<style>
+  :root {
+    --paper:      #F7F7F4;
+    --surface:    #FFFFFF;
+    --sunk:       #EDEEE9;
+    --ink:        #16181C;
+    --ink-soft:   #4C5158;
+    --ink-faint:  #7B8189;
+    --rule:       #DCDDD6;
+    --accent:     #1F4FD8;
+    --accent-bg:  #E7ECFB;
+    --guard:      #8A5A00;
+    --guard-bg:   #F7EEDC;
+    --built:      #2F6B47;
+    --built-bg:   #E2EEE7;
+
+    --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --rail: 4.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:     #0E1116;
+      --surface:   #161A21;
+      --sunk:      #1C212A;
+      --ink:       #E7EAEF;
+      --ink-soft:  #A9B0BA;
+      --ink-faint: #7C848F;
+      --rule:      #2A303A;
+      --accent:    #8FAEFF;
+      --accent-bg: #1A2340;
+      --guard:     #E0AC5B;
+      --guard-bg:  #302512;
+      --built:     #7FC79B;
+      --built-bg:  #172A1F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #0E1116;
+    --surface:   #161A21;
+    --sunk:      #1C212A;
+    --ink:       #E7EAEF;
+    --ink-soft:  #A9B0BA;
+    --ink-faint: #7C848F;
+    --rule:      #2A303A;
+    --accent:    #8FAEFF;
+    --accent-bg: #1A2340;
+    --guard:     #E0AC5B;
+    --guard-bg:  #302512;
+    --built:     #7FC79B;
+    --built-bg:  #172A1F;
+  }
+  :root[data-theme="light"] {
+    --paper:     #F7F7F4;
+    --surface:   #FFFFFF;
+    --sunk:      #EDEEE9;
+    --ink:       #16181C;
+    --ink-soft:  #4C5158;
+    --ink-faint: #7B8189;
+    --rule:      #DCDDD6;
+    --accent:    #1F4FD8;
+    --accent-bg: #E7ECFB;
+    --guard:     #8A5A00;
+    --guard-bg:  #F7EEDC;
+    --built:     #2F6B47;
+    --built-bg:  #E2EEE7;
+  }
+
+  * { box-sizing: border-box; }
+  html { font-size: 125%; }            /* 20px base, per ACCESSIBILITY.md §4 */
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-underline-offset: 0.15em; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap {
+    max-width: calc(var(--measure) + var(--rail) + 4rem);
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  /* ---- masthead ---- */
+  .mast {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 4rem 0 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mast h1 {
+    font-family: var(--f-display);
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.4rem;
+    text-wrap: balance;
+  }
+  .mast p {
+    margin: 0;
+    max-width: 34ch;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.9rem;
+  }
+  #themeToggle {
+    font: inherit;
+    font-size: 0.8rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: var(--surface);
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  /* ---- sections on a numbered rail ---- */
+  section {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    gap: 0 1.5rem;
+    padding: 3.5rem 0 0;
+  }
+  section > .num {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    padding-top: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+  section > .body { min-width: 0; display: flex; flex-direction: column; gap: 1.1rem; }
+  section > .body > * { margin: 0; }
+
+  h2 {
+    font-family: var(--f-display);
+    font-size: 1.85rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  p, li { max-width: var(--measure); }
+  ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.85em;
+    background: var(--sunk);
+    padding: 0.12em 0.35em;
+    border-radius: 3px;
+  }
+
+  .lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 60ch; }
+
+  /* ---- pipeline diagram ---- */
+  .pipe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: stretch;
+  }
+  .stage {
+    flex: 1 1 8rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.85rem 0.9rem;
+  }
+  .stage b {
+    display: block;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.35rem;
+  }
+  .stage span { font-size: 0.85rem; color: var(--ink-soft); }
+  .stage.core { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+  /* ---- callouts ---- */
+  .note {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 1rem 1.15rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .note.guard { border-left-color: var(--guard); background: var(--guard-bg); }
+  .note b { font-family: var(--f-body); }
+
+  /* ---- module table ---- */
+  .scroll { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 34rem;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.8rem 0.6rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  td.mod { font-family: var(--f-mono); font-size: 0.82rem; white-space: nowrap; }
+  td.st { white-space: nowrap; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+  .tag.built  { color: var(--built); background: var(--built-bg); border-color: var(--built); }
+  .tag.todo   { color: var(--ink-soft); background: var(--sunk); border-color: var(--rule); }
+  .tag.later  { color: var(--ink-faint); background: transparent; border-color: var(--rule); }
+
+  /* ---- IR shape block ---- */
+  pre {
+    font-family: var(--f-mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    margin: 0;
+  }
+  pre .c { color: var(--ink-faint); }
+  pre .k { color: var(--accent); }
+
+  /* ---- walkthrough steps ---- */
+  ol.steps {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    counter-reset: s;
+  }
+  ol.steps li {
+    counter-increment: s;
+    display: grid;
+    grid-template-columns: 1.9rem 1fr;
+    gap: 0.9rem;
+    max-width: var(--measure);
+  }
+  ol.steps li::before {
+    content: counter(s);
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    width: 1.9rem;
+    height: 1.9rem;
+    display: grid;
+    place-items: center;
+    margin-top: 0.15rem;
+  }
+  ol.steps b { display: block; }
+  ol.steps span { color: var(--ink-soft); font-size: 0.95rem; }
+
+  /* ---- glossary ---- */
+  dl.gloss { display: flex; flex-direction: column; gap: 0.9rem; margin: 0; }
+  dl.gloss > div { max-width: var(--measure); }
+  dl.gloss dt { font-family: var(--f-mono); font-size: 0.85rem; color: var(--accent); }
+  dl.gloss dd { margin: 0.15rem 0 0; color: var(--ink-soft); font-size: 0.95rem; }
+
+  /* ---- questions ---- */
+  .qs { display: flex; flex-direction: column; gap: 0.9rem; }
+  .q {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.9rem 1.05rem;
+    max-width: var(--measure);
+  }
+  .q b { display: block; margin-bottom: 0.2rem; }
+  .q span { font-size: 0.92rem; color: var(--ink-soft); }
+
+  footer {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 46rem) {
+    :root { --rail: 0px; }
+    section { grid-template-columns: 1fr; gap: 0; }
+    section > .num { padding: 0 0 0.6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <p class="eyebrow">FormFill · orientation for the build</p>
+      <h1>What we are building, and how the pieces fit</h1>
+      <p>A plain-language map of the four design docs — enough to hold the whole system in your head while we write code.</p>
+    </div>
+    <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
+  </header>
+
+  <section>
+    <div class="num">01</div>
+    <div class="body">
+      <h2>The product in one breath</h2>
+      <p class="lede">A blind person opens a form — a PDF, a scan, a photo of paper, or a web page — and FormFill talks them through it one question at a time, checks their answers, reads everything back, and hands them a correctly filled document. Alone. Without showing their income or their diagnoses to anyone.</p>
+      <p>The docs are emphatic that the goal is <em>not</em> "read the form aloud". Screen readers already do that badly. The goal is <strong>a finished artefact</strong> — a filled PDF in the downloads folder — produced independently and correctly.</p>
+      <div class="note">
+        <span><b>Why this matters for coding decisions:</b> when a trade-off comes up, the tie-breaker is almost always "which option gets a correct, finished form with less help from a sighted person". That's why, for example, autofill <em>offers</em> a value instead of silently filling it — a stale address the user can't see is a real harm on a benefits claim.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">02</div>
+    <div class="body">
+      <h2>The one idea that makes the codebase small</h2>
+      <p>Three ways a form gets in (PDF, photo, web page) times three ways it gets out (filled PDF, print overlay, live web page) would normally mean nine separate code paths, each with its own bugs.</p>
+      <p>Instead, every input is converted immediately into <strong>one shared data structure — the Form IR</strong> ("intermediate representation"). Everything in the middle of the app only ever sees that structure. It has no idea whether the form came from a scanner or a website.</p>
+
+      <div class="pipe" role="img" aria-label="Pipeline: source-specific ingest, into a source-agnostic core, into source-specific emit.">
+        <div class="stage">
+          <b>Ingest</b>
+          <span>PDF parsing, OCR, reading a web page. Knows about file formats.</span>
+        </div>
+        <div class="stage core">
+          <b>Core · the Form IR</b>
+          <span>Conversation, validation, speech, profile. Knows nothing about files.</span>
+        </div>
+        <div class="stage">
+          <b>Emit</b>
+          <span>Write the PDF, draw the overlay, fill the web page. Knows about file formats again.</span>
+        </div>
+      </div>
+
+      <p>The trick that lets the core stay ignorant: each field carries an <strong><code>anchor</code></strong> — a small tag saying where this field came from and therefore how to write a value back. That is the only source-specific thing that survives into the core.</p>
+
+<pre><span class="c">// The shape everything else depends on (packages/form-model)</span>
+Field {
+  <span class="k">label</span>        <span class="c">// VERBATIM from the form. Never paraphrased.</span>
+  <span class="k">spokenLabel</span>  <span class="c">// plain-language rewrite — what gets read aloud</span>
+  <span class="k">help</span>         <span class="c">// what the question is actually asking</span>
+  <span class="k">type</span>         <span class="c">// date | currency | choice | signature | …</span>
+  <span class="k">required</span>     <span class="c">// boolean</span>
+  <span class="k">constraints</span>  <span class="c">// maxLength, pattern, min, max, options</span>
+  <span class="k">sensitivity</span>  <span class="c">// none | pii | sensitive  ← gates what may leave the device</span>
+  <span class="k">confidence</span>   <span class="c">// 0..1 — how sure we are we read it right</span>
+  <span class="k">anchor</span>       <span class="c">// ← the only source-specific part:</span>
+               <span class="c">//   { acroform, fieldName }  a real PDF form field</span>
+               <span class="c">//   { region, page, rect }   a box on a flat scan</span>
+               <span class="c">//   { dom, selector }        an input on a live page</span>
+  <span class="k">dependsOn</span>    <span class="c">// skip-logic: only ask this if…</span>
+}</pre>
+
+      <p><strong>Answers are stored separately from the form.</strong> That isn't a style choice — it's what makes "structure may go to the cloud, answers never do" enforceable in code rather than merely promised, because the two are never in the same object.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">03</div>
+    <div class="body">
+      <h2>The three rules that constrain everything</h2>
+      <p>Most design decisions in this project fall out of three commitments. If a piece of code breaks one of these, it's a bug even if it works.</p>
+
+      <div class="note guard">
+        <span><b>1 · Answers never leave the device.</b> Form <em>structure</em> (labels, boxes, layout) may be sent to Claude to be understood — after personal data is stripped out and replaced with placeholders like <code>⟨PERSON_1⟩</code>. Answers are handled entirely by local code. There is no server database and no accounts at all, so there is nothing to breach.</span>
+      </div>
+      <div class="note guard">
+        <span><b>2 · Never the only voice in the room.</b> If the user has a screen reader, our app must be acoustically <em>silent</em> and speak only through ARIA live regions. If they don't, our app must speak. Getting this wrong gives you either two voices talking over each other or a mute app — both completely unusable. Enforced mechanically: exactly one file in the whole codebase may call <code>speechSynthesis.speak()</code>, and a lint rule blocks the rest.</span>
+      </div>
+      <div class="note guard">
+        <span><b>3 · Nothing is submitted without read-back.</b> Every answer is read back, in order, before anything is written or submitted. This gate cannot be skipped. On a benefits or immigration form, a mis-parsed question has real consequences.</span>
+      </div>
+
+      <h3>Plus one structural rule you'll hit while coding</h3>
+      <p>The <code>conversation</code> package may not import any ingest or emit package, and may not touch the DOM. It is a pure function: <code>(Form, Answers, Event) → (Answers, Announcements)</code>. That's what lets the most important logic in the product be tested exhaustively without a browser — and it's why the announcement transcripts are snapshot-tested. A change in what the user <em>hears</em> shows up as a reviewable diff.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04</div>
+    <div class="body">
+      <h2>One form, end to end</h2>
+      <p>What actually happens when someone opens a PDF:</p>
+      <ol class="steps">
+        <li><b>Capture</b><span>The file lands in the browser. Nothing is uploaded — the PDF bytes never leave the machine.</span></li>
+        <li><b>Look for real form fields</b><span>Many government PDFs have proper embedded fields (an "AcroForm"). If so, we build the Form IR straight from them and <strong>make no network call at all</strong>. This is the entire first shipping phase.</span></li>
+        <li><b>Otherwise: extract, redact, understand</b><span>Pull out text and box positions on-device, strip anything personal into typed placeholders, send only that redacted structure to <code>/api/understand</code>, get back sections, field types and plain-language rewrites, then restore the placeholders locally.</span></li>
+        <li><b>Converse</b><span>The state machine walks the fields one at a time. Each one is announced, answered by typing or dictation or an autofill offer, and validated locally and immediately. Skip-logic means irrelevant branches are never read aloud — saving someone forty questions they don't need is worth more than any other optimisation here.</span></li>
+        <li><b>Review</b><span>Linear read-back of every field and answer, with a count of anything skipped or uncertain. Mandatory.</span></li>
+        <li><b>Emit</b><span>Real form fields get values written exactly. Flat scans get text drawn at the detected coordinates. Paper additionally gets a print-alignment overlay. Web forms get filled — but <em>the user presses submit, not us</em>.</span></li>
+      </ol>
+      <div class="note">
+        <span><b>Why a Web Worker keeps coming up:</b> OCR takes seconds. On the main thread that freezes the UI <em>and</em> stalls the speech queue — the voice cuts out mid-sentence. So everything CPU-heavy runs in a worker, and the app can keep saying "I'm reading page two of four…".</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">05</div>
+    <div class="body">
+      <h2>The codebase, and where it actually stands</h2>
+      <p>It's a monorepo: one repository, many small packages, npm workspaces tying them together. Here is every planned module and its real state today.</p>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Module</th><th scope="col">What it does</th><th scope="col">State</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mod">form-model</td><td>The Form IR — types, schemas, traversal helpers</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
+            <tr><td class="mod">conversation</td><td>The state machine. Pure, no DOM, no I/O</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
+            <tr><td class="mod">validate</td><td>Local field validation — dates, postcodes, email</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
+            <tr><td class="mod">redact</td><td>Finds personal data and swaps in placeholders</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
+            <tr><td class="mod">speech</td><td>The only sanctioned caller of speech synthesis</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
+            <tr><td class="mod">fixtures</td><td>Hand-authored test forms to develop against</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
+            <tr><td class="mod">apps/web</td><td>The Next.js app — the thing you'd actually open</td><td class="st"><span class="tag todo">not started</span></td></tr>
+            <tr><td class="mod">profile</td><td>Encrypted local profile + autofill matching</td><td class="st"><span class="tag todo">not started</span></td></tr>
+            <tr><td class="mod">ingest-pdf</td><td>Reads PDFs: text, geometry, embedded fields</td><td class="st"><span class="tag todo">not started</span></td></tr>
+            <tr><td class="mod">emit-pdf</td><td>Writes the filled PDF back out</td><td class="st"><span class="tag todo">not started</span></td></tr>
+            <tr><td class="mod">ingest-image</td><td>OCR, deskew, page detection</td><td class="st"><span class="tag later">phase 2–3</span></td></tr>
+            <tr><td class="mod">apps/extension</td><td>Browser extension for live web forms</td><td class="st"><span class="tag later">phase 4</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>"Scaffolded" means the package exists with a few source files and, in three cases, real tests — not that it's finished. <code>npm test</code> and <code>npm run typecheck</code> work today. <code>npm run dev</code> does not: it points at <code>apps/web</code>, which doesn't exist yet.</p>
+
+      <h3>The order of work, and why</h3>
+      <ul>
+        <li><strong>P0 — Skeleton.</strong> Form IR, conversation engine, review gate, accessible shell, fixture forms. Built <em>before</em> any file parsing, because the conversation <em>is</em> the product.</li>
+        <li><strong>P1 — PDFs with real form fields.</strong> Highest fidelity, zero OCR risk, no network call. The first genuinely useful thing.</li>
+        <li><strong>P2 — Flat PDFs and scans.</strong> On-device OCR and model-based classification. Unlocks most real-world forms.</li>
+        <li><strong>P3 — Camera capture.</strong> Guiding someone who can't see the lens to frame a page by audio alone. The hardest problem in the product; deliberately deferred.</li>
+        <li><strong>P4 — Browser extension.</strong> Live web forms, reusing everything above.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">06</div>
+    <div class="body">
+      <h2>Vocabulary</h2>
+      <p>Terms that will come up constantly between us. Knowing these makes the rest of the conversation fast.</p>
+      <dl class="gloss">
+        <div><dt>Form IR</dt><dd>The single normalised description of a form that the whole core operates on. "IR" = intermediate representation.</dd></div>
+        <div><dt>anchor</dt><dd>The tag on each field saying how to write a value back to its origin — a PDF field name, a rectangle on a page, or a CSS selector.</dd></div>
+        <div><dt>AcroForm</dt><dd>A PDF with genuine, machine-readable form fields, as opposed to a flat picture of a form. The easy, high-fidelity path.</dd></div>
+        <div><dt>flat PDF</dt><dd>A PDF that's really just an image. No fields, often no usable text. Needs OCR and geometry.</dd></div>
+        <div><dt>spokenLabel</dt><dd>The plain-language rewrite of an officialese question. The verbatim original is always one keystroke away and never discarded.</dd></div>
+        <div><dt>announcement</dt><dd>Something the app needs the user to know, emitted by the engine as data — text plus a priority. The UI decides whether that becomes speech or an ARIA live region.</dd></div>
+        <div><dt>sr mode / spoken mode</dt><dd>The two mutually exclusive modes. In <code>sr</code> mode the app is silent; in <code>spoken</code> mode it talks. When unsure, default to silent — silence is recoverable, double-speech drives users away.</dd></div>
+        <div><dt>redaction recall</dt><dd>The share of real personal data our detectors catch. CI gates on recall, not accuracy: a false positive costs a slightly worse result, a miss is a leak.</dd></div>
+        <div><dt>fail closed</dt><dd>If redaction can't complete, we do <em>not</em> send the request. Degrade to local heuristics and say so.</dd></div>
+        <div><dt>sensitivity</dt><dd>Per-field: <code>none</code>, <code>pii</code>, or <code>sensitive</code>. Sensitive fields are hard-blocked from cloud speech recognition, from logs, and from crash reports.</dd></div>
+        <div><dt>announcement transcript</dt><dd>A snapshot test of everything the user would hear for a given form. Reviewing it means reading it as if listening.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">07</div>
+    <div class="body">
+      <h2>Decisions waiting on you</h2>
+      <p>These are open in the docs, and a few of them change what we'd write in the very next session. Flagging them so they don't get decided by accident.</p>
+      <div class="qs">
+        <div class="q"><b>UK first or US first?</b><span>This is the one with real code consequences right now. It determines the PII detectors (NI number vs SSN), the validators (postcode vs ZIP), and which fixture forms we build against. Everything in <code>redact</code> and <code>validate</code> branches off it.</span></div>
+        <div class="q"><b>Does the app shell come next, or more engine?</b><span>Right now there is logic but nothing to open in a browser. We could scaffold <code>apps/web</code> so you can hear the conversation working, or keep hardening the engine against fixtures first.</span></div>
+        <div class="q"><b>Is full offline mode a v1 requirement?</b><span>The PDF-with-real-fields path already needs no network. A full offline mode (installable app, local models) is a bigger commitment.</span></div>
+        <div class="q"><b>Support-worker mode?</b><span>One of the four personas is a support worker helping twenty clients a week. A supervised mode is genuinely useful — and sits awkwardly against "answers never leave the device".</span></div>
+        <div class="q"><b>Compliance floor.</b><span>WCAG 2.2 AA is assumed throughout. Whether EN 301 549 or Section 508 conformance is a formal target depends on whether public-sector procurement is in view.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Summarised from <code>ARCHITECTURE.md</code>, <code>DESIGN.md</code>, <code>ACCESSIBILITY.md</code> and <code>PRIVACY.md</code> (all draft v0.1, 29 July 2026). Those remain the source of truth; where this page and a doc disagree, the doc wins.</p>
+    <p>This page follows FormFill's own accessibility spec — 20&nbsp;px base type, <code>rem</code> units throughout, 44&nbsp;px targets, visible focus rings, light and dark themes, no meaning carried by colour alone.</p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var root = document.documentElement;
+    var stored = null;
+    try { stored = localStorage.getItem('formfill-overview-theme'); } catch (e) {}
+    if (stored) { root.setAttribute('data-theme', stored); }
+
+    function isDark() {
+      var attr = root.getAttribute('data-theme');
+      if (attr) { return attr === 'dark'; }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function sync() {
+      var dark = isDark();
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.textContent = dark ? 'Light theme' : 'Dark theme';
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('formfill-overview-theme', next); } catch (e) {}
+      sync();
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>
