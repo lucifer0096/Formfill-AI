@@ -8,6 +8,7 @@ import AccessibilityHighlights from "@/components/AccessibilityHighlights";
 import UploadDropzone from "@/components/upload/UploadDropzone";
 import { ingest } from "@/lib/ingest";
 import { saveIngestResult } from "@/lib/session-store";
+import { saveOriginalFile } from "@/lib/original-file-store";
 
 export default function UploadWorkflow() {
   const router = useRouter();
@@ -22,6 +23,9 @@ export default function UploadWorkflow() {
     try {
       const result = await ingest(selectedFile);
       if (result.kind === "form") {
+        // Only the AcroForm path needs the original bytes later, to write
+        // real answers into real fields at Confirm time.
+        await saveOriginalFile(selectedFile);
         saveIngestResult({ kind: "form", form: result.form });
       } else if (result.kind === "text-layer") {
         saveIngestResult({ kind: "text-layer", result: result.result, fileName: selectedFile.name });

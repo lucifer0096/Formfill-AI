@@ -6,8 +6,11 @@ import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
 import Notice from "@/components/ui/Notice";
 import ProgressTrail from "@/components/ProgressTrail";
-import { loadAnswers, loadWorkingForm } from "@/lib/session-store";
+import { loadAnswers, loadWorkingForm, type AnswerMap } from "@/lib/session-store";
 import { useRouteFocus } from "@/lib/use-route-focus";
+import { loadOriginalFile } from "@/lib/original-file-store";
+import { fillAcroForm } from "@/lib/emit/fill-acroform";
+import { buildSummaryPdf } from "@/lib/emit/summary-pdf";
 import type { Field } from "@/lib/form-model/types";
 
 interface ConfirmRow {
@@ -39,12 +42,27 @@ function readRows(): ConfirmRow[] {
   return rows;
 }
 
+function downloadBytes(bytes: Uint8Array, fileName: string) {
+  // pdf-lib's Uint8Array is typed against ArrayBufferLike (can include
+  // SharedArrayBuffer), which Blob's constructor doesn't accept — .slice()
+  // copies into a genuine ArrayBuffer-backed Uint8Array to satisfy BlobPart.
+  const blob = new Blob([bytes.slice().buffer as ArrayBuffer], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function ConfirmPage() {
   // sessionStorage is browser-only; useSyncExternalStore reads it safely
   // across server prerendering (getServerSnapshot) and the client, in one
   // render, without a setState-in-effect or a hydration mismatch.
   const rows = useSyncExternalStore(noopSubscribe, readRows, () => null);
   const [heard, setHeard] = useState<Set<string>>(new Set());
+  const [status, setStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
   const headingRef = useRouteFocus<HTMLHeadingElement>();
 
   if (!rows) {
@@ -58,6 +76,36 @@ export default function ConfirmPage() {
   }
 
   const allHeard = rows.length > 0 && heard.size === rows.length;
+  const fields = rows.map((r) => r.field);
+  const isAcroForm = fields.some((f) => f.anchor.kind === "acroform");
+
+  async function handleFinish() {
+    setStatus("generating");
+    setErrorMessage("");
+    try {
+      const { form } = loadWorkingForm();
+      const answers: AnswerMap = loadAnswers();
+
+      if (isAcroForm) {
+        const originalFile = await loadOriginalFile();
+        if (!originalFile) {
+          throw new Error(
+            "The original file for this form could not be found. Try uploading it again.",
+          );
+        }
+        const bytes = await fillAcroForm(originalFile, fields, answers);
+        downloadBytes(bytes, `${form.title || "filled-form"}.pdf`);
+      } else {
+        const bytes = await buildSummaryPdf(form.title || "Form summary", fields, answers);
+        downloadBytes(bytes, `${form.title || "form-summary"}-summary.pdf`);
+      }
+
+      setStatus("done");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Something went wrong.");
+      setStatus("error");
+    }
+  }
 
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
@@ -115,18 +163,39 @@ export default function ConfirmPage() {
 
       <div className="mt-6">
         <Notice live>
-          {allHeard
-            ? "All answers confirmed. You are ready to finish."
-            : `You have heard ${heard.size} of ${rows.length} answers. Read back every answer before confirming.`}
+          {status === "done"
+            ? isAcroForm
+              ? "Your filled form has been downloaded."
+              : "Your answer summary has been downloaded. This form has no fillable fields, so a filled copy of the original isn't possible yet — the summary lists every question and answer instead."
+            : allHeard
+              ? isAcroForm
+                ? "All answers confirmed. Ready to download your filled form."
+                : "All answers confirmed. This form has no fillable fields, so you'll get a downloadable summary instead of a filled copy."
+              : `You have heard ${heard.size} of ${rows.length} answers. Read back every answer before confirming.`}
         </Notice>
       </div>
+
+      {status === "error" && (
+        <p role="alert" className="mt-4 text-sm font-medium text-accent-strong">
+          {errorMessage}
+        </p>
+      )}
 
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-between">
         <LinkButton href="/questions" variant="secondary">
           Back to questions
         </LinkButton>
-        <Button type="button" variant="primary" disabled={!allHeard}>
-          Confirm and finish
+        <Button
+          type="button"
+          variant="primary"
+          disabled={!allHeard || status === "generating"}
+          onClick={handleFinish}
+        >
+          {status === "generating"
+            ? "Preparing your document…"
+            : isAcroForm
+              ? "Confirm and download filled form"
+              : "Confirm and download summary"}
         </Button>
       </div>
     </main>
