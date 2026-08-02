@@ -21,7 +21,7 @@ This branch builds on [Arya](https://github.com/lucifer0096/Hackathon-AI/tree/Ar
 Upload a real PDF and the rest of the flow uses what was actually read from it:
 
 - **PDFs with real form fields (AcroForm):** read directly with `pdf-lib`. No model call, no network, exact fidelity.
-- **Flat PDFs with no form fields** (the common case for real-world forms): text is extracted locally with `pdfjs-dist`, then classified into questions by a model call to OpenRouter via `/api/understand`. Requires `OPENROUTER_API_KEY`, see [Getting started](#getting-started). Without a key, `/review` falls back to showing the raw extracted text with a retry option, rather than failing silently.
+- **Flat PDFs with no form fields** (the common case for real-world forms): text is extracted locally with `pdfjs-dist`, personal information (names, emails, national ID numbers, addresses, and similar) is stripped and replaced with placeholders, then the redacted text is classified into questions by a model call to OpenRouter via `/api/understand`. Real values are restored locally afterward and never leave the browser/server boundary. Requires `OPENROUTER_API_KEY`, see [Getting started](#getting-started). Without a key, `/review` falls back to showing the raw extracted text with a retry option, rather than failing silently.
 - **Scanned images / image-only PDFs:** not supported yet, flagged clearly rather than guessed at.
 
 Confirming on `/confirm` downloads a real document: a genuinely filled, flattened PDF for AcroForm uploads (answers written into the real fields), or a question/answer summary PDF for classified ones (no real field coordinates to draw into yet).

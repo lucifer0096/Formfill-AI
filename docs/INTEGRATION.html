@@ -404,8 +404,8 @@
           <span>Real PDF form fields read directly with pdf-lib. No model call, no network. Exact fidelity.</span>
         </div>
         <div class="stage done">
-          <b>2 · Text-layer + classify</b>
-          <span>pdfjs-dist extracts text and position; OpenRouter turns it into labelled questions.</span>
+          <b>2 · Text-layer + redact + classify</b>
+          <span>pdfjs-dist extracts text and position; PII is stripped locally; OpenRouter turns the redacted text into labelled questions.</span>
         </div>
         <div class="stage">
           <b>3 · Image / scan</b>
@@ -435,8 +435,10 @@
             <tr><td class="mod">lib/ingest/acroform.ts</td><td>pdf-lib: reads real PDF form fields directly</td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">lib/ingest/text-layer.ts</td><td>pdfjs-dist: extracts text + position for flat PDFs</td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">lib/ingest/index.ts</td><td>Decides which of the three paths a file needs</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/redact/detectors.ts</td><td>PII pattern matching (names, emails, national ID numbers, addresses, etc.), ported from <code>main</code>'s <code>packages/redact</code></td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/redact/index.ts</td><td>Replaces detected PII with typed placeholders before the model call, restores real values in the response afterward, locally</td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">lib/openrouter/client.ts</td><td>Minimal OpenRouter chat-completions wrapper, server-side only</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/openrouter/classify.ts</td><td>Prompt + parsing: text blocks → sections and fields</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/openrouter/classify.ts</td><td>Redacts text blocks, prompts the model, parses the response, then restores real values before building the Form</td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">app/api/understand/route.ts</td><td>The server route that calls the model. Key never reaches the browser</td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">lib/session-store.ts</td><td>Hands the ingest result and in-progress answers between pages via sessionStorage</td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">app/review, /overview, /questions, /confirm</td><td>Read and write real session data instead of hardcoded arrays</td><td class="st"><span class="tag built">done</span></td></tr>
@@ -450,6 +452,9 @@
         </table>
       </div>
       <p>Without a key, path 2 doesn't fail silently — <code>/review</code> shows exactly what was read off the page as plain text, with a retry button, rather than pretending classification happened.</p>
+      <div class="note built">
+        <span><b>Redaction happens before every model call, no exceptions.</b> Names, emails, national ID numbers, dates of birth, addresses, and account/phone numbers are matched and replaced with typed placeholders (<code>⟨PERSON_1⟩</code>, <code>⟨EMAIL_1⟩</code>...) before the text ever reaches OpenRouter, then restored locally in the response. If redaction itself fails for any reason, the classification call is aborted rather than falling back to sending the original text — verified by logging what actually left the server during testing.</span>
+      </div>
     </div>
   </section>
 

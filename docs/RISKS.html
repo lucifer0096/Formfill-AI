@@ -352,6 +352,14 @@
           </div>
           <p>A hidden character got included by accident when saving the AI service's access key to the hosting platform, which caused every request to fail with a confusing error. Traced to the exact cause and fixed by re-saving the key a different way.</p>
         </div>
+
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Personal information wasn't being stripped before the AI call</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>Text extracted from flat forms was sent to the classification model as-is, with no check for names, emails, national ID numbers, or similar personal details it might contain. Fixed by porting the same detection logic the team's shared codebase already uses, and confirmed by inspecting the exact text sent to the model during testing: real names and email addresses were replaced with placeholders before leaving the server.</p>
+        </div>
       </div>
     </div>
   </section>

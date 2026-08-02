@@ -1,6 +1,7 @@
 import type { Field, FieldType, Form, Section } from "@/lib/form-model/types";
 import type { TextBlock } from "@/lib/ingest/text-layer";
 import { callOpenRouter, CLASSIFICATION_MODEL } from "./client";
+import { redactBlocks, rehydrate, RedactionError, type TextBlock as RedactBlock } from "@/lib/redact";
 
 const FIELD_TYPES: FieldType[] = [
   "text", "longtext", "number", "currency", "date", "email", "phone",
@@ -71,20 +72,45 @@ function isFieldType(value: string): value is FieldType {
  * Turns text-layer blocks into a classified Form. This is the step
  * ARCHITECTURE.md §5.1 assigns to a model call — there is no local shortcut
  * for associating a label with what it's actually asking on a flat PDF.
+ *
+ * PRIVACY.md §3's fail-closed contract: nothing reaches OpenRouter without
+ * passing through redactBlocks() first. If redaction itself throws, this
+ * function throws too — there is deliberately no "skip redaction and send
+ * anyway" fallback path.
  */
 export async function classifyTextLayer(
   blocks: TextBlock[],
   fileName: string,
   pageCount: number,
 ): Promise<Form> {
-  const sourceText = blocksToPlainText(blocks);
+  const redactInput: RedactBlock[] = blocks.map((b, i) => ({
+    id: `block_${i}`,
+    text: b.text,
+    page: b.page,
+    rect: { x: b.x, y: b.y, width: b.width, height: b.height },
+  }));
+
+  let redacted;
+  try {
+    redacted = redactBlocks(redactInput);
+  } catch (cause) {
+    throw new RedactionError("Could not redact extracted text before sending it to the model.", {
+      cause,
+    });
+  }
+
+  const redactedTextBlocks: TextBlock[] = blocks.map((b, i) => ({ ...b, text: redacted.blocks[i]!.text }));
+  const sourceText = blocksToPlainText(redactedTextBlocks);
 
   const raw = await callOpenRouter([
     { role: "system", content: SYSTEM_PROMPT },
     { role: "user", content: sourceText },
   ]);
 
-  const parsed = JSON.parse(raw) as ClassificationResponse;
+  const parsedRedacted = JSON.parse(raw) as ClassificationResponse;
+  // Restore real names/addresses/etc. in the model's response, locally —
+  // the placeholders never leave this function's caller.
+  const parsed = rehydrate(parsedRedacted, redacted.map);
 
   let fieldIndex = 0;
   const sections: Section[] = parsed.sections.map((section, sectionIndex) => ({
