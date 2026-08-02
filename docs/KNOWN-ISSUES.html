@@ -420,7 +420,7 @@
     var btn = document.getElementById('themeToggle');
     var root = document.documentElement;
     var stored = null;
-    try { stored = localStorage.getItem('formfill-risks-theme'); } catch (e) {}
+    try { stored = localStorage.getItem('formfill-known-issues-theme'); } catch (e) {}
     if (stored) { root.setAttribute('data-theme', stored); }
 
     function isDark() {
@@ -436,7 +436,7 @@
     btn.addEventListener('click', function () {
       var next = isDark() ? 'light' : 'dark';
       root.setAttribute('data-theme', next);
-      try { localStorage.setItem('formfill-risks-theme', next); } catch (e) {}
+      try { localStorage.setItem('formfill-known-issues-theme', next); } catch (e) {}
       sync();
     });
     sync();

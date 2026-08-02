@@ -485,7 +485,7 @@
   </section>
 
   <footer>
-    <p>Built from a direct read of <code>main</code>'s <code>docs/DESIGN.md</code> §5-7 and every status doc in this branch's own <code>docs/</code> folder. See <a href="INTEGRATION.html">INTEGRATION.html</a> for file-level detail, <a href="RISKS.html">RISKS.html</a> for the full known-issues list, and <a href="CHANGELOG-VS-MAIN.html">CHANGELOG-VS-MAIN.html</a> for what's new since the <code>Arya</code> branch point.</p>
+    <p>Built from a direct read of <code>main</code>'s <code>docs/DESIGN.md</code> §5-7 and every status doc in this branch's own <code>docs/</code> folder. See <a href="INTEGRATION.html">INTEGRATION.html</a> for file-level detail, <a href="KNOWN-ISSUES.html">KNOWN-ISSUES.html</a> for the full known-issues list, and <a href="WHATS-NEW.html">WHATS-NEW.html</a> for what's new since the <code>Arya</code> branch point.</p>
   </footer>
 
 </div>
@@ -495,7 +495,7 @@
     var btn = document.getElementById('themeToggle');
     var root = document.documentElement;
     var stored = null;
-    try { stored = localStorage.getItem('formfill-scope-theme'); } catch (e) {}
+    try { stored = localStorage.getItem('formfill-roadmap-theme'); } catch (e) {}
     if (stored) { root.setAttribute('data-theme', stored); }
 
     function isDark() {
@@ -511,7 +511,7 @@
     btn.addEventListener('click', function () {
       var next = isDark() ? 'light' : 'dark';
       root.setAttribute('data-theme', next);
-      try { localStorage.setItem('formfill-scope-theme', next); } catch (e) {}
+      try { localStorage.setItem('formfill-roadmap-theme', next); } catch (e) {}
       sync();
     });
     sync();

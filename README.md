@@ -34,9 +34,9 @@ If nothing has been uploaded this session (e.g. a page is opened directly), the 
 |---|---|---|
 | [`docs/WORKFLOW.html`](docs/WORKFLOW.html) | Non-technical | What a person experiences, page by page |
 | [`docs/MODELS.html`](docs/MODELS.html) | Non-technical | AI model choice and live OpenRouter pricing |
-| [`docs/RISKS.html`](docs/RISKS.html) | Non-technical | Known risks and limitations, tested not guessed |
-| [`docs/CHANGELOG-VS-MAIN.html`](docs/CHANGELOG-VS-MAIN.html) | Non-technical | Summary of what's new since the `Arya` branch point, for review |
-| [`docs/SCOPE.html`](docs/SCOPE.html) | Non-technical | What's built vs planned vs P0-demo-worthy, checked against `main`'s roadmap |
+| [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) | Non-technical | Known risks and limitations, tested not guessed |
+| [`docs/WHATS-NEW.html`](docs/WHATS-NEW.html) | Non-technical | Summary of what's new since the `Arya` branch point, for review |
+| [`docs/ROADMAP.html`](docs/ROADMAP.html) | Non-technical | What's built vs planned vs P0-demo-worthy, checked against `main`'s roadmap |
 | [`docs/INTEGRATION.html`](docs/INTEGRATION.html) | Technical | The AI/PDF pipeline implementation, file by file |
 | [`docs/ACCESSIBILITY.html`](docs/ACCESSIBILITY.html) | Technical | Accessibility status against `main`'s normative spec, section by section |
 
@@ -61,7 +61,7 @@ Next.js (App Router, Turbopack) · React · Tailwind CSS · Atkinson Hyperlegibl
 
 The Answer/Confirm flow runs on a pure conversation-engine reducer ported from `main`'s `packages/conversation`, `form-model`, and `validate` (unmodified logic, hand-copied until this branch is reconciled with the workspace) — real skip-logic, locale-aware validation, and a two-step review gate instead of a simpler independent implementation.
 
-Classification currently runs on a free OpenRouter model (`nvidia/nemotron-3-super-120b-a12b:free`), a deliberate choice for a hackathon demo where cost isn't a concern. See [`docs/MODELS.html`](docs/MODELS.html) for the reasoning and paid alternatives, and [`docs/RISKS.html`](docs/RISKS.html) for the reliability tradeoff (occasional slowness on large forms).
+Classification currently runs on a free OpenRouter model (`nvidia/nemotron-3-super-120b-a12b:free`), a deliberate choice for a hackathon demo where cost isn't a concern. See [`docs/MODELS.html`](docs/MODELS.html) for the reasoning and paid alternatives, and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) for the reliability tradeoff (occasional slowness on large forms).
 
 ## Accessibility
 

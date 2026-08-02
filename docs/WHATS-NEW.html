@@ -334,7 +334,7 @@
         </div>
         <div class="q">
           <b>A free AI model, not a paid one, for the hackathon demo</b>
-          <span>Cost isn't a concern for a demo, so a free model was chosen deliberately over a paid one, with a documented, tested tradeoff around occasional slowness. Switching to a paid model later is straightforward. See <a href="RISKS.html">the known-risks doc</a>.</span>
+          <span>Cost isn't a concern for a demo, so a free model was chosen deliberately over a paid one, with a documented, tested tradeoff around occasional slowness. Switching to a paid model later is straightforward. See <a href="KNOWN-ISSUES.html">the known-risks doc</a>.</span>
         </div>
       </div>
     </div>
@@ -349,7 +349,8 @@
         <li><a href="INTEGRATION.html">docs/INTEGRATION.html</a>: the technical implementation behind the AI/PDF pipeline</li>
         <li><a href="ACCESSIBILITY.html">docs/ACCESSIBILITY.html</a>: accessibility status against the team's spec, in detail</li>
         <li><a href="MODELS.html">docs/MODELS.html</a>: which AI model is used and what alternatives cost</li>
-        <li><a href="RISKS.html">docs/RISKS.html</a>: everything currently known to be fragile or unfinished</li>
+        <li><a href="KNOWN-ISSUES.html">docs/KNOWN-ISSUES.html</a>: everything currently known to be fragile or unfinished</li>
+        <li><a href="ROADMAP.html">docs/ROADMAP.html</a>: what's built vs planned vs P0-demo-worthy</li>
       </ul>
     </div>
   </section>
@@ -365,7 +366,7 @@
     var btn = document.getElementById('themeToggle');
     var root = document.documentElement;
     var stored = null;
-    try { stored = localStorage.getItem('formfill-changelog-theme'); } catch (e) {}
+    try { stored = localStorage.getItem('formfill-whats-new-theme'); } catch (e) {}
     if (stored) { root.setAttribute('data-theme', stored); }
 
     function isDark() {
@@ -381,7 +382,7 @@
     btn.addEventListener('click', function () {
       var next = isDark() ? 'light' : 'dark';
       root.setAttribute('data-theme', next);
-      try { localStorage.setItem('formfill-changelog-theme', next); } catch (e) {}
+      try { localStorage.setItem('formfill-whats-new-theme', next); } catch (e) {}
       sync();
     });
     sync();
