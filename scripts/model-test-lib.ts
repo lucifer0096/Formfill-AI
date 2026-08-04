@@ -109,6 +109,19 @@ export interface ModelRunResult {
   ms: number;
 }
 
+// Tuned for this machine: Intel i7-10610U (4C/8T mobile CPU), 32GB RAM,
+// no usable GPU (Intel UHD, ~1GB VRAM) — every model runs on CPU. A
+// ~26B-param model (gemma4:26b, ~17GB on disk) on this hardware is
+// genuinely slow, plausibly 5-15+ minutes for a dense multi-page form
+// image, not a sign anything is broken. Node's fetch has no timeout by
+// default, but the underlying connection can still drop as "fetch failed"
+// under some conditions well before a real result would arrive. An
+// explicit, generous timeout makes a real timeout distinguishable from
+// Ollama actually being down, instead of both looking like the same
+// opaque error. Raise this further if even the smaller models
+// (gemma3:4b, qwen2.5vl:3b) are timing out on a large form.
+const REQUEST_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
+
 export async function runModel(model: string, images: string[]): Promise<ModelRunResult> {
   const start = Date.now();
   try {
@@ -121,6 +134,7 @@ export async function runModel(model: string, images: string[]): Promise<ModelRu
         format: "json",
         messages: [{ role: "user", content: SYSTEM_PROMPT, images }],
       }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     const data = (await response.json()) as OllamaChatResponse;
     const ms = Date.now() - start;
@@ -129,7 +143,14 @@ export async function runModel(model: string, images: string[]): Promise<ModelRu
     }
     return { ok: true, raw: data.message?.content ?? "", ms };
   } catch (error) {
-    return { ok: false, raw: error instanceof Error ? error.message : String(error), ms: Date.now() - start };
+    const ms = Date.now() - start;
+    const isTimeout = error instanceof Error && error.name === "TimeoutError";
+    const message = isTimeout
+      ? `Timed out after ${(REQUEST_TIMEOUT_MS / 1000).toFixed(0)}s — model may be too slow on this hardware, or Ollama isn't responding. Check 'ollama ps' and try again.`
+      : error instanceof Error
+        ? error.message
+        : String(error);
+    return { ok: false, raw: message, ms };
   }
 }
 

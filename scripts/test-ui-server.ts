@@ -9,6 +9,8 @@
  * external network call of any kind.
  */
 import { createServer, type IncomingMessage } from "node:http";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join, extname } from "node:path";
 import { DEFAULT_MODELS, renderPdfBytesToPngs, runModel, tryParseJson } from "./model-test-lib";
 
 const PORT = Number(process.env.TEST_UI_PORT ?? 3100);
@@ -158,7 +160,8 @@ const PAGE_HTML = `<!doctype html>
           statusEl.className = 'status ' + (event.ok ? 'ok' : 'error');
           const seconds = (event.ms / 1000).toFixed(1);
           const count = fieldCount(event.parsed);
-          metaEl.innerHTML = seconds + 's' + (count !== null ? ' · <span class="field-count">' + count + '</span> fields detected' : '');
+          metaEl.innerHTML = seconds + 's' + (count !== null ? ' · <span class="field-count">' + count + '</span> fields detected' : '')
+            + (event.savedTo ? ' · saved to <code>' + event.savedTo + '</code>' : '');
           outEl.textContent = JSON.stringify(event.parsed ?? event.raw, null, 2);
         }
       }
@@ -178,7 +181,7 @@ const server = createServer(async (req, res) => {
 
   if (req.method === "POST" && req.url === "/run") {
     try {
-      const { pdfBytes, models } = await parseMultipart(req);
+      const { pdfBytes, models, fileName } = await parseMultipart(req);
       if (!pdfBytes) {
         res.writeHead(400, { "Content-Type": "text/plain" });
         res.end("No file uploaded.");
@@ -193,10 +196,25 @@ const server = createServer(async (req, res) => {
       const images = await renderPdfBytesToPngs(pdfBytes);
       const modelList = models.length > 0 ? models : DEFAULT_MODELS;
 
+      // Same convention as scripts/test-local-models.ts, so CLI and UI
+      // results land in the same place and can be browsed together.
+      const formName = (fileName ? fileName.replace(extname(fileName), "") : "upload") || "upload";
+      const runStamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const outDir = join("scripts", "results", `${formName}_${runStamp}`);
+      await mkdir(outDir, { recursive: true });
+
       for (const model of modelList) {
         res.write(JSON.stringify({ type: "running", model }) + "\n");
         const result = await runModel(model, images);
         const parsed = tryParseJson(result.raw);
+
+        const safeName = model.replace(/[/:]/g, "_");
+        const outFile = join(outDir, `${safeName}.json`);
+        await writeFile(
+          outFile,
+          JSON.stringify({ model, ok: result.ok, ms: result.ms, response: parsed ?? result.raw }, null, 2),
+        );
+
         res.write(
           JSON.stringify({
             type: "done",
@@ -205,6 +223,7 @@ const server = createServer(async (req, res) => {
             ms: result.ms,
             parsed: parsed ?? undefined,
             raw: parsed ? undefined : result.raw,
+            savedTo: outFile,
           }) + "\n",
         );
       }
@@ -221,7 +240,7 @@ const server = createServer(async (req, res) => {
 });
 
 /** Minimal multipart/form-data parser — just enough for one file field and one text field. No dependency needed for this throwaway tool. */
-async function parseMultipart(req: IncomingMessage): Promise<{ pdfBytes: Uint8Array | null; models: string[] }> {
+async function parseMultipart(req: IncomingMessage): Promise<{ pdfBytes: Uint8Array | null; models: string[]; fileName: string | null }> {
   const contentType = req.headers["content-type"] ?? "";
   const boundaryMatch = contentType.match(/boundary=(.+)$/);
   if (!boundaryMatch) throw new Error("Missing multipart boundary.");
@@ -239,6 +258,7 @@ async function parseMultipart(req: IncomingMessage): Promise<{ pdfBytes: Uint8Ar
 
   let pdfBytes: Uint8Array | null = null;
   let models: string[] = [];
+  let fileName: string | null = null;
 
   for (const part of parts) {
     const headerEnd = part.indexOf("\r\n\r\n");
@@ -248,12 +268,14 @@ async function parseMultipart(req: IncomingMessage): Promise<{ pdfBytes: Uint8Ar
 
     if (/name="file"/.test(headerText)) {
       pdfBytes = new Uint8Array(content);
+      const nameMatch = headerText.match(/filename="([^"]*)"/);
+      if (nameMatch) fileName = nameMatch[1];
     } else if (/name="models"/.test(headerText)) {
       models = content.toString("utf8").split(",").map((s) => s.trim()).filter(Boolean);
     }
   }
 
-  return { pdfBytes, models };
+  return { pdfBytes, models, fileName };
 }
 
 function splitBuffer(buffer: Buffer, delimiter: Buffer): Buffer[] {
