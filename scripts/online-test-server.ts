@@ -1,25 +1,26 @@
 /**
  * Browser UI for comparing OpenRouter (cloud) models against real forms —
  * NOT part of the app, separate port, separate process. Run with
- * `npm run test:online`, then open http://localhost:3200. Upload a PDF,
- * pick which OpenRouter models to run, watch each model's result stream in
- * side by side. Same UI shape as test-ui-server.ts (the local Ollama tool).
+ * `npm run test:online`, then open http://localhost:3200. Upload one or
+ * more PDFs at once, watch each file/model result stream in, and see a
+ * consolidated summary once every file is done. Same UI shape as
+ * test-ui-server.ts (the local Ollama tool).
  *
- * COSTS REAL MONEY, unlike test-ui-server.ts: most models below are paid,
- * billed per token against the OPENROUTER_API_KEY in .env.local. The
- * :free-suffixed model is free-tier. See docs/MODELS.html §05 for current
- * pricing before running a large batch.
+ * FREE MODELS ONLY (see online-test-lib.ts's ALL_MODELS) — no money has
+ * been loaded into the OpenRouter account, so this tool intentionally
+ * excludes paid models rather than merely gating them behind a warning.
  */
 import { createServer, type IncomingMessage } from "node:http";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, extname } from "node:path";
 import { config } from "dotenv";
-import { ALL_MODELS, DEFAULT_MODELS, MAX_MODELS_PER_RUN, isFreeModel, runOnlineModel, tryParseJson, toForm } from "./online-test-lib";
+import { ALL_MODELS, DEFAULT_MODELS, runOnlineModel, tryParseJson, toForm } from "./online-test-lib";
 
 config({ path: ".env.local" });
 
 const PORT = Number(process.env.TEST_ONLINE_PORT ?? 3200);
-const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB, matches the app's own upload limit
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB per file, matches the app's own upload limit
+const MAX_FILES_PER_RUN = 15; // sane ceiling on a single batch
 
 let runInProgress = false;
 
@@ -39,7 +40,7 @@ const PAGE_HTML = `<!doctype html>
   h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
   .sub { color: GrayText; margin: 0 0 1.5rem; font-size: 0.9rem; }
   .warn {
-    border: 1px solid #8A5A00; background: #F7EEDC; color: #8A5A00;
+    border: 1px solid #2F6B47; background: #E2EEE7; color: #2F6B47;
     border-radius: 6px; padding: 0.75rem 1rem; margin: 0 0 1.5rem; font-size: 0.85rem;
   }
   .panel {
@@ -47,14 +48,19 @@ const PAGE_HTML = `<!doctype html>
     border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;
   }
   .row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
-  .models { display: flex; gap: 0.5rem 1.25rem; flex-wrap: wrap; margin-bottom: 1rem; }
-  .models label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
   button {
     font: inherit; padding: 0.55rem 1.1rem; border-radius: 6px; border: 1px solid transparent;
     background: #1F4FD8; color: #fff; cursor: pointer; font-weight: 600;
   }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
   input[type="file"] { font: inherit; }
+  .filelist { font-size: 0.85rem; color: GrayText; margin: 0.5rem 0 0; }
+  .summary {
+    border: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+    border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;
+  }
+  .summary table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .summary th, .summary td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid color-mix(in srgb, CanvasText 15%, transparent); }
   .grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem;
   }
@@ -75,47 +81,39 @@ const PAGE_HTML = `<!doctype html>
     white-space: pre-wrap; word-break: break-word;
   }
   .field-count { font-weight: 700; }
+  h2.form-heading { font-size: 1.05rem; margin: 2rem 0 0.75rem; }
+  h2.form-heading:first-of-type { margin-top: 0; }
 </style>
 </head>
 <body>
   <h1>FormFill — online (OpenRouter) model comparison</h1>
-  <p class="sub">Upload a real form PDF, pick which OpenRouter models to run, compare raw output side by side against the local Ollama results.</p>
-  <p class="warn">This calls OpenRouter with the API key in <code>.env.local</code>. Most models below are paid and billed per token — only the <code>:free</code>-suffixed model costs nothing. Check <code>docs/MODELS.html</code> §05 for current pricing before running a large batch.</p>
+  <p class="sub">Upload one or more real form PDFs, run them all through OpenRouter, and see a consolidated summary once every file is done.</p>
+  <p class="warn">Free tier only — <code>${ALL_MODELS.join(", ")}</code>. No paid models are available here, so a run can never spend money.</p>
 
   <div class="panel">
     <div class="row">
-      <input type="file" id="file" accept="application/pdf" />
+      <input type="file" id="file" accept="application/pdf" multiple />
       <button id="run" disabled>Run comparison</button>
     </div>
-    <div class="models" id="models"></div>
+    <p class="filelist" id="fileList"></p>
   </div>
 
+  <div id="summaryWrap"></div>
   <div class="grid" id="grid"></div>
 
 <script>
-  const ALL_MODELS = ${JSON.stringify(ALL_MODELS)};
-  const DEFAULT_MODELS = ${JSON.stringify(DEFAULT_MODELS)};
-  const MAX_MODELS_PER_RUN = ${MAX_MODELS_PER_RUN};
-  const modelsDiv = document.getElementById('models');
   const fileInput = document.getElementById('file');
   const runBtn = document.getElementById('run');
+  const fileList = document.getElementById('fileList');
   const grid = document.getElementById('grid');
-
-  // Only free models are pre-checked — paid models must be opted into
-  // explicitly, so opening this page and clicking "run" can never spend
-  // money by accident.
-  ALL_MODELS.forEach((m) => {
-    const isFree = m.endsWith(':free');
-    const label = document.createElement('label');
-    const cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.value = m; cb.checked = DEFAULT_MODELS.includes(m);
-    label.appendChild(cb);
-    label.appendChild(document.createTextNode(m + (isFree ? ' (free)' : ' (paid)')));
-    modelsDiv.appendChild(label);
-  });
+  const summaryWrap = document.getElementById('summaryWrap');
 
   fileInput.addEventListener('change', () => {
-    runBtn.disabled = !fileInput.files[0];
+    const files = [...fileInput.files];
+    runBtn.disabled = files.length === 0;
+    fileList.textContent = files.length
+      ? files.length + ' file(s) selected: ' + files.map((f) => f.name).join(', ')
+      : '';
   });
 
   function fieldCount(parsed) {
@@ -124,41 +122,24 @@ const PAGE_HTML = `<!doctype html>
   }
 
   runBtn.addEventListener('click', async () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    const selected = [...modelsDiv.querySelectorAll('input:checked')].map((c) => c.value);
-    if (selected.length === 0) return;
-
-    if (selected.length > MAX_MODELS_PER_RUN) {
-      alert('Too many models selected (' + selected.length + '). Max ' + MAX_MODELS_PER_RUN + ' per run — uncheck some first.');
-      return;
-    }
-
-    const paidSelected = selected.filter((m) => !m.endsWith(':free'));
-    if (paidSelected.length > 0) {
-      const ok = confirm(
-        'This run includes ' + paidSelected.length + ' PAID model(s):\\n' + paidSelected.join('\\n') +
-        '\\n\\nThis will spend real money on your OpenRouter account. Continue?'
-      );
-      if (!ok) return;
-    }
+    const files = [...fileInput.files];
+    if (files.length === 0) return;
 
     runBtn.disabled = true;
     grid.innerHTML = '';
+    summaryWrap.innerHTML = '';
     const cards = {};
-    for (const model of selected) {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = \`<h3><span>\${model}</span><span class="status pending" data-status>queued</span></h3>
-        <p class="meta" data-meta></p>
-        <pre data-out>—</pre>\`;
-      grid.appendChild(card);
-      cards[model] = card;
+    const summaryRows = []; // { file, ok, ms, count }
+
+    for (const file of files) {
+      const heading = document.createElement('h2');
+      heading.className = 'form-heading';
+      heading.textContent = file.name;
+      grid.parentElement.insertBefore(heading, grid);
     }
 
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('models', selected.join(','));
+    for (const file of files) formData.append('files', file, file.name);
 
     const response = await fetch('/run', { method: 'POST', body: formData });
     if (!response.ok || !response.body) {
@@ -184,28 +165,40 @@ const PAGE_HTML = `<!doctype html>
           grid.insertAdjacentHTML('beforebegin', '<p class="sub" data-status-line>' + event.message + '</p>');
           continue;
         }
-        const card = cards[event.model];
-        if (!card) continue;
-        const statusEl = card.querySelector('[data-status]');
-        const metaEl = card.querySelector('[data-meta]');
-        const outEl = card.querySelector('[data-out]');
+        const key = event.file + '::' + event.model;
         if (event.type === 'running') {
-          statusEl.textContent = 'running';
-          statusEl.className = 'status running';
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = \`<h3><span>\${event.model}</span><span class="status running" data-status>running</span></h3>
+            <p class="meta" data-meta></p>
+            <pre data-out>—</pre>\`;
+          grid.appendChild(card);
+          cards[key] = card;
         } else if (event.type === 'done') {
+          const card = cards[key];
+          if (!card) continue;
+          const statusEl = card.querySelector('[data-status]');
+          const metaEl = card.querySelector('[data-meta]');
+          const outEl = card.querySelector('[data-out]');
           statusEl.textContent = event.ok ? 'ok' : 'failed';
           statusEl.className = 'status ' + (event.ok ? 'ok' : 'error');
           const seconds = (event.ms / 1000).toFixed(1);
           const count = fieldCount(event.parsed);
-          // OpenRouter's usage.cost on :free routes reports a nominal
-          // "would-have-cost" figure, not an actual charge (nothing is
-          // deducted on a free route) — showing it as if it were real spend
-          // is misleading, so it's suppressed for free models specifically.
-          const isFree = event.model.endsWith(':free');
-          const cost = !isFree && typeof event.costUsd === 'number' ? ' · $' + event.costUsd.toFixed(5) : '';
-          metaEl.innerHTML = seconds + 's' + cost + (count !== null ? ' · <span class="field-count">' + count + '</span> fields detected' : '')
+          metaEl.innerHTML = seconds + 's' + (count !== null ? ' · <span class="field-count">' + count + '</span> fields detected' : '')
             + (event.savedTo ? ' · saved to <code>' + event.savedTo + '</code>' : '');
           outEl.textContent = JSON.stringify(event.parsed ?? event.raw, null, 2);
+          summaryRows.push({ file: event.file, ok: event.ok, ms: event.ms, count, title: event.parsed && event.parsed.title });
+        } else if (event.type === 'run-complete') {
+          // Consolidated summary table, once every file/model pair is done.
+          const rows = summaryRows.map((r) =>
+            '<tr><td>' + r.file + '</td><td>' + (r.title || '—') + '</td>' +
+            '<td>' + (r.ok ? 'OK' : 'FAILED') + '</td>' +
+            '<td>' + (r.ms / 1000).toFixed(1) + 's</td>' +
+            '<td>' + (r.count === null || r.count === undefined ? '—' : r.count) + '</td></tr>'
+          ).join('');
+          summaryWrap.innerHTML = '<div class="summary"><h2 class="form-heading" style="margin-top:0">Consolidated summary</h2>' +
+            '<table><thead><tr><th>File</th><th>Detected title</th><th>Result</th><th>Time</th><th>Fields</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody></table></div>';
         }
       }
     }
@@ -231,10 +224,16 @@ const server = createServer(async (req, res) => {
     runInProgress = true;
 
     try {
-      const { pdfBytes, models, fileName } = await parseMultipart(req);
-      if (!pdfBytes) {
+      const { files } = await parseMultipart(req);
+      if (files.length === 0) {
         res.writeHead(400, { "Content-Type": "text/plain" });
-        res.end("No file uploaded.");
+        res.end("No files uploaded.");
+        runInProgress = false;
+        return;
+      }
+      if (files.length > MAX_FILES_PER_RUN) {
+        res.writeHead(400, { "Content-Type": "text/plain" });
+        res.end(`Too many files (${files.length}). Max ${MAX_FILES_PER_RUN} per run.`);
         runInProgress = false;
         return;
       }
@@ -245,67 +244,51 @@ const server = createServer(async (req, res) => {
         return;
       }
 
-      const modelList = models.length > 0 ? models : DEFAULT_MODELS;
-
-      // Server-side enforcement of the same cap the UI checks client-side —
-      // a client check alone can be bypassed by hitting /run directly.
-      if (modelList.length > MAX_MODELS_PER_RUN) {
-        res.writeHead(400, { "Content-Type": "text/plain" });
-        res.end(`Too many models requested (${modelList.length}). Max ${MAX_MODELS_PER_RUN} per run.`);
-        runInProgress = false;
-        return;
-      }
-      const unknownModels = modelList.filter((m) => !ALL_MODELS.includes(m));
-      if (unknownModels.length > 0) {
-        res.writeHead(400, { "Content-Type": "text/plain" });
-        res.end(`Unknown model(s), not in the approved list: ${unknownModels.join(", ")}`);
-        runInProgress = false;
-        return;
-      }
-
       res.writeHead(200, {
         "Content-Type": "application/x-ndjson",
         "Transfer-Encoding": "chunked",
       });
 
-      const formName = (fileName ? fileName.replace(extname(fileName), "") : "upload") || "upload";
-      // Separate top-level folder from the local tool's scripts/results/ —
-      // keeps cloud (paid/free OpenRouter) results clearly apart from local
-      // Ollama results, one subfolder per form, same per-model file naming.
-      const outDir = join("scripts", "online-model-results", formName);
-      await mkdir(outDir, { recursive: true });
+      const modelList = DEFAULT_MODELS;
 
-      let totalCostUsd = 0;
-      for (const model of modelList) {
-        res.write(JSON.stringify({ type: "running", model, paid: !isFreeModel(model) }) + "\n");
-        const result = await runOnlineModel(model, pdfBytes, fileName ?? "upload.pdf");
-        const parsed = tryParseJson(result.raw);
-        const form = parsed ? toForm(parsed as Parameters<typeof toForm>[0], fileName ?? "upload.pdf", 1) : undefined;
-        // Only sum cost for paid models — :free routes report a nominal
-        // figure in usage.cost, not an actual charge.
-        if (!isFreeModel(model) && typeof result.costUsd === "number") totalCostUsd += result.costUsd;
+      for (const file of files) {
+        const fileName = file.fileName ?? "upload.pdf";
+        const formName = fileName.replace(extname(fileName), "") || "upload";
+        // Separate top-level folder from the local tool's scripts/results/ —
+        // keeps cloud results clearly apart from local Ollama results, one
+        // subfolder per form, same per-model file naming.
+        const outDir = join("scripts", "online-model-results", formName);
+        await mkdir(outDir, { recursive: true });
 
-        const safeName = model.replace(/[/:]/g, "_");
-        const outFile = join(outDir, `${safeName}.json`);
-        await writeFile(
-          outFile,
-          JSON.stringify({ model, ok: result.ok, ms: result.ms, costUsd: result.costUsd, response: parsed ?? result.raw }, null, 2),
-        );
+        for (const model of modelList) {
+          res.write(JSON.stringify({ type: "running", file: fileName, model }) + "\n");
+          const result = await runOnlineModel(model, file.bytes, fileName);
+          const parsed = tryParseJson(result.raw);
+          const form = parsed ? toForm(parsed as Parameters<typeof toForm>[0], fileName, 1) : undefined;
 
-        res.write(
-          JSON.stringify({
-            type: "done",
-            model,
-            ok: result.ok,
-            ms: result.ms,
-            costUsd: result.costUsd,
-            parsed: form ? { title: form.title, sections: form.sections } : undefined,
-            raw: parsed ? undefined : result.raw,
-            savedTo: outFile,
-          }) + "\n",
-        );
+          const safeName = model.replace(/[/:]/g, "_");
+          const outFile = join(outDir, `${safeName}.json`);
+          await writeFile(
+            outFile,
+            JSON.stringify({ model, ok: result.ok, ms: result.ms, response: parsed ?? result.raw }, null, 2),
+          );
+
+          res.write(
+            JSON.stringify({
+              type: "done",
+              file: fileName,
+              model,
+              ok: result.ok,
+              ms: result.ms,
+              parsed: form ? { title: form.title, sections: form.sections } : undefined,
+              raw: parsed ? undefined : result.raw,
+              savedTo: outFile,
+            }) + "\n",
+          );
+        }
       }
-      res.write(JSON.stringify({ type: "status", message: `Run complete. Total cost (paid models only): $${totalCostUsd.toFixed(5)}` }) + "\n");
+
+      res.write(JSON.stringify({ type: "run-complete" }) + "\n");
       res.end();
     } catch (error) {
       res.writeHead(500, { "Content-Type": "text/plain" });
@@ -320,8 +303,13 @@ const server = createServer(async (req, res) => {
   res.end("Not found");
 });
 
-/** Minimal multipart/form-data parser — same as test-ui-server.ts's. */
-async function parseMultipart(req: IncomingMessage): Promise<{ pdfBytes: Uint8Array | null; models: string[]; fileName: string | null }> {
+interface UploadedFile {
+  fileName: string | null;
+  bytes: Uint8Array;
+}
+
+/** Minimal multipart/form-data parser — collects every "files" field (repeated), not just one. */
+async function parseMultipart(req: IncomingMessage): Promise<{ files: UploadedFile[] }> {
   const contentType = req.headers["content-type"] ?? "";
   const boundaryMatch = contentType.match(/boundary=(.+)$/);
   if (!boundaryMatch) throw new Error("Missing multipart boundary.");
@@ -331,15 +319,13 @@ async function parseMultipart(req: IncomingMessage): Promise<{ pdfBytes: Uint8Ar
   let total = 0;
   for await (const chunk of req as AsyncIterable<Buffer>) {
     total += chunk.length;
-    if (total > MAX_UPLOAD_BYTES) throw new Error("File too large (50MB limit).");
+    if (total > MAX_UPLOAD_BYTES * MAX_FILES_PER_RUN) throw new Error("Upload too large.");
     chunks.push(chunk);
   }
   const body = Buffer.concat(chunks);
   const parts = splitBuffer(body, Buffer.from(boundary));
 
-  let pdfBytes: Uint8Array | null = null;
-  let models: string[] = [];
-  let fileName: string | null = null;
+  const files: UploadedFile[] = [];
 
   for (const part of parts) {
     const headerEnd = part.indexOf("\r\n\r\n");
@@ -347,16 +333,13 @@ async function parseMultipart(req: IncomingMessage): Promise<{ pdfBytes: Uint8Ar
     const headerText = part.subarray(0, headerEnd).toString("utf8");
     const content = part.subarray(headerEnd + 4, part.length - 2);
 
-    if (/name="file"/.test(headerText)) {
-      pdfBytes = new Uint8Array(content);
+    if (/name="files"/.test(headerText)) {
       const nameMatch = headerText.match(/filename="([^"]*)"/);
-      if (nameMatch) fileName = nameMatch[1];
-    } else if (/name="models"/.test(headerText)) {
-      models = content.toString("utf8").split(",").map((s) => s.trim()).filter(Boolean);
+      files.push({ fileName: nameMatch ? nameMatch[1] : null, bytes: new Uint8Array(content) });
     }
   }
 
-  return { pdfBytes, models, fileName };
+  return { files };
 }
 
 function splitBuffer(buffer: Buffer, delimiter: Buffer): Buffer[] {
@@ -373,5 +356,5 @@ function splitBuffer(buffer: Buffer, delimiter: Buffer): Buffer[] {
 
 server.listen(PORT, () => {
   console.log(`Online (OpenRouter) model comparison UI running at http://localhost:${PORT}`);
-  console.log("WARNING: this calls a paid API. Only the :free-suffixed model costs nothing.");
+  console.log(`Free models only: ${ALL_MODELS.join(", ")}`);
 });

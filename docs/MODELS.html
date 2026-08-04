@@ -481,6 +481,27 @@
               <td class="num">$0 (free tier)</td>
               <td>This is a genuinely hard form — dense legal paragraphs with multiple conditions bundled into single sentences (e.g. residency status, relationship status, and property ownership all phrased as long legal declarations). The model correctly broke each paragraph down into a clear yes/no question a person could actually answer out loud, without inventing anything or missing a condition. This is the strongest result of any test so far, local or cloud.</td>
             </tr>
+            <tr>
+              <td class="mod">NZ Operational Service Medal application</td>
+              <td class="st"><span class="tag built">yes</span></td>
+              <td class="num">73 seconds</td>
+              <td class="num">$0 (free tier)</td>
+              <td>A tricky government form where the person filling it in ("your contact details") isn't always the same person the application is about ("service personnel details") — the model kept these two people's information correctly separated. It also correctly told apart two different declaration sections that only apply in different situations (one for a living ex-service member, one for a posthumous/deceased application), and honestly flagged lower confidence on a handwritten-style fill-in-the-blank date line rather than guessing.</td>
+            </tr>
+            <tr>
+              <td class="mod">Northland Pharmacist Pathway Scholarship application</td>
+              <td class="st"><span class="tag built">yes</span></td>
+              <td class="num">61 seconds</td>
+              <td class="num">$0 (free tier)</td>
+              <td>Correctly noticed that some fields only apply to certain applicants (e.g. "Student ID Number" is only needed if you're already a University of Otago student) and added that as a helpful note rather than treating it as always-required. Also correctly separated the short structured questions on page 1 from a longer, essay-style "tell us about your interest" question on page 2.</td>
+            </tr>
+            <tr>
+              <td class="mod">NZ citizenship application (adult)</td>
+              <td class="st"><span class="tag todo">error (twice)</span></td>
+              <td class="num">2s, then 120s (timed out)</td>
+              <td class="num">—</td>
+              <td>Failed twice in two different ways. First attempt: OpenRouter's own file handling rejected the PDF ("Failed to parse") before the model ever saw it, in under 2 seconds. Second attempt (retried): the file was accepted this time, but the model never replied within the 2-minute safety limit. Two different failures on the same file suggests this specific form is a genuine problem case — likely because NZ citizenship application forms are unusually long/dense — rather than a one-off hiccup. Worth testing with the current paid production model (<code>google/gemma-3-27b-it</code>) to see if dedicated (non-free) capacity handles it better, since the free tier is shared and rate-limited.</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -489,7 +510,62 @@
         <span><b>About the "$0" cost:</b> OpenRouter's free tier genuinely does not charge — no money has been loaded into the account and nothing has been billed. (The raw API response briefly showed a small non-zero "cost" figure for free-tier calls; this turned out to be a reference number some providers report even on free routes, not a real charge, and the table/tool have since been corrected to only show real costs for paid models.)</span>
       </div>
 
-      <p><b>Early read:</b> the free cloud version of Nigel's recommended model is matching or beating every local result so far, at zero cost and a fraction of the time. If this holds up across more forms, it's a strong candidate to replace the current production model (<code>google/gemma-3-27b-it</code>, §03) — same family, free instead of paid, dramatically faster since it isn't limited by anyone's laptop hardware.</p>
+      <p>This first wave (5 forms, one model) looked very strong. The next step was a much bigger, harsher test — see §04d.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04d</div>
+    <div class="body">
+      <h2>Fourth test round — a full 16-form stress test, three free cloud models</h2>
+      <p class="lede">Once the first five cloud results looked promising, the natural next question was: does this hold up at real scale, uploaded as a batch, back to back, with no gaps in between? Two more free models were added for comparison at the same time — Google's slightly larger Gemma 4 31B, and a completely different model family from Nvidia (Nemotron), specifically built for reading documents rather than general chat. 16 real forms were uploaded together and run through all three models — <b>48 attempts total.</b></p>
+
+      <div class="note built">
+        <span><b>Headline result:</b> only one of the three models actually worked: <code>google/gemma-4-26b-a4b-it:free</code>, and even it started strong then slowed down partway through the batch before recovering by the end. The other two free models (<code>gemma-4-31b-it:free</code> and Nvidia's Nemotron) <b>never once produced a usable result across all 16 forms</b> — not because they read forms badly, but because neither ever got a real chance to finish: one was constantly told to slow down by its host, the other consistently ran out of time before answering.</span>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Model</th>
+              <th scope="col">Worked</th>
+              <th scope="col">What went wrong the rest of the time</th>
+              <th scope="col">In plain terms</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mod">google/gemma-4-26b-a4b-it:free</td>
+              <td class="st"><span class="tag built">6 / 16</span></td>
+              <td>8 timed out, 1 hit a shared file-reading outage, 1 tripped a bug in our own comparison tool (not the model's fault)</td>
+              <td>The only model that worked at all, and every time it did succeed, the result was genuinely accurate — same quality bar as the earlier single-form tests. But it visibly slowed down and started timing out through the middle of this large back-to-back batch, then came right again on the very last form. This looks like the free tier getting busy under sustained heavy use, not a flaw in the model itself — a real person using the app one form at a time, not 16 in a row, would likely see far fewer of these failures.</td>
+            </tr>
+            <tr>
+              <td class="mod">google/gemma-4-31b-it:free</td>
+              <td class="st"><span class="tag todo">0 / 16</span></td>
+              <td>14 rejected instantly with "temporarily rate-limited," 1 hit the same file-reading outage, 1 tool bug</td>
+              <td>This model's free capacity was essentially unavailable for the entire test, usually rejecting the request within 2–7 seconds with a message saying it was overloaded and to try again later. This says nothing about whether the model is any good at reading forms — it never actually got to try. Not a viable option right now, but not ruled out for the future either.</td>
+            </tr>
+            <tr>
+              <td class="mod">nvidia/nemotron-nano-12b-v2-vl:free</td>
+              <td class="st"><span class="tag todo">0 / 16</span></td>
+              <td>15 out of 16 ran out of time (2-minute safety limit) with no answer at all, 1 hit the shared file-reading outage</td>
+              <td>Every single attempt either timed out or failed before reaching the model. Like the model above, this tells us nothing about actual accuracy — it never once produced a real answer to judge. Either this model is currently too slow to be practical on the free tier, or its free capacity is similarly overloaded.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note guard">
+        <span><b>A shared outage, not a model problem:</b> one form ("Criminal history consent form") failed identically and instantly on all three models with the message "Failed to parse." A closer look at one of these errors showed OpenRouter uses a separate, shared document-reading service behind the scenes (from a company called Mistral) to turn a PDF into readable text before any model sees it — and that service was briefly down. This affected every model equally and had nothing to do with which AI was chosen.</span>
+      </div>
+
+      <div class="note">
+        <span><b>A bug in our own testing tool, not the model:</b> twice, <code>gemma-4-26b</code> returned an answer but our comparison tool crashed while trying to read it ("Cannot read properties of undefined"), because the tool assumed every answer would always include a list of form sections and didn't handle the rare case where that was missing. This has been fixed in <code>scripts/online-test-lib.ts</code> so future runs don't lose that data — but it means 2 of the 16 results for this model are unknown rather than pass/fail.</span>
+      </div>
+
+      <p><b>What this means for choosing a model:</b> <code>gemma-4-26b-a4b-it:free</code> remains the clear front-runner — it is the only model that has ever successfully read a real form in any test so far, local or cloud, and every time it succeeds the result is high quality. But this batch shows it isn't yet bulletproof under heavy back-to-back load, so it shouldn't be treated as "solved" — a smaller-scale real-world trial (one form at a time, like an actual user) is the fairer next test. The other two free models are not ruled out, but they need to be tried again on quieter days, or with a longer time limit, before any real verdict can be reached on their accuracy.</p>
     </div>
   </section>
 

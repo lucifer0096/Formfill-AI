@@ -3,32 +3,35 @@
  * model-test-lib.ts's shape, but calls OpenRouter instead of local Ollama.
  * Not part of the app; nothing under src/ imports this.
  *
- * UNLIKE the local tool, this one costs real money per call (some models
- * listed are free-tier, most are not) — see docs/MODELS.html §05 for
- * current pricing before running a large batch.
+ * FREE MODELS ONLY, deliberately: no money has been loaded into the
+ * OpenRouter account, so paid models are excluded from this list entirely
+ * rather than merely gated behind a confirmation dialog — the simplest way
+ * to guarantee a run here can never spend money. Add a paid model back
+ * (e.g. google/gemma-3-27b-it, the current production CLASSIFICATION_MODEL)
+ * once there's actually budget to test with.
  */
 import { formatHintFor } from "@/lib/form-model/format-hint";
 import { callOpenRouterWithUsage, type ChatContentPart } from "@/lib/openrouter/client";
 import type { Field, FieldType, Form, Section, Anchor } from "@/lib/form-model/types";
 
-// Candidates worth comparing against the local Ollama results (see
-// docs/MODELS.html §04/§04b): gemma-4-26b-a4b-it is the OpenRouter listing
-// closest to the locally-tested gemma4:26b (Nigel's pick, passed both local
-// forms) — the :free variant costs nothing, useful as a first pass before
-// committing to the paid tier or a different model entirely.
+// All free-tier, vision-capable models on OpenRouter worth comparing:
+//   - gemma-4-26b-a4b-it: closest listing to the locally-tested gemma4:26b
+//     (Nigel's pick, passed every local form so far — see docs/MODELS.html
+//     §04/§04b). Already tested on 5 real forms in §04c with strong results.
+//   - gemma-4-31b-it: same family, one size up — worth comparing against
+//     the 26B variant to see if the larger size helps on harder forms
+//     (e.g. the NZ citizenship form that failed/timed out on 26B).
+//   - nemotron-nano-12b-v2-vl: a genuinely different model family (Nvidia,
+//     not Google), smaller, named as vision-language specific rather than
+//     a general chat model with vision added on — a real alternative to
+//     compare against the Gemma family, not just another size variant.
 export const ALL_MODELS = [
-  "google/gemma-4-26b-a4b-it:free", // free tier, closest match to local gemma4:26b
-  "google/gemma-3-27b-it",          // current production CLASSIFICATION_MODEL — PAID
-  "google/gemma-3-4b-it",           // cheapest paid, closest to local gemma3:4b (best local result) — PAID
+  "google/gemma-4-26b-a4b-it:free",
+  "google/gemma-4-31b-it:free",
+  "nvidia/nemotron-nano-12b-v2-vl:free",
 ];
 
-// Only the free model is pre-checked by default in the UI — paid models
-// must be opted into explicitly, so a run can't silently spend money.
-export const DEFAULT_MODELS = ALL_MODELS.filter((m) => m.endsWith(":free"));
-
-export function isFreeModel(model: string): boolean {
-  return model.endsWith(":free");
-}
+export const DEFAULT_MODELS = ALL_MODELS;
 
 // Safety cap: OpenRouter's own request timeout can otherwise hang
 // indefinitely on a stuck upstream provider, unlike local Ollama calls
@@ -36,12 +39,6 @@ export function isFreeModel(model: string): boolean {
 // Cloud inference should be fast (seconds, not local's CPU-bound minutes) —
 // 2 minutes is generous headroom, not a tuned expectation.
 export const REQUEST_TIMEOUT_MS = 2 * 60 * 1000;
-
-// Hard ceiling on how many models a single /run can fire off — prevents a
-// stray "select all" plus a large model list from turning into a much
-// bigger bill than intended. Raise deliberately if a wider comparison is
-// actually wanted.
-export const MAX_MODELS_PER_RUN = 5;
 
 const FIELD_TYPES: FieldType[] = [
   "text", "longtext", "number", "currency", "date", "email", "phone",
@@ -156,13 +153,20 @@ function isFieldType(value: string): value is FieldType {
   return (FIELD_TYPES as string[]).includes(value);
 }
 
-/** Converts raw model JSON into the same Form shape the app uses, for a true apples-to-apples comparison with local results. */
+/**
+ * Converts raw model JSON into the same Form shape the app uses, for a true
+ * apples-to-apples comparison with local results. Models occasionally
+ * return JSON that parses fine but doesn't match the expected shape (e.g.
+ * missing "sections" entirely) — guard against that here rather than
+ * letting toForm() throw and losing the raw result the caller already has.
+ */
 export function toForm(parsed: ClassificationResponse, fileName: string, pageCount: number): Form {
   let fieldIndex = 0;
-  const sections: Section[] = parsed.sections.map((section, sectionIndex) => ({
+  const rawSections = Array.isArray(parsed.sections) ? parsed.sections : [];
+  const sections: Section[] = rawSections.map((section, sectionIndex) => ({
     id: `section_${sectionIndex}`,
     title: section.title,
-    fields: section.fields.map((f): Field => {
+    fields: (Array.isArray(section.fields) ? section.fields : []).map((f): Field => {
       const id = `field_${fieldIndex++}`;
       const type = isFieldType(f.type) ? f.type : "unknown";
       const anchor: Anchor = { kind: "region", page: (f.page ?? 1) - 1, rect: { x: 0, y: 0, width: 0, height: 0 } };
