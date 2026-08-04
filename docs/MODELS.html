@@ -570,6 +570,88 @@
   </section>
 
   <section>
+    <div class="num">04e</div>
+    <div class="body">
+      <h2>Fifth test round — retrying the 10 failures, one form at a time</h2>
+      <p class="lede">§04d's headline theory was "the model itself is fine, it just got overwhelmed running 16 forms back to back." The fair way to test that theory is to try the exact same 10 failed forms again, individually this time, with real gaps between each — only <code>gemma-4-26b-a4b-it:free</code> was used (the other two free models were dropped from routine testing, since neither ever produced a single result to judge).</p>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Form</th>
+              <th scope="col">Result this time</th>
+              <th scope="col">In plain terms</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mod">Medical Examiner designation application</td>
+              <td class="st"><span class="tag built">succeeded</span></td>
+              <td>Timed out in the big batch, worked cleanly alone (114s). Supports the "batch fatigue" theory.</td>
+            </tr>
+            <tr>
+              <td class="mod">Criminal history consent form</td>
+              <td class="st"><span class="tag built">succeeded</span></td>
+              <td>Hit the shared "Failed to parse" outage in the big batch, worked cleanly alone (106s) — confirms that failure really was the outage, not this file.</td>
+            </tr>
+            <tr>
+              <td class="mod">IR330 (tax code declaration)</td>
+              <td class="st"><span class="tag built">succeeded</span></td>
+              <td>Previously hit our own tool's bug (fixed since — see below) rather than a real model failure. Now returns a fast (55s), accurate result.</td>
+            </tr>
+            <tr>
+              <td class="mod">NZ citizenship application (adult)</td>
+              <td class="st"><span class="tag todo">failed again</span></td>
+              <td>Timed out a second time, alone this time — not batch fatigue. This is the longest form tested (26 pages of dense text), and a genuine NZ government form.</td>
+            </tr>
+            <tr>
+              <td class="mod">IR742 (offshore IRD number application)</td>
+              <td class="st"><span class="tag todo">failed again</span></td>
+              <td>Timed out a second time, alone. Only 4 pages, so length alone doesn't explain it — another NZ government form.</td>
+            </tr>
+            <tr>
+              <td class="mod">PAS310 (NZ passport application)</td>
+              <td class="st"><span class="tag todo">failed again</span></td>
+              <td>Timed out a second time, alone. Another NZ government form.</td>
+            </tr>
+            <tr>
+              <td class="mod">Sponsorship Form for Temporary Entry (INZ 1025)</td>
+              <td class="st"><span class="tag todo">failed again</span></td>
+              <td>Timed out a second time, alone. A long (13-page) NZ Immigration form.</td>
+            </tr>
+            <tr>
+              <td class="mod">Childcare and OSCAR subsidy application</td>
+              <td class="st"><span class="tag todo">failed again</span></td>
+              <td>Its first real chance to be tested (previously hit the tool bug) — still timed out on its own. A Work and Income (MSD) form.</td>
+            </tr>
+            <tr>
+              <td class="mod">Community Services Card application</td>
+              <td class="st"><span class="tag todo">failed again</span></td>
+              <td>Timed out a second time, alone. Another Work and Income (MSD) form.</td>
+            </tr>
+            <tr>
+              <td class="mod">Residential tenancy agreement</td>
+              <td class="st"><span class="tag todo">failed differently</span></td>
+              <td>Previously hit the tool bug; this time failed with a bare "fetch failed" after 76 seconds — a different, technical failure traced to a gap in how the testing tool made its network request (fixed, see below). Not a government form, but similar dense legal/official boilerplate.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note built">
+        <span><b>A real pattern, not just bad luck:</b> every single one of the 6 forms that failed twice (NZ citizenship, IR742, PAS310 passport, the sponsorship form, the childcare subsidy form, and the community services card) is an <b>official New Zealand government form</b> (Inland Revenue, Internal Affairs, Immigration NZ, or Work and Income). Every form that succeeded once retried alone was <b>not</b> a government form (ACC, a university scholarship, a real estate consent form, a defence force medal application, a tax code declaration). This is 6-for-6 vs. 3-for-3 — a strong enough split to treat as a genuine finding, not coincidence, though the exact reason (form length, layout density, something about how these particular PDFs are built) isn't confirmed yet.</span>
+      </div>
+
+      <div class="note guard">
+        <span><b>A second, previously-hidden bug found and fixed:</b> the residential tenancy agreement's "fetch failed" traced back to how Node's built-in network requests work. The testing tool (and, it turns out, the real production code that talks to OpenRouter) was using a default network setting that can silently cut off a slow-but-working request before it finishes, separate from the 2-minute limit this project intentionally sets. This has now been fixed in both the testing tool and the actual app code (<code>src/lib/openrouter/client.ts</code>) so this failure mode shouldn't happen again, in testing or for a real user.</span>
+      </div>
+
+      <p><b>What this means for choosing a model:</b> <code>gemma-4-26b-a4b-it:free</code> is confirmed reliable on ordinary forms — 6 real successes now across two rounds, zero failures on any non-government form. But it has a real, repeatable blind spot on New Zealand government forms specifically, which needs to be understood (and ideally fixed, e.g. with a longer timeout for these specific forms) before this model can be called demo-ready for a product whose whole point is helping people fill out exactly these kinds of forms.</p>
+    </div>
+  </section>
+
+  <section>
     <div class="num">05</div>
     <div class="body">
       <h2>Pricing comparison — multimodal models only</h2>

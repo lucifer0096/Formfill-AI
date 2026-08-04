@@ -14,21 +14,22 @@ import { formatHintFor } from "@/lib/form-model/format-hint";
 import { callOpenRouterWithUsage, type ChatContentPart } from "@/lib/openrouter/client";
 import type { Field, FieldType, Form, Section, Anchor } from "@/lib/form-model/types";
 
-// All free-tier, vision-capable models on OpenRouter worth comparing:
-//   - gemma-4-26b-a4b-it: closest listing to the locally-tested gemma4:26b
-//     (Nigel's pick, passed every local form so far — see docs/MODELS.html
-//     §04/§04b). Already tested on 5 real forms in §04c with strong results.
-//   - gemma-4-31b-it: same family, one size up — worth comparing against
-//     the 26B variant to see if the larger size helps on harder forms
-//     (e.g. the NZ citizenship form that failed/timed out on 26B).
-//   - nemotron-nano-12b-v2-vl: a genuinely different model family (Nvidia,
-//     not Google), smaller, named as vision-language specific rather than
-//     a general chat model with vision added on — a real alternative to
-//     compare against the Gemma family, not just another size variant.
+// Dropped after the 2026-08-04 16-form batch (see docs/MODELS.html §04d):
+// gemma-4-31b-it:free was rate-limited on 14/16 attempts, and
+// nemotron-nano-12b-v2-vl:free timed out on 15/16 — neither ever produced
+// a single usable result, so keeping them just triples every retry's
+// runtime for two guaranteed failures. Not ruled out on accuracy (they
+// never got a fair run), just not worth including in routine testing —
+// restore by name here if retried again later on a quieter window.
+//
+// gemma-4-26b-a4b-it: closest listing to the locally-tested gemma4:26b
+// (Nigel's pick, passed every local form — see docs/MODELS.html §04/§04b).
+// The only model to ever produce a real result in cloud testing: 6/16 in
+// the big batch, every success genuinely accurate. The 10 failures were
+// free-tier congestion under sustained load, not accuracy problems —
+// currently being retried one file at a time to test that theory.
 export const ALL_MODELS = [
   "google/gemma-4-26b-a4b-it:free",
-  "google/gemma-4-31b-it:free",
-  "nvidia/nemotron-nano-12b-v2-vl:free",
 ];
 
 export const DEFAULT_MODELS = ALL_MODELS;

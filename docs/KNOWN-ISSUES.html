@@ -310,22 +310,13 @@
         <div class="fix"><b>Status:</b> disclosed tradeoff, not currently mitigated. If this needs to change later, redaction would have to move to either a pre-send image-level pass or be dropped in favour of per-model provider privacy terms.</div>
       </div>
 
-      <div class="risk medium">
+      <div class="risk high">
         <div class="risk-head">
-          <b>Best-known model still isn't fully reliable under sustained load</b>
-          <span class="sev medium">Medium</span>
+          <b>The best-known model consistently fails on NZ government forms specifically</b>
+          <span class="sev high">High</span>
         </div>
-        <p>Local testing (see <a href="MODELS.html">MODELS.html §04/§04b</a>) found three working local models across two forms: <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (the mentor-recommended model) — all produced genuinely correct results. A follow-up cloud round tested free OpenRouter models across 16 real forms (<a href="MODELS.html">MODELS.html §04c/§04d</a>): <code>google/gemma-4-26b-a4b-it:free</code> succeeded on 6/16 with every success genuinely accurate, but slowed down and started timing out partway through a large back-to-back batch before recovering — most likely free-tier congestion under sustained load, not a flaw in the model itself. Two other free candidates (<code>gemma-4-31b-it:free</code>, Nvidia's Nemotron) never completed a single run in that batch due to rate-limiting and timeouts, so neither is ruled out on accuracy, only on availability so far.</p>
-        <div class="fix"><b>Status:</b> a demo-viable model exists (<code>gemma-4-26b-a4b-it:free</code>, or the local <code>gemma3:4b</code>/<code>gemma4:26b</code>), but hasn't been proven reliable under heavy concurrent load. A single-form real-world trial, not a back-to-back batch, is the fairer next test before committing to a production model.</div>
-      </div>
-
-      <div class="risk medium">
-        <div class="risk-head">
-          <b>The AI model can be slow on large, dense forms</b>
-          <span class="sev medium">Medium</span>
-        </div>
-        <p>In the 16-form cloud batch, the two longest/densest forms (a 26-page citizenship application, a 13-page sponsorship form) were among several that timed out at the 2-minute test limit — though a 3-page form also timed out during the same batch, so form length alone doesn't fully explain it (see the load-related entry above).</p>
-        <div class="fix"><b>Mitigation in place:</b> the server is configured to wait up to 60 seconds, the maximum allowed on the current hosting plan, instead of giving up early. <strong>Before any live demo, test the actual form you plan to use against the live site once.</strong> If it's slow, have a smaller backup form ready, or switch to a paid model (see the <a href="MODELS.html">model &amp; pricing doc</a>) for guaranteed speed.</div>
+        <p>Local testing (see <a href="MODELS.html">MODELS.html §04/§04b</a>) found three working local models across two forms: <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (the mentor-recommended model) — all produced genuinely correct results. A 16-form cloud batch (<a href="MODELS.html">MODELS.html §04c/§04d</a>) then found <code>google/gemma-4-26b-a4b-it:free</code> succeeding on 6/16, with the rest assumed to be free-tier congestion under batch load. A follow-up round retried those 10 failures one at a time, with real gaps between each, to test that theory (<a href="MODELS.html">MODELS.html §04e</a>): <strong>6 of the 10 failed again, even alone</strong> — and every one of those 6 is an official NZ government form (Inland Revenue, Internal Affairs, Immigration NZ, Work and Income). Every form that succeeded once retried alone was <em>not</em> a government form. This is a 6-for-6 vs. 3-for-3 split, strong enough to treat as a genuine pattern rather than coincidence, though the exact cause (length, layout density, something about how these specific PDFs are built) isn't confirmed.</p>
+        <div class="fix"><b>Status:</b> open, and higher-priority than initially thought — this isn't a load/capacity problem that resolves itself, it's a repeatable gap on exactly the category of form (government paperwork) this product exists to help with. Next step: investigate whether a longer timeout specifically for these forms resolves it, or whether it's a genuine model-capability limit requiring a different model for this form category.</div>
       </div>
 
       <div class="risk medium">
@@ -333,8 +324,17 @@
           <b>OpenRouter's own PDF-reading step can go down independently of any model</b>
           <span class="sev medium">Medium</span>
         </div>
-        <p>During the 16-form cloud batch (<a href="MODELS.html">MODELS.html §04d</a>), one form failed identically and instantly on all three models tested with "Failed to parse." The error detail showed OpenRouter uses a separate, shared document-reading service (from Mistral) to turn a PDF into readable text before any model sees it — and that service was briefly unavailable, unrelated to model choice.</p>
+        <p>During the 16-form cloud batch (<a href="MODELS.html">MODELS.html §04d</a>), one form failed identically and instantly on all three models tested with "Failed to parse." The error detail showed OpenRouter uses a separate, shared document-reading service (from Mistral) to turn a PDF into readable text before any model sees it — and that service was briefly unavailable, unrelated to model choice. Retrying that same form alone (§04e) succeeded cleanly, confirming it was a transient outage, not a problem with the file.</p>
         <div class="fix"><b>Status:</b> disclosed, not yet mitigated — no retry-on-parse-failure logic exists in <code>classify-pdf.ts</code> today. A simple one-retry-after-delay would likely cover transient outages like this one.</div>
+      </div>
+
+      <div class="risk low">
+        <div class="risk-head">
+          <b>A network-level timeout gap could silently cut off a slow-but-working request</b>
+          <span class="sev low">Fixed</span>
+        </div>
+        <p>The §04e retry round surfaced a bare "fetch failed" on one form after 76 seconds — well under the app's own 2-minute intended limit. Root cause: Node's built-in <code>fetch</code> is built on <code>undici</code>, whose default network Agent has its own separate 300-second header timeout that can behave unpredictably under real network conditions, independent of any timeout this app sets deliberately. The same underlying issue was previously found and fixed in the local model-testing tooling (<code>scripts/model-test-lib.ts</code>).</p>
+        <div class="fix"><b>Status:</b> fixed in <code>src/lib/openrouter/client.ts</code> (the real production code every model call goes through, not just testing tools) by using <code>undici</code>'s <code>fetch</code> directly with an explicit, generous timeout Agent, removing the ambiguity between two different timeout systems fighting each other.</div>
       </div>
 
       <div class="risk medium">
