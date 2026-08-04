@@ -4,6 +4,7 @@
  * of the app; nothing under src/ imports this.
  */
 import { readFile } from "node:fs/promises";
+import { Agent, fetch as undiciFetch } from "undici";
 
 export const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
 
@@ -131,16 +132,30 @@ export interface ModelRunResult {
 
 // Tuned for this machine: Intel i7-10610U (4C/8T mobile CPU), 32GB RAM,
 // no usable GPU (Intel UHD, ~1GB VRAM) — every model runs on CPU. A
-// ~26B-param model (gemma4:26b, ~17GB on disk) on this hardware is
-// genuinely slow, plausibly 5-15+ minutes for a dense multi-page form
-// image, not a sign anything is broken. Node's fetch has no timeout by
-// default, but the underlying connection can still drop as "fetch failed"
-// under some conditions well before a real result would arrive. An
-// explicit, generous timeout makes a real timeout distinguishable from
-// Ollama actually being down, instead of both looking like the same
-// opaque error. Raise this further if even the smaller models
-// (gemma3:4b, qwen2.5vl:3b) are timing out on a large form.
+// ~4-8B-param model here has been observed taking just over 5 minutes for
+// a single form image; a ~26B model can take much longer. Not a sign
+// anything is broken.
+//
+// ROOT CAUSE this actually fixes: Node's global fetch is built on undici,
+// whose default Agent has a 300s (5-minute) headersTimeout — the time
+// allowed for the server to finish sending response headers. Ollama with
+// stream:false only sends headers once generation is FULLY done, so any
+// model taking longer than 5 minutes hit this and failed with a bare
+// "fetch failed", regardless of the AbortSignal.timeout below (that's a
+// separate, higher-level abort — the undici default fires first and
+// can't be configured through it). Confirmed via repeated real runs: 3
+// different models all failed at ~304s with the same generic message,
+// which is undici's headersTimeout, not this file's own timeout value.
+//
+// Fix: use undici's fetch directly with an Agent whose headersTimeout and
+// bodyTimeout are both raised to match REQUEST_TIMEOUT_MS, instead of the
+// global fetch (which can't have its Agent reconfigured after the fact).
 const REQUEST_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
+
+const longRunningAgent = new Agent({
+  headersTimeout: REQUEST_TIMEOUT_MS,
+  bodyTimeout: REQUEST_TIMEOUT_MS,
+});
 
 /**
  * Unloads a model from memory immediately (keep_alive: 0 tells Ollama not
@@ -215,7 +230,12 @@ export async function unloadModelAndWait(model: string): Promise<void> {
 export async function runModel(model: string, images: string[]): Promise<ModelRunResult> {
   const start = Date.now();
   try {
-    const response = await fetch(`${OLLAMA_URL}/api/chat`, {
+    // undiciFetch + longRunningAgent, not the global fetch — see that
+    // constant's comment for why this matters (undici's default 300s
+    // headersTimeout was silently failing every model that took longer
+    // than 5 minutes, before this REQUEST_TIMEOUT_MS ever got a chance to
+    // apply).
+    const response = await undiciFetch(`${OLLAMA_URL}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -225,6 +245,7 @@ export async function runModel(model: string, images: string[]): Promise<ModelRu
         keep_alive: 0, // unload immediately after this response, don't linger resident
         messages: [{ role: "user", content: SYSTEM_PROMPT, images }],
       }),
+      dispatcher: longRunningAgent,
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     const data = (await response.json()) as OllamaChatResponse;
