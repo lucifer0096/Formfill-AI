@@ -426,6 +426,9 @@
             <tr><td>§3 — single-key commands suspended in text inputs</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
             <tr><td>§5 — <code>aria-invalid</code> / <code>aria-required</code> reflect real state</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
             <tr><td>§3 — a changing count is announced, not just redrawn</td><td class="mod">/confirm ("heard N of M")</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>Required signature question had no way past it</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>Previous discarded an unsaved answer, and revisiting a question showed it empty</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>"Read back" never actually marked an answer as heard</td><td class="mod">/confirm</td><td class="st"><span class="tag built">fixed</span></td></tr>
             <tr><td>§4 — 4.5:1 / 7:1 contrast on non-text UI</td><td class="mod">/review confidence badges</td><td class="st"><span class="tag built">verified, already OK</span></td></tr>
             <tr><td>§5 — format hints shown/spoken before input, not just after a failed submit</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
             <tr><td>§3 — global <kbd>R</kbd> (jump to review) and <kbd>L</kbd> (verbatim label) commands</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
@@ -435,6 +438,8 @@
       </div>
 
       <p>Implementation note for anyone extending these pages: focus handling now lives in one shared hook, <code>src/lib/use-route-focus.ts</code> — attach its ref to a page's <code>&lt;h1 tabIndex={-1}&gt;</code> rather than re-deriving this per page.</p>
+
+      <p>Clarifying the "heard N of M" row above: the visible on-screen counter itself is deliberately <code>aria-hidden</code> (it's a sighted convenience, not meant to interrupt with every single click) — the same information is announced through a separate, genuinely live <code>Notice</code> region lower on the page instead. Worth knowing if this ever gets refactored: the count you can see and the count that gets spoken are two different elements on purpose, not a duplicate.</p>
 
       <p>The touch-target check covered every real interactive element: <code>Button</code>/<code>LinkButton</code> share a <code>px-6 py-3</code> base that clears 44px well past the minimum; on <code>/questions</code> the radio/checkbox inputs for boolean and choice/multichoice fields are visually <code>sr-only</code>, but each is wrapped in a full-width <code>&lt;label&gt;</code> with its own <code>px-4 py-3</code> padding, and that label — not the native control — is the actual click target. The only sub-44px element found was <code>ProgressTrail</code>'s 24×24px step-number circles, which are <code>aria-hidden</code> and non-interactive (the step label text next to them isn't a link or button either), so they're decorative and out of scope for this check.</p>
     </div>

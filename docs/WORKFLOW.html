@@ -332,7 +332,7 @@
 
   <header class="mast">
     <div>
-      <p class="eyebrow">FormFill · rahul branch · end-to-end workflow</p>
+      <p class="eyebrow">FormFill · end-to-end workflow</p>
       <h1>What happens between uploading a form and finishing it</h1>
       <p>A walkthrough of the full experience, page by page, for anyone who hasn't read the code.</p>
     </div>
@@ -373,35 +373,20 @@
     <div class="num">02</div>
     <div class="body">
       <h2>What happens behind the "Upload" step</h2>
-      <p>The moment someone continues past the upload page, the form is inspected to figure out which of three situations it's in. This happens entirely inside their own browser; nothing is sent anywhere yet.</p>
-
-      <ol class="steps">
-        <li class="done">
-          <b>The form has real, fillable fields</b>
-          <span>Some PDFs, especially official government or business forms, are built with actual clickable fields, the kind you could normally type straight into in Adobe Acrobat. When this is the case, FormFill reads those fields directly. This is instant, free, and needs no AI at all.</span>
-        </li>
-        <li class="done">
-          <b>The form is "flat": text and boxes, but no real fields</b>
-          <span>This is the common case for scanned forms, or forms exported as a flat image from Word or a design tool. There's text on the page, but nothing telling the computer which label belongs to which answer box. This is where AI comes in. See step 3 below.</span>
-        </li>
-        <li>
-          <b>The form is a photo or scanned image with no text layer at all</b>
-          <span>Not supported yet. FormFill tells the person clearly that this type isn't handled, rather than failing silently or guessing.</span>
-        </li>
-      </ol>
+      <p>The moment someone continues past the upload page, the whole PDF is sent to an AI model in a single call, which reads it the way a person would — the AI is shown the actual document, not just text pulled out of it. A quick, free, local check first lists any real clickable fields the PDF already has (the kind you could type straight into in Adobe Acrobat), so the model can match its own questions back onto them where they exist. Photos and non-PDF images aren't supported yet — FormFill tells the person clearly rather than failing silently or guessing.</p>
     </div>
   </section>
 
   <section>
     <div class="num">03</div>
     <div class="body">
-      <h2>Turning flat text into real questions</h2>
-      <p>For the common "flat form" case, the text read off the page (still just raw words and their position, nothing AI-specific yet) is sent to an AI model, which is asked to do one job: group that text into sections and turn each one into a clear question a person could answer.</p>
+      <h2>Turning a form into real questions</h2>
+      <p>The AI model is asked to do one job: group the form into sections and turn each part into a clear question a person could answer, whether or not the PDF has real fillable fields underneath.</p>
       <p>For example, the model turns the officialese <em>"Applicant's declaration of relevant prior interests"</em> into the plain question <em>"Have you had a financial interest in this before?"</em>, while keeping the original wording available too. It's never hidden.</p>
-      <div class="note">
-        <span><b>What's sent to the AI, and what isn't:</b> only the extracted text and its rough position on the page. Never the original file itself, and never anything the user later types as an answer.</span>
+      <div class="note guard">
+        <span><b>What's sent to the AI:</b> the whole PDF file itself, not just extracted text — this is a deliberate tradeoff (an earlier, text-only approach turned out to be unreliable across real forms) with a real privacy cost: information rendered inside the PDF can't be automatically hidden from the model the way plain text could be. See <a href="KNOWN-ISSUES.html">the known-risks doc</a>. Whatever the person later types as an answer is never sent anywhere.</span>
       </div>
-      <p>See <a href="MODELS.html">the model &amp; pricing doc</a> for which AI model does this and what it costs.</p>
+      <p>See <a href="MODELS.html">the model &amp; pricing doc</a> for which AI model does this, what it costs, and how it was tested.</p>
     </div>
   </section>
 
@@ -437,14 +422,14 @@
         <span><b>Flat forms (the common case):</b> a plain summary document listing every question and answer. This isn't a marked-up copy of the original form, since there's no reliable way yet to know exactly where on the page each answer should be drawn.</span>
       </div>
       <div class="note guard">
-        <span><b>Photos and scanned images aren't handled.</b> Only PDFs with real fields, and flat PDFs with a text layer, work today.</span>
+        <span><b>Only PDF uploads are handled.</b> A scanned or image-only PDF is still read by the AI model the same way as any other PDF. A photo or non-PDF image file isn't supported yet.</span>
       </div>
       <p>See <a href="KNOWN-ISSUES.html">the known-risks doc</a> for a fuller list of current limitations and what could go wrong in a live demo.</p>
     </div>
   </section>
 
   <footer>
-    <p>Describes the working flow of the <code>rahul</code> branch as it stands today. See <a href="INTEGRATION.html">docs/INTEGRATION.html</a> for the technical implementation detail behind each step, and <a href="ACCESSIBILITY.html">docs/ACCESSIBILITY.html</a> for how this is built to work for blind and low-vision users specifically.</p>
+    <p>Describes the working flow of the <code>main</code> branch as it stands today. See <a href="INTEGRATION.html">docs/INTEGRATION.html</a> for the technical implementation detail behind each step, and <a href="ACCESSIBILITY.html">docs/ACCESSIBILITY.html</a> for how this is built to work for blind and low-vision users specifically.</p>
   </footer>
 
 </div>

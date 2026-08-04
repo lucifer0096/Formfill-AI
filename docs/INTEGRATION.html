@@ -417,11 +417,11 @@
         </div>
         <div class="stage">
           <b>4 · Verify</b>
-          <span>A second, different model checks the filled answers for real mistakes before submission (Nigel's reliability pass) — the API route exists (/api/verify), not yet wired into a page's submit flow.</span>
+          <span>A second, different model checks the filled answers for real mistakes before submission (Nigel's reliability pass) — called from <code>/confirm</code>'s <code>handleFinish()</code> on every download. Best-effort and not yet surfaced in the UI: a failure never blocks the download, and no warning is shown yet for issues it does find.</span>
         </div>
       </div>
 
-      <p>Model choice: Nigel recommended Gemma 3 27B via OpenRouter — cheap and multimodal — as a starting point, with local testing against Ollama first to avoid burning cloud spend while prompt-tuning, then a real decision once accuracy across several real forms has actually been checked. See <code>docs/MODELS.html</code> for the live pricing comparison as that testing happens.</p>
+      <p>Model choice: real testing (local Ollama cycles and an OpenRouter cloud batch, both across several real forms) replaced Nigel's starting suggestion, Gemma 3 27B — <code>CLASSIFICATION_MODEL</code> is now <code>google/gemma-4-26b-a4b-it:free</code>, the only model that produced consistently correct results. It has a known gap on official NZ government forms specifically. See <code>docs/MODELS.html</code> for the full testing history and current pricing comparison.</p>
     </div>
   </section>
 
@@ -464,7 +464,7 @@
             <tr><td class="mod">lib/emit/summary-pdf.ts</td><td>Generates a question/answer summary PDF for fields with no real field to write into</td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">lib/ingest/_archive/</td><td>The previous local-detection pipeline (acroform.ts, acroform-position.ts, nearby-text.ts, text-layer.ts, the old classify.ts) — archived, not deleted, per this branch's owner's request. See that folder's README.md</td><td class="st"><span class="tag guard">archived</span></td></tr>
             <tr><td class="mod">OPENROUTER_API_KEY</td><td>Set locally and on the live deployment; required for classification to run at all now (no local-only path remains)</td><td class="st"><span class="tag built">set</span></td></tr>
-            <tr><td class="mod">Verification pass wired into a submit flow</td><td>The API route exists; calling it from /confirm's handleFinish (or Arya's equivalent UI) isn't done yet</td><td class="st"><span class="tag todo">not started</span></td></tr>
+            <tr><td class="mod">Verification pass wired into a submit flow</td><td>/confirm's handleFinish calls /api/verify on every download and stores the result. No UI reads it yet — a warning banner or override gate is an open design decision, not yet built</td><td class="st"><span class="tag guard">wired, no UI</span></td></tr>
             <tr><td class="mod">Form-template cache</td><td>Nigel's stretch idea — recognise a previously-seen form (by structure hash) and skip the model call entirely on a repeat upload. Deliberately deferred until a model is chosen and its output is trustworthy enough to cache</td><td class="st"><span class="tag later">later</span></td></tr>
             <tr><td class="mod">PDF vs. rendered-image input</td><td>classify-pdf.ts currently sends the raw PDF via OpenRouter's file content type. Untested whether this or page-image rendering (pdfjs-dist can rasterize) gets better results per model — Nigel was explicit this needs testing, not assuming</td><td class="st"><span class="tag todo">needs testing</span></td></tr>
             <tr><td class="mod">Field grouping for repeated grids</td><td>Large forms with per-row checkbox grids (e.g. a property inspection table) may still surface every cell as its own question — not yet re-tested against the new pipeline</td><td class="st"><span class="tag todo">not re-tested</span></td></tr>
@@ -508,7 +508,7 @@ Field {
         <li class="done"><b>Classify</b><span>The whole PDF, plus that field-name list, is sent to <code>/api/understand</code> in one multimodal call, which returns a classified Form.</span></li>
         <li class="done"><b>Review</b><span><code>/review</code> shows the detected questions with a confidence badge on each.</span></li>
         <li class="done"><b>Overview → Answer → Confirm</b><span>The remaining three pages read the same stored Form and the user's actual answers.</span></li>
-        <li><b>Verify</b><span>A different model checks the filled answers for real mistakes before submission. Route exists (<code>/api/verify</code>), not yet called from a submit flow.</span></li>
+        <li class="done"><b>Verify</b><span>A different model checks the filled answers for real mistakes before submission — called automatically on every download, best-effort (never blocks it). The result isn't shown anywhere in the UI yet.</span></li>
         <li class="done"><b>Download</b><span>Confirming produces a real file: any field the model mapped to a real AcroForm name gets written into a filled, flattened PDF; everything else appears in a question/answer summary PDF. A single form can produce both kinds of output in the same document now.</span></li>
       </ol>
     </div>
@@ -522,8 +522,8 @@ Field {
         <div class="q"><b>No image/OCR path for non-PDF files.</b><span>A photo or non-PDF image is flagged <code>needs-vision</code> and told plainly it isn't supported yet, rather than silently failing or guessing. PDFs — including scanned/image-only ones — go through the multimodal path like any other PDF now.</span></div>
         <div class="q"><b>PII redaction doesn't cover this path.</b><span>See §02b above — a real, disclosed tradeoff, not an oversight.</span></div>
         <div class="q"><b>Not reconciled with <code>main</code>'s <code>packages/*</code>.</b><span>The IR types are duplicated by hand, not imported, so this branch can build and demo independently. Reconciling is a team decision, deferred to the Nigel sync.</span></div>
-        <div class="q"><b>Model choice needs real testing before it's final.</b><span><code>CLASSIFICATION_MODEL</code> in <code>client.ts</code> is set to Gemma 3 27B per Nigel's recommendation, but this branch's owner is testing locally against Ollama first before committing to it for the demo.</span></div>
-        <div class="q"><b>Verification pass isn't wired into a submit flow yet.</b><span>The model call and API route exist and work standalone; calling it from Confirm's "finish" action (or Arya's equivalent UI, since the UI work moved to that branch) is still open.</span></div>
+        <div class="q"><b>Model choice, tested but not fully bulletproof.</b><span><code>CLASSIFICATION_MODEL</code> is <code>google/gemma-4-26b-a4b-it:free</code>, validated across local and cloud test cycles — but it has a real, repeatable gap on official NZ government forms specifically, still unresolved. See <code>docs/KNOWN-ISSUES.html</code>.</span></div>
+        <div class="q"><b>Verification pass is wired in, but has no UI yet.</b><span>The model call runs automatically on every download and its result is stored, but nothing in the UI surfaces it — a warning banner or an override gate is an open design decision for whoever picks up that UI work next.</span></div>
         <div class="q"><b>Emit is real but simple.</b><span><code>src/lib/emit/fill-acroform.ts</code> writes answers into any real PDF fields the model mapped, and <code>src/lib/emit/summary-pdf.ts</code> covers everything else in the same download. Neither draws answers onto a flat PDF at their original visual position (a print overlay), so unmatched fields appear as a summary, not a marked-up copy.</span></div>
       </div>
     </div>
