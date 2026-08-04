@@ -316,7 +316,7 @@
         <span><b>Not finalised.</b> Two real test cycles ran 2026-08-04 on two different forms (see §04 and §04b below), both against a shrunk 4-model set. <code>gemma4:e4b</code> failed correctness on both forms and is being dropped from rotation. <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> all succeeded on both — the remaining decision is speed vs. marginal accuracy between those three, plus a third form still to come.</span>
       </div>
       <div class="note built">
-        <span><b>Local test set, chosen to cover different sizes and architecture families:</b> <code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>gemma4:26b</code>, <code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>llama3.2-vision:11b</code>, and <code>minicpm-v</code> (a document-OCR specialist, worth including since reading a form is closer to OCR than general image captioning). <code>deepseek-r1</code> is kept separately as a candidate for the second-pass answer-verification step (§05), which is text-only and doesn't need vision.</span>
+        <span><b>Local test set, chosen to cover different sizes and architecture families:</b> <code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>gemma4:26b</code>, <code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>llama3.2-vision:11b</code>, and <code>minicpm-v</code> (a document-OCR specialist, worth including since reading a form is closer to OCR than general image captioning). The second-pass answer-verification step (§06) is text-only and doesn't need vision — see that section for its own model choice.</span>
       </div>
     </div>
   </section>
@@ -696,7 +696,7 @@
               <td class="mod">anthropic/claude-haiku-4.5</td>
               <td class="num">$1.00 / million</td>
               <td class="num">$5.00 / million</td>
-              <td>Text-only role here — candidate for the second-pass verification step (§05), not classification</td>
+              <td>Text-only role here — was the second-pass verification target, replaced by a free model (§06) since this step doesn't need a paid model's capability for the job it does</td>
             </tr>
           </tbody>
         </table>
@@ -714,8 +714,11 @@
     <div class="body">
       <h2>The second model: answer verification</h2>
       <p>Since the pivot, a second, independent model call can review a filled-out form for genuine mistakes before submission — deliberately a different model from classification, so the same blind spot can't pass its own check (<code>src/lib/openrouter/verify-answers.ts</code>, <code>/api/verify</code>). This step is text-only (it reads field labels and typed answers, not the PDF itself), so it doesn't need vision, and can be a much cheaper model than classification.</p>
-      <div class="note">
-        <span><b>Current target:</b> <code>anthropic/claude-haiku-4.5</code>, set in <code>VERIFICATION_MODEL</code>. <code>deepseek-r1</code> is downloaded locally as a candidate to test against it — both are plausible, neither is finalised. The route exists and works standalone; it isn't yet called from a submit flow on either branch's UI.</span>
+      <div class="note built">
+        <span><b>Current target:</b> <code>nvidia/nemotron-3-super-120b-a12b:free</code>, set in <code>VERIFICATION_MODEL</code>. Nigel's original suggestion was a free DeepSeek model, but no DeepSeek listing on OpenRouter is currently free (checked 2026-08-04 against the live models API — cheapest paid option is <code>deepseek/deepseek-v4-flash-0731</code> at $0.09/M input). Nemotron 3 Super is the closest substitute that still meets the actual requirement: free, a genuinely different model family from the classifier (Gemma), and large (120B) enough to be a real reasoning check rather than a token-saving shortcut.</span>
+      </div>
+      <div class="note built">
+        <span><b>Tested directly against <code>/api/verify</code>, 2026-08-04:</b> two real requests. First, a name typed into an email field (a genuine mismatch) — correctly flagged with a clear, plain-language message. Second, three genuinely valid answers including a deliberately minimal "N/A" on an optional field — correctly returned no issues at all, matching the prompt's "flag sparingly, don't nitpick style" instruction. The route works correctly standalone; it still isn't called from a submit flow on either branch's UI, so this is verified as a working building block, not yet an end-to-end feature.</span>
       </div>
     </div>
   </section>
