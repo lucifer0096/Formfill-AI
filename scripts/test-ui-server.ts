@@ -11,10 +11,17 @@
 import { createServer, type IncomingMessage } from "node:http";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, extname } from "node:path";
-import { DEFAULT_MODELS, renderPdfBytesToPngs, runModel, tryParseJson } from "./model-test-lib";
+import { ALL_MODELS, SAFE_DEFAULT_MODELS, renderPdfBytesToPngs, runModel, tryParseJson, unloadAllModels } from "./model-test-lib";
 
 const PORT = Number(process.env.TEST_UI_PORT ?? 3100);
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB, matches the app's own upload limit
+
+// This machine is CPU-only (no usable GPU) — running two comparisons at
+// once would mean two models loaded simultaneously, which is exactly what
+// caused real system slowdowns during testing. Reject a second /run while
+// one is already in progress rather than letting them queue on top of
+// each other.
+let runInProgress = false;
 
 const PAGE_HTML = `<!doctype html>
 <html lang="en">
@@ -81,16 +88,21 @@ const PAGE_HTML = `<!doctype html>
   <div class="grid" id="grid"></div>
 
 <script>
-  const DEFAULT_MODELS = ${JSON.stringify(DEFAULT_MODELS)};
+  const ALL_MODELS = ${JSON.stringify(ALL_MODELS)};
+  const SAFE_DEFAULT_MODELS = ${JSON.stringify(SAFE_DEFAULT_MODELS)};
   const modelsDiv = document.getElementById('models');
   const fileInput = document.getElementById('file');
   const runBtn = document.getElementById('run');
   const grid = document.getElementById('grid');
 
-  DEFAULT_MODELS.forEach((m) => {
+  // All 8 pulled models are listed and selectable — this machine is
+  // CPU-only, so only the smallest model is pre-checked by default (avoids
+  // an accidental multi-model run); check the rest deliberately when
+  // you're ready to spend the time on a heavier one.
+  ALL_MODELS.forEach((m) => {
     const label = document.createElement('label');
     const cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.value = m; cb.checked = true;
+    cb.type = 'checkbox'; cb.value = m; cb.checked = SAFE_DEFAULT_MODELS.includes(m);
     label.appendChild(cb);
     label.appendChild(document.createTextNode(m));
     modelsDiv.appendChild(label);
@@ -130,7 +142,8 @@ const PAGE_HTML = `<!doctype html>
 
     const response = await fetch('/run', { method: 'POST', body: formData });
     if (!response.ok || !response.body) {
-      grid.innerHTML = '<p>Upload failed: ' + response.status + '</p>';
+      const message = await response.text().catch(() => '');
+      grid.innerHTML = '<p>Upload failed (' + response.status + '): ' + (message || 'unknown error') + '</p>';
       runBtn.disabled = false;
       return;
     }
@@ -147,6 +160,10 @@ const PAGE_HTML = `<!doctype html>
       for (const line of lines) {
         if (!line.trim()) continue;
         const event = JSON.parse(line);
+        if (event.type === 'status') {
+          grid.insertAdjacentHTML('beforebegin', '<p class="sub" data-status-line>' + event.message + '</p>');
+          continue;
+        }
         const card = cards[event.model];
         if (!card) continue;
         const statusEl = card.querySelector('[data-status]');
@@ -180,11 +197,19 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && req.url === "/run") {
+    if (runInProgress) {
+      res.writeHead(409, { "Content-Type": "text/plain" });
+      res.end("A comparison is already running — wait for it to finish before starting another (this machine can only run one model at a time).");
+      return;
+    }
+    runInProgress = true;
+
     try {
       const { pdfBytes, models, fileName } = await parseMultipart(req);
       if (!pdfBytes) {
         res.writeHead(400, { "Content-Type": "text/plain" });
         res.end("No file uploaded.");
+        runInProgress = false;
         return;
       }
 
@@ -193,8 +218,14 @@ const server = createServer(async (req, res) => {
         "Transfer-Encoding": "chunked",
       });
 
+      // Clear anything left resident from a previous interrupted run
+      // before starting — see unloadAllModels' own comment for why this
+      // matters on CPU-only hardware.
+      res.write(JSON.stringify({ type: "status", message: "Unloading any leftover models before starting..." }) + "\n");
+      await unloadAllModels();
+
       const images = await renderPdfBytesToPngs(pdfBytes);
-      const modelList = models.length > 0 ? models : DEFAULT_MODELS;
+      const modelList = models.length > 0 ? models : SAFE_DEFAULT_MODELS;
 
       // Same convention as scripts/test-local-models.ts, so CLI and UI
       // results land in the same place and can be browsed together.
@@ -231,6 +262,14 @@ const server = createServer(async (req, res) => {
     } catch (error) {
       res.writeHead(500, { "Content-Type": "text/plain" });
       res.end(error instanceof Error ? error.message : String(error));
+    } finally {
+      runInProgress = false;
+      // Belt-and-braces: even though runModel() already unloads itself,
+      // clear anything left resident after the whole batch too — cheap
+      // and makes this server's failure mode "nothing loaded" rather than
+      // relying on every individual call site to have gotten cleanup
+      // exactly right.
+      await unloadAllModels();
     }
     return;
   }

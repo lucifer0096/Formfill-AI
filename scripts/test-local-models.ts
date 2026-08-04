@@ -24,7 +24,7 @@
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, join, extname } from "node:path";
-import { DEFAULT_MODELS, renderPdfFileToPngs, runModel, tryParseJson } from "./model-test-lib";
+import { DEFAULT_MODELS, renderPdfFileToPngs, runModel, tryParseJson, unloadAllModels } from "./model-test-lib";
 
 async function main() {
   const [, , pdfPathArg, ...rest] = process.argv;
@@ -35,6 +35,12 @@ async function main() {
 
   const modelsArg = rest.find((a) => a.startsWith("--models="));
   const models = modelsArg ? modelsArg.slice("--models=".length).split(",") : DEFAULT_MODELS;
+
+  // Clear anything left resident from a previous interrupted run before
+  // starting — on a CPU-only machine, leftover models pile up and starve
+  // the new run instead of erroring cleanly.
+  console.log("Unloading any models left resident from a previous run...");
+  await unloadAllModels();
 
   console.log(`Rendering ${pdfPathArg} to page images...`);
   const images = await renderPdfFileToPngs(pdfPathArg);
