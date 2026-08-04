@@ -312,11 +312,11 @@
 
       <div class="risk high">
         <div class="risk-head">
-          <b>The new classification pipeline hasn't been tested against real forms yet</b>
+          <b>No local model has produced a reliably correct result yet</b>
           <span class="sev high">High</span>
         </div>
-        <p>The multimodal pipeline (any PDF → one model call → structured fields, with real AcroForm field names mapped back for fill-back where they exist) is built and passes typecheck/lint/build, but hasn't yet been run against real forms to confirm accuracy. Local testing against Ollama, then a real model decision, is the planned next step.</p>
-        <div class="fix"><b>Status:</b> open. Do not treat this pipeline as demo-ready until it's been exercised against at least a few real forms of different kinds (fillable, flat, scanned).</div>
+        <p>First real test cycle ran 2026-08-04 against one real form across 7 local Ollama models (see <a href="MODELS.html">MODELS.html §04</a> for the full table). Only one model, <code>gemma3:4b</code>, produced a genuinely correct result. Two models (<code>gemma4:e4b</code>, <code>minicpm-v</code>) finished but returned wrong or schema-breaking output — fabricated fields, invented types outside the allowed list, confidence scores that don't calibrate at all. One (<code>llama3.2-vision:11b</code>) hit a hard Ollama compatibility wall unrelated to the prompt. Three (<code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>gemma4:26b</code> — the last being the mentor-recommended model) simply didn't finish within the 20-minute timeout used for that cycle, since raised to 60 minutes; they remain unresolved, not ruled out.</p>
+        <div class="fix"><b>Status:</b> open. No model has been validated as demo-ready. Next step is a retest of the three unresolved models at the longer timeout, per <a href="MODELS.html">MODELS.html §04</a>'s recommendation.</div>
       </div>
 
       <div class="risk high">

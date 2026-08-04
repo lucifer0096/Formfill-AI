@@ -150,7 +150,14 @@ export interface ModelRunResult {
 // Fix: use undici's fetch directly with an Agent whose headersTimeout and
 // bodyTimeout are both raised to match REQUEST_TIMEOUT_MS, instead of the
 // global fetch (which can't have its Agent reconfigured after the fact).
-const REQUEST_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes
+//
+// Raised from 20 to 60 minutes after a real test cycle: on
+// FHP-Statutory-Declaration-Form, qwen2.5vl:3b, qwen2.5vl:7b, and
+// gemma4:26b all hit the 20-minute cap without finishing (confirmed via
+// `ollama ps` staying warm/active the whole time, not stuck) — genuinely
+// still working, just slower than 20 minutes allowed for on this
+// CPU-only hardware, not stuck or broken.
+const REQUEST_TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes
 
 const longRunningAgent = new Agent({
   headersTimeout: REQUEST_TIMEOUT_MS,
