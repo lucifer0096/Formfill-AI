@@ -9,14 +9,21 @@ export const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
 
 // Kept in sync by hand with the local models pulled for this comparison —
 // see docs/MODELS.html §03 for the reasoning behind this specific set.
+//
+// Ordered smallest/fastest first, not alphabetically. This machine has no
+// usable GPU (Intel UHD, ~1GB VRAM) — every model runs on a 4C/8T mobile
+// CPU (i7-10610U), where parameter count is the dominant factor in
+// response time. Running small-to-large means the UI and CLI both surface
+// quick results before committing to the slowest model (gemma4:26b, ~26B
+// params, can take many minutes here) last.
 export const DEFAULT_MODELS = [
-  "gemma4:e4b",
-  "gemma4:26b",
-  "gemma3:4b",
-  "qwen2.5vl:3b",
-  "qwen2.5vl:7b",
-  "llama3.2-vision:11b",
-  "minicpm-v",
+  "gemma3:4b",          // ~4.3B params, smallest/fastest
+  "qwen2.5vl:3b",        // ~3B params (despite the "3b" name, similar tier to gemma3:4b)
+  "gemma4:e4b",          // "effective 4B" — small/fast by design
+  "qwen2.5vl:7b",        // ~7B params
+  "minicpm-v",           // ~7.6B params
+  "llama3.2-vision:11b", // ~11B params, on the low side of "slow" here
+  "gemma4:26b",          // ~26B params, by far the slowest on this hardware — run last
 ];
 
 const FIELD_TYPES = [
