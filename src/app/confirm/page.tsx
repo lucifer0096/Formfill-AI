@@ -19,6 +19,7 @@ import {
 } from "@/lib/conversation/machine";
 import { speakValue, type Announcement } from "@/lib/conversation/announce";
 import { applicableFields } from "@/lib/form-model/traverse";
+import type { VerificationResult } from "@/lib/openrouter/verify-answers";
 
 function downloadBytes(bytes: Uint8Array, fileName: string) {
   // pdf-lib's Uint8Array is typed against ArrayBufferLike (can include
@@ -78,6 +79,14 @@ export default function ConfirmPage() {
   const lastAnnouncements = (override ?? bootstrapped)?.announcements ?? [];
   const [downloadStatus, setDownloadStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  // Not rendered anywhere yet — /api/verify (Nigel's second-pass reliability
+  // check, docs/MODELS.html §06) is called here so the result is available
+  // to build a UI against later, without deciding that UI now. Deliberately
+  // best-effort: a verification failure (model down, rate-limited, etc.)
+  // must never block the actual download, so it's swallowed rather than
+  // surfaced as an error — verificationResult stays null on failure, same
+  // as "verification didn't run" from the caller's point of view.
+  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const headingRef = useRouteFocus<HTMLHeadingElement>();
 
   if (!engine) {
@@ -152,6 +161,17 @@ export default function ConfirmPage() {
     try {
       const { form } = loadWorkingForm();
       const finalFields = applicableFields(form, result.state.answers);
+
+      // Best-effort, never blocks the download — see verificationResult's
+      // own comment for why a failure here is swallowed rather than thrown.
+      fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fields: finalFields, answers: result.state.answers }),
+      })
+        .then((res) => (res.ok ? (res.json() as Promise<VerificationResult>) : null))
+        .then((verification) => setVerificationResult(verification))
+        .catch(() => setVerificationResult(null));
 
       if (isAcroForm) {
         const originalFile = await loadOriginalFile();
