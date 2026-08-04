@@ -2,11 +2,13 @@
 
 FormFill helps blind and low-vision users fill out PDF forms and scanned form images through an accessible, guided workflow. Upload a form, answer questions one at a time by keyboard or screen reader, and get a completed document back.
 
-**Live deployment:** https://formfill-rahul.vercel.app
+**Live deployment:** _(blank for now — see [Deploying](#deploying))_
 
-## Branch: `rahul`
+## Branch: `main`
 
-UI ownership moved to the [Arya](https://github.com/lucifer0096/Hackathon-AI/tree/Arya) branch as of 2026-08-03. This branch's focus from here is the AI/ingest pipeline — the routes below still exist on `rahul` for now, but the primary UI work happens on `Arya`.
+As of 2026-08-04, `rahul` was merged into `main` (`dd8b0fb`, `64b9f6c`) — `main` is now the real, working codebase, not the original placeholder scaffold. Going forward, changes are made directly on `main`, reviewing first if Arya has pushed changes since the last pull, rather than working on separate long-lived feature branches. The `rahul` and `Arya` branches still exist in history but are no longer the active development branches.
+
+The AI/ingest pipeline (this doc, `docs/INTEGRATION.html`, `src/lib/ingest/`, `src/lib/openrouter/`) came from the `rahul` branch's work. `main`'s original commit also included a `packages/*` npm-workspace scaffold that was never completed — it's excluded from typecheck/lint (see `tsconfig.json`, `eslint.config.mjs`) and kept on disk for reference only; the real app is entirely in `src/`.
 
 | Route | Purpose |
 |---|---|
@@ -28,7 +30,7 @@ Upload a real PDF and the rest of the flow uses what was actually read from it:
 
 Confirming on `/confirm` downloads a real document: any field the model mapped to a real AcroForm field name gets written into a filled, flattened PDF; everything else appears as a question/answer summary in the same document.
 
-If nothing has been uploaded this session (e.g. a page is opened directly), the four session pages fall back to sample placeholder data so they're still browsable during development. Data shapes match `packages/form-model`'s `Form`/`Section`/`Field` types on `main`.
+If nothing has been uploaded this session (e.g. a page is opened directly), the four session pages fall back to sample placeholder data so they're still browsable during development. See `src/lib/form-model/types.ts` for the `Form`/`Section`/`Field` shape those pages expect.
 
 ## Docs
 
@@ -37,9 +39,11 @@ If nothing has been uploaded this session (e.g. a page is opened directly), the 
 | [`docs/WORKFLOW.html`](docs/WORKFLOW.html) | Non-technical | What a person experiences, page by page |
 | [`docs/MODELS.html`](docs/MODELS.html) | Non-technical | AI model choice and live OpenRouter pricing |
 | [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) | Non-technical | Known risks and limitations, tested not guessed |
-| [`docs/ROADMAP.html`](docs/ROADMAP.html) | Non-technical | What's built vs planned vs P0-demo-worthy, checked against `main`'s roadmap |
+| [`docs/ROADMAP.html`](docs/ROADMAP.html) | Non-technical | What's built vs planned vs P0-demo-worthy |
 | [`docs/INTEGRATION.html`](docs/INTEGRATION.html) | Technical | The AI/PDF pipeline implementation, file by file |
-| [`docs/ACCESSIBILITY.html`](docs/ACCESSIBILITY.html) | Technical | Accessibility status against `main`'s normative spec, section by section |
+| [`docs/ACCESSIBILITY.html`](docs/ACCESSIBILITY.html) | Technical | Accessibility status against the project's normative spec, section by section |
+
+Some doc text still refers to "this branch" / "`main`'s roadmap" from before the `rahul` → `main` merge — read those as "this codebase" until each doc gets its own pass to update that framing.
 
 Meeting-scoped and point-in-time docs (pre-meeting checklist, questions drafted for a specific review, an old changelog snapshot) are archived at [`docs/_archive/`](docs/_archive/README.md), not deleted — see that folder's README for what's there and why.
 
@@ -78,21 +82,21 @@ Requires [Ollama](https://ollama.com) running locally with the models you want t
 
 Next.js (App Router, Turbopack) · React · Tailwind CSS · Atkinson Hyperlegible font for readability · `pdf-lib` + `pdfjs-dist` for client-side PDF parsing · OpenRouter for form classification.
 
-The Answer/Confirm flow runs on a pure conversation-engine reducer ported from `main`'s `packages/conversation`, `form-model`, and `validate` (unmodified logic, hand-copied until this branch is reconciled with the workspace) — real skip-logic, locale-aware validation, and a two-step review gate instead of a simpler independent implementation.
+The Answer/Confirm flow runs on a pure conversation-engine reducer in `src/lib/conversation/` (hand-copied from the original `packages/conversation`, `form-model`, and `validate` design during development on `rahul`, not imported as workspace packages) — real skip-logic, locale-aware validation, and a two-step review gate instead of a simpler independent implementation.
 
 Classification currently targets Gemma 3 27B via OpenRouter, our mentor's recommendation for a cheap multimodal model — not yet finalised. Local testing against Ollama (`ollama pull gemma3:27b`) is the planned next step before committing to a model for the demo, to avoid burning cloud spend during prompt-tuning. See [`docs/MODELS.html`](docs/MODELS.html) for the reasoning and pricing comparison, and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) for the current known risks (redaction gap, untested pipeline, latency).
 
-A second, independent model call can review filled answers for real mistakes before submission (`src/lib/openrouter/verify-answers.ts`, `/api/verify`) — built and callable, not yet wired into either branch's submit flow.
+A second, independent model call can review filled answers for real mistakes before submission (`src/lib/openrouter/verify-answers.ts`, `/api/verify`) — built and callable, not yet wired into the submit flow.
 
 ## Accessibility
 
 This is not a bolt-on feature. It's the point of the product. Every page follows: keyboard-first navigation with single-key commands on `/questions` (`N`/`P`/`Space`/`H`/`S`, plus `L` to read a field's label as printed and `R` to jump straight to `/confirm` for review), visible format hints shown before input rather than only after a failed submit, focus moved to the new heading on every route and question change, visible focus rings, semantic landmarks and headings, `aria-live` status regions for dynamic updates, and a skip-to-content link.
 
-See [`docs/ACCESSIBILITY.html`](docs/ACCESSIBILITY.html) for what's implemented on this branch versus what's still a known gap, checked section by section against the normative spec, `docs/ACCESSIBILITY.md` on `main`.
+See [`docs/ACCESSIBILITY.html`](docs/ACCESSIBILITY.html) for what's implemented versus what's still a known gap, checked section by section against the project's normative accessibility spec.
 
 ## Deploying
 
-Deployed via the Vercel CLI from this branch:
+No live deployment right now (see the blank link at the top) — the previous `rahul`-branch deployment is retired now that `main` is the active branch, and `main` hasn't been redeployed yet. To deploy from `main`:
 
 ```bash
 npx vercel --prod
