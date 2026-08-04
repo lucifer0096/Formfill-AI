@@ -2,7 +2,7 @@
 
 FormFill helps blind and low-vision users fill out PDF forms and scanned form images through an accessible, guided workflow. Upload a form, answer questions one at a time by keyboard or screen reader, and get a completed document back.
 
-**Live deployment:** _(blank for now — see [Deploying](#deploying))_
+**Live deployment:** [formfill-main.vercel.app](https://formfill-main.vercel.app) — known gap: fails on official NZ government forms, see [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html)
 
 ## Branch: `main`
 
@@ -92,7 +92,7 @@ See [`docs/ACCESSIBILITY.html`](docs/ACCESSIBILITY.html) for what's implemented 
 
 ## Deploying
 
-No live deployment right now (see the blank link at the top) — the previous `rahul`-branch deployment is retired now that `main` is the active branch, and `main` hasn't been redeployed yet. To deploy from `main`:
+Deployed at [formfill-main.vercel.app](https://formfill-main.vercel.app) (Vercel project `formfill-main`, linked to this repo's `main` branch). The previous `rahul`-branch deployment (`formfill-rahul`) still exists but is retired. `OPENROUTER_API_KEY` is set as a Production environment variable on the Vercel project — update it via the Vercel dashboard or `vercel env` if it changes. To deploy a new build from `main`:
 
 ```bash
 npx vercel --prod
