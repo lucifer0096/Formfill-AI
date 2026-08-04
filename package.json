@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:local-models": "tsx scripts/test-local-models.ts"
+    "test:local-models": "tsx scripts/test-local-models.ts",
+    "test:ui": "tsx scripts/test-ui-server.ts"
   },
   "dependencies": {
     "next": "16.2.12",
