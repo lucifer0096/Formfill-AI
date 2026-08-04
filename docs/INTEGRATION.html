@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FormFill — AI Integration (rahul branch)</title>
+<style>
+  :root {
+    --paper:      #F7F7F4;
+    --surface:    #FFFFFF;
+    --sunk:       #EDEEE9;
+    --ink:        #16181C;
+    --ink-soft:   #4C5158;
+    --ink-faint:  #7B8189;
+    --rule:       #DCDDD6;
+    --accent:     #1F4FD8;
+    --accent-bg:  #E7ECFB;
+    --guard:      #8A5A00;
+    --guard-bg:   #F7EEDC;
+    --built:      #2F6B47;
+    --built-bg:   #E2EEE7;
+
+    --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --rail: 4.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:     #0E1116;
+      --surface:   #161A21;
+      --sunk:      #1C212A;
+      --ink:       #E7EAEF;
+      --ink-soft:  #A9B0BA;
+      --ink-faint: #7C848F;
+      --rule:      #2A303A;
+      --accent:    #8FAEFF;
+      --accent-bg: #1A2340;
+      --guard:     #E0AC5B;
+      --guard-bg:  #302512;
+      --built:     #7FC79B;
+      --built-bg:  #172A1F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #0E1116;
+    --surface:   #161A21;
+    --sunk:      #1C212A;
+    --ink:       #E7EAEF;
+    --ink-soft:  #A9B0BA;
+    --ink-faint: #7C848F;
+    --rule:      #2A303A;
+    --accent:    #8FAEFF;
+    --accent-bg: #1A2340;
+    --guard:     #E0AC5B;
+    --guard-bg:  #302512;
+    --built:     #7FC79B;
+    --built-bg:  #172A1F;
+  }
+  :root[data-theme="light"] {
+    --paper:     #F7F7F4;
+    --surface:   #FFFFFF;
+    --sunk:      #EDEEE9;
+    --ink:       #16181C;
+    --ink-soft:  #4C5158;
+    --ink-faint: #7B8189;
+    --rule:      #DCDDD6;
+    --accent:    #1F4FD8;
+    --accent-bg: #E7ECFB;
+    --guard:     #8A5A00;
+    --guard-bg:  #F7EEDC;
+    --built:     #2F6B47;
+    --built-bg:  #E2EEE7;
+  }
+
+  * { box-sizing: border-box; }
+  html { font-size: 125%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-underline-offset: 0.15em; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap {
+    max-width: calc(var(--measure) + var(--rail) + 4rem);
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  /* ---- masthead ---- */
+  .mast {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 4rem 0 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mast h1 {
+    font-family: var(--f-display);
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.4rem;
+    text-wrap: balance;
+  }
+  .mast p {
+    margin: 0;
+    max-width: 34ch;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.9rem;
+  }
+  #themeToggle {
+    font: inherit;
+    font-size: 0.8rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: var(--surface);
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  /* ---- sections on a numbered rail ---- */
+  section {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    gap: 0 1.5rem;
+    padding: 3.5rem 0 0;
+  }
+  section > .num {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    padding-top: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+  section > .body { min-width: 0; display: flex; flex-direction: column; gap: 1.1rem; }
+  section > .body > * { margin: 0; }
+
+  h2 {
+    font-family: var(--f-display);
+    font-size: 1.85rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  p, li { max-width: var(--measure); }
+  ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.85em;
+    background: var(--sunk);
+    padding: 0.12em 0.35em;
+    border-radius: 3px;
+    overflow-wrap: break-word;
+  }
+
+  .lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 60ch; }
+
+  /* ---- pipeline diagram ---- */
+  .pipe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: stretch;
+  }
+  .stage {
+    flex: 1 1 8rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.85rem 0.9rem;
+  }
+  .stage b {
+    display: block;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.35rem;
+  }
+  .stage span { font-size: 0.85rem; color: var(--ink-soft); }
+  .stage.core { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .stage.done { border-color: var(--built); box-shadow: inset 0 0 0 1px var(--built); }
+  .stage.done b { color: var(--built); }
+
+  /* ---- callouts ---- */
+  .note {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 1rem 1.15rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .note.guard { border-left-color: var(--guard); background: var(--guard-bg); }
+  .note.built { border-left-color: var(--built); background: var(--built-bg); }
+  .note b { font-family: var(--f-body); }
+
+  /* ---- module table ---- */
+  .scroll { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 34rem;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.8rem 0.6rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  td.mod { font-family: var(--f-mono); font-size: 0.82rem; white-space: nowrap; }
+  td.st { white-space: nowrap; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+  .tag.built  { color: var(--built); background: var(--built-bg); border-color: var(--built); }
+  .tag.todo   { color: var(--ink-soft); background: var(--sunk); border-color: var(--rule); }
+  .tag.later  { color: var(--ink-faint); background: transparent; border-color: var(--rule); }
+  .tag.guard  { color: var(--guard); background: var(--guard-bg); border-color: var(--guard); }
+
+  /* ---- code / shape blocks ---- */
+  pre {
+    font-family: var(--f-mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    margin: 0;
+  }
+  pre .c { color: var(--ink-faint); }
+  pre .k { color: var(--accent); }
+
+  /* ---- walkthrough steps ---- */
+  ol.steps {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    counter-reset: s;
+  }
+  ol.steps li {
+    counter-increment: s;
+    display: grid;
+    grid-template-columns: 1.9rem minmax(0, 1fr);
+    gap: 0.9rem;
+    max-width: var(--measure);
+  }
+  ol.steps li > span,
+  ol.steps li > b {
+    grid-column: 2;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  ol.steps li::before {
+    content: counter(s);
+    grid-column: 1;
+    grid-row: 1 / -1;
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    width: 1.9rem;
+    height: 1.9rem;
+    display: grid;
+    place-items: center;
+    margin-top: 0.15rem;
+  }
+  ol.steps li.done::before {
+    content: "✓";
+    color: var(--built);
+    border-color: var(--built);
+  }
+  ol.steps b { display: block; }
+  ol.steps span { color: var(--ink-soft); font-size: 0.95rem; }
+
+  /* ---- glossary ---- */
+  dl.gloss { display: flex; flex-direction: column; gap: 0.9rem; margin: 0; }
+  dl.gloss > div { max-width: var(--measure); }
+  dl.gloss dt { font-family: var(--f-mono); font-size: 0.85rem; color: var(--accent); }
+  dl.gloss dd { margin: 0.15rem 0 0; color: var(--ink-soft); font-size: 0.95rem; }
+
+  /* ---- questions / files ---- */
+  .qs { display: flex; flex-direction: column; gap: 0.9rem; }
+  .q {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.9rem 1.05rem;
+    max-width: var(--measure);
+  }
+  .q b { display: block; margin-bottom: 0.2rem; }
+  .q span { font-size: 0.92rem; color: var(--ink-soft); }
+
+  footer {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 46rem) {
+    :root { --rail: 0px; }
+    section { grid-template-columns: 1fr; gap: 0; }
+    section > .num { padding: 0 0 0.6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <p class="eyebrow">FormFill · rahul branch · AI integration log</p>
+      <h1>What's been built on the AI-integration side</h1>
+      <p>A working record of the ingest, classification and UI-wiring work done on <code>rahul</code>, and what's still open.</p>
+    </div>
+    <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
+  </header>
+
+  <section>
+    <div class="num">01</div>
+    <div class="body">
+      <h2>Scope of this branch</h2>
+      <p class="lede">The UI work has moved to the <code>Arya</code> branch. <code>rahul</code>'s focus from here is the AI/ingest pipeline: a PDF goes in, and a classified set of questions — mapped back onto any real fillable fields where possible — comes out the other end, ready for either branch's UI to consume.</p>
+      <div class="note">
+        <span><b>Not merged into <code>main</code> or <code>Arya</code>.</b> The team's existing <code>packages/*</code> on <code>main</code> are the eventual source of truth for this logic, but reconciling this branch with them (a real npm workspace import, not a copy) is deliberately deferred until the next sync with Nigel. Until then, <code>form-model</code>, <code>conversation</code>, <code>validate</code>, and <code>redact</code> are all hand-ported here, unmodified logic, matching <code>main</code>'s shape rather than importing it.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">02</div>
+    <div class="body">
+      <h2>The pipeline — rebuilt 2026-08-03 after the Nigel meeting</h2>
+      <p class="lede">The three-path local-detection pipeline described in earlier versions of this page is gone. It's archived, not deleted, at <code>src/lib/ingest/_archive/</code> — see that folder's <code>README.md</code> for the full reasoning. Every PDF now goes through one path: the whole document is sent to a multimodal model in a single call.</p>
+
+      <div class="note guard">
+        <span><b>Why the pivot.</b> Local AcroForm/text-layer detection was tested against 10-15 real forms and worked correctly on a minority of them — Nigel's framing was that this isn't an accuracy problem to keep patching, it's a reliability problem: "it's not that they're inaccurate, it's that they're unreliable... they'll work perfectly once out of every 10 times, then fine three out of ten, then completely break seven out of ten." PDF structure isn't standardised enough for a heuristic tuned against one PDF (Acrobat-generated, Word-exported, scanned) to generalise to the next one. The fix he recommended: stop trying to parse PDF structure locally, and let a multimodal model read the document the way a person would — visually.</span>
+      </div>
+
+      <div class="pipe" role="img" aria-label="Pipeline: multimodal classification, filled PDF or summary PDF on Confirm, second-pass verification.">
+        <div class="stage done">
+          <b>1 · Field-name enumeration</b>
+          <span>A small local pdf-lib pass lists real AcroForm field names only (no position, no label guessing) — src/lib/ingest/acroform-fields.ts. Empty list for flat/scanned forms.</span>
+        </div>
+        <div class="stage done">
+          <b>2 · Classify</b>
+          <span>The whole PDF, plus that field-name list as context, goes to OpenRouter in one call. The model returns structured questions and maps each one to a real field name where one applies.</span>
+        </div>
+        <div class="stage done">
+          <b>3 · Emit</b>
+          <span>Filled PDF for any field the model mapped to a real AcroForm name, summary PDF entries for the rest — a form can now be a genuine mix of both, not one or the other.</span>
+        </div>
+        <div class="stage">
+          <b>4 · Verify</b>
+          <span>A second, different model checks the filled answers for real mistakes before submission (Nigel's reliability pass) — the API route exists (/api/verify), not yet wired into a page's submit flow.</span>
+        </div>
+      </div>
+
+      <p>Model choice: Nigel recommended Gemma 3 27B via OpenRouter — cheap and multimodal — as a starting point, with local testing against Ollama first to avoid burning cloud spend while prompt-tuning, then a real decision once accuracy across several real forms has actually been checked. See <code>docs/MODELS.html</code> for the live pricing comparison as that testing happens.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">03</div>
+    <div class="body">
+      <h2>What this costs on privacy — a disclosed tradeoff, not an oversight</h2>
+      <div class="note guard">
+        <span><b>Redaction no longer covers this path.</b> <code>src/lib/redact</code> pattern-matches PII in extracted <em>text</em> — it has no way to inspect or redact information rendered inside a PDF's pages before those bytes are sent to the model. Nigel's framing on this tradeoff: most of these forms are public forms that are already in the cloud, and the whole premise of the pivot is that local extraction was too unreliable to keep building around. This is a real, disclosed change from the previous branch state (which redacted every outbound call, no exceptions) — worth saying out loud at a demo rather than leaving implicit.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04</div>
+    <div class="body">
+      <h2>What each new file does</h2>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">File</th><th scope="col">What it does</th><th scope="col">State</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mod">lib/form-model/types.ts</td><td>The Form IR — mirrors <code>main</code>'s <code>packages/form-model</code> types by hand</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/form-model/traverse.ts</td><td>Skip-logic evaluation, applicable/outstanding/needs-attention field lookups — ported from <code>main</code>'s <code>packages/form-model</code></td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/conversation/machine.ts</td><td>The pure conversation state machine (ask, skip, review, confirm), ported from <code>main</code>'s <code>packages/conversation</code>, unmodified logic</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/conversation/announce.ts</td><td>Turns engine state into spoken-style text — question phrasing, value read-back, review-line summaries</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/validate/index.ts</td><td>Locale-aware field validation (dates, postcodes, National Insurance numbers, etc.), ported from <code>main</code>'s <code>packages/validate</code></td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/acroform-fields.ts</td><td>pdf-lib: lists real AcroForm field names only — no position, no label guessing, no classification. Given to the model as context so it can map its own detections back onto real fields</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/index.ts</td><td>Enumerates AcroForm field names (if any), then sends the whole file to /api/understand</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/openrouter/classify-pdf.ts</td><td>Base64-encodes the PDF, builds the multimodal prompt with the field-name context, parses the response into a Form</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/openrouter/client.ts</td><td>OpenRouter chat-completions wrapper, server-side only. Now supports multimodal content parts (text, image_url, file) and a per-call model override</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/openrouter/verify-answers.ts</td><td>Second-pass reliability check — a different model reviews the filled answers for real mistakes before submission</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">app/api/understand/route.ts</td><td>Accepts a multipart file upload (the PDF + the AcroForm field list), calls classifyPdf. Key never reaches the browser</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">app/api/verify/route.ts</td><td>Standalone route for the verification pass, callable independently of the classification flow</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/session-store.ts</td><td>Hands the ingest result and in-progress answers between pages via sessionStorage — simplified, no longer has a text-layer branch</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">app/review, /overview, /questions, /confirm</td><td>Read and write real session data instead of hardcoded arrays</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/original-file-store.ts</td><td>Holds the original uploaded file in IndexedDB for the session, needed to write real answers back into any real PDF fields the model mapped later</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/emit/fill-acroform.ts</td><td>pdf-lib: writes answers into real PDF fields (anchor.kind === "acroform"), flattens, produces a downloadable filled PDF. Unchanged by the pivot — already worked correctly on a per-field, not per-form, basis</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/emit/summary-pdf.ts</td><td>Generates a question/answer summary PDF for fields with no real field to write into</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/_archive/</td><td>The previous local-detection pipeline (acroform.ts, acroform-position.ts, nearby-text.ts, text-layer.ts, the old classify.ts) — archived, not deleted, per this branch's owner's request. See that folder's README.md</td><td class="st"><span class="tag guard">archived</span></td></tr>
+            <tr><td class="mod">OPENROUTER_API_KEY</td><td>Set locally and on the live deployment; required for classification to run at all now (no local-only path remains)</td><td class="st"><span class="tag built">set</span></td></tr>
+            <tr><td class="mod">Verification pass wired into a submit flow</td><td>The API route exists; calling it from /confirm's handleFinish (or Arya's equivalent UI) isn't done yet</td><td class="st"><span class="tag todo">not started</span></td></tr>
+            <tr><td class="mod">Form-template cache</td><td>Nigel's stretch idea — recognise a previously-seen form (by structure hash) and skip the model call entirely on a repeat upload. Deliberately deferred until a model is chosen and its output is trustworthy enough to cache</td><td class="st"><span class="tag later">later</span></td></tr>
+            <tr><td class="mod">PDF vs. rendered-image input</td><td>classify-pdf.ts currently sends the raw PDF via OpenRouter's file content type. Untested whether this or page-image rendering (pdfjs-dist can rasterize) gets better results per model — Nigel was explicit this needs testing, not assuming</td><td class="st"><span class="tag todo">needs testing</span></td></tr>
+            <tr><td class="mod">Field grouping for repeated grids</td><td>Large forms with per-row checkbox grids (e.g. a property inspection table) may still surface every cell as its own question — not yet re-tested against the new pipeline</td><td class="st"><span class="tag todo">not re-tested</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Without a key, classification fails outright with a clear error rather than silently guessing — there's no local fallback path left to fall back to now.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">05</div>
+    <div class="body">
+      <h2>The shape the model has to produce</h2>
+      <p>The prompt in <code>classify-pdf.ts</code> asks the model to return sections and fields matching this shape — the same <code>Field</code> contract the rest of the app, including the conversation engine, already expects. New since the pivot: <code>acroFieldName</code> and <code>page</code>.</p>
+
+<pre><span class="c">// src/lib/openrouter/classify-pdf.ts → src/lib/form-model/types.ts</span>
+Field {
+  <span class="k">label</span>          <span class="c">// VERBATIM as it appears on the form. Never paraphrased.</span>
+  <span class="k">spokenLabel</span>    <span class="c">// plain-language rewrite, phrased as a question</span>
+  <span class="k">help</span>           <span class="c">// optional — only if the label alone isn't self-explanatory</span>
+  <span class="k">type</span>           <span class="c">// date | currency | choice | name | address | …</span>
+  <span class="k">required</span>       <span class="c">// boolean, best guess from the form</span>
+  <span class="k">constraints</span>    <span class="c">// options[] for choice/multichoice fields</span>
+  <span class="k">confidence</span>     <span class="c">// 0..1 — the model's own honesty check, never faked high</span>
+  <span class="k">anchor</span>         <span class="c">// { acroform, fieldName } if the model matched a real field,</span>
+                <span class="c">// otherwise { region, page, rect } — same Field, either anchor kind</span>
+}</pre>
+
+      <p>Low-confidence fields aren't hidden — <code>/review</code> tags anything under 0.5 as "uncertain, please confirm this one," and the conversation engine surfaces the same signal again at the review gate on <code>/confirm</code>.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">06</div>
+    <div class="body">
+      <h2>One form, end to end, today</h2>
+      <ol class="steps">
+        <li class="done"><b>Upload</b><span>File is picked or dropped. Nothing leaves the browser until Continue is pressed.</span></li>
+        <li class="done"><b>Enumerate real fields, locally</b><span>A quick pdf-lib pass lists any real AcroForm field names — no position, no label guessing, no model call for this step.</span></li>
+        <li class="done"><b>Classify</b><span>The whole PDF, plus that field-name list, is sent to <code>/api/understand</code> in one multimodal call, which returns a classified Form.</span></li>
+        <li class="done"><b>Review</b><span><code>/review</code> shows the detected questions with a confidence badge on each.</span></li>
+        <li class="done"><b>Overview → Answer → Confirm</b><span>The remaining three pages read the same stored Form and the user's actual answers.</span></li>
+        <li><b>Verify</b><span>A different model checks the filled answers for real mistakes before submission. Route exists (<code>/api/verify</code>), not yet called from a submit flow.</span></li>
+        <li class="done"><b>Download</b><span>Confirming produces a real file: any field the model mapped to a real AcroForm name gets written into a filled, flattened PDF; everything else appears in a question/answer summary PDF. A single form can produce both kinds of output in the same document now.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">07</div>
+    <div class="body">
+      <h2>Deliberate gaps — not bugs</h2>
+      <div class="qs">
+        <div class="q"><b>No image/OCR path for non-PDF files.</b><span>A photo or non-PDF image is flagged <code>needs-vision</code> and told plainly it isn't supported yet, rather than silently failing or guessing. PDFs — including scanned/image-only ones — go through the multimodal path like any other PDF now.</span></div>
+        <div class="q"><b>PII redaction doesn't cover this path.</b><span>See §02b above — a real, disclosed tradeoff, not an oversight.</span></div>
+        <div class="q"><b>Not reconciled with <code>main</code>'s <code>packages/*</code>.</b><span>The IR types are duplicated by hand, not imported, so this branch can build and demo independently. Reconciling is a team decision, deferred to the Nigel sync.</span></div>
+        <div class="q"><b>Model choice needs real testing before it's final.</b><span><code>CLASSIFICATION_MODEL</code> in <code>client.ts</code> is set to Gemma 3 27B per Nigel's recommendation, but this branch's owner is testing locally against Ollama first before committing to it for the demo.</span></div>
+        <div class="q"><b>Verification pass isn't wired into a submit flow yet.</b><span>The model call and API route exist and work standalone; calling it from Confirm's "finish" action (or Arya's equivalent UI, since the UI work moved to that branch) is still open.</span></div>
+        <div class="q"><b>Emit is real but simple.</b><span><code>src/lib/emit/fill-acroform.ts</code> writes answers into any real PDF fields the model mapped, and <code>src/lib/emit/summary-pdf.ts</code> covers everything else in the same download. Neither draws answers onto a flat PDF at their original visual position (a print overlay), so unmatched fields appear as a summary, not a marked-up copy.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Reflects the state of the <code>rahul</code> branch after the 2026-08-03 pivot to a single multimodal classification call, following a 2026-08-02 meeting (see <code>docs/_archive/QUESTIONS-FOR-NIGEL.html</code> for the questions that prompted it, and <code>src/lib/ingest/_archive/README.md</code> for what was archived from the ingest pipeline). Where this page and <code>docs/ARCHITECTURE.md</code> on <code>main</code> disagree on the target design, <code>main</code> is the source of truth — this page only describes what's actually built here.</p>
+    <p>Follows the same visual language as <code>docs/OVERVIEW.html</code> on <code>main</code>: 20&nbsp;px base type, light and dark themes, no meaning carried by colour alone.</p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var root = document.documentElement;
+    var stored = null;
+    try { stored = localStorage.getItem('formfill-integration-theme'); } catch (e) {}
+    if (stored) { root.setAttribute('data-theme', stored); }
+
+    function isDark() {
+      var attr = root.getAttribute('data-theme');
+      if (attr) { return attr === 'dark'; }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function sync() {
+      var dark = isDark();
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.textContent = dark ? 'Light theme' : 'Dark theme';
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('formfill-integration-theme', next); } catch (e) {}
+      sync();
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>

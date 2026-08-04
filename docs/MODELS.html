@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FormFill — AI Model Choice & Pricing</title>
+<style>
+  :root {
+    --paper:      #F7F7F4;
+    --surface:    #FFFFFF;
+    --sunk:       #EDEEE9;
+    --ink:        #16181C;
+    --ink-soft:   #4C5158;
+    --ink-faint:  #7B8189;
+    --rule:       #DCDDD6;
+    --accent:     #1F4FD8;
+    --accent-bg:  #E7ECFB;
+    --guard:      #8A5A00;
+    --guard-bg:   #F7EEDC;
+    --built:      #2F6B47;
+    --built-bg:   #E2EEE7;
+
+    --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --rail: 4.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:     #0E1116;
+      --surface:   #161A21;
+      --sunk:      #1C212A;
+      --ink:       #E7EAEF;
+      --ink-soft:  #A9B0BA;
+      --ink-faint: #7C848F;
+      --rule:      #2A303A;
+      --accent:    #8FAEFF;
+      --accent-bg: #1A2340;
+      --guard:     #E0AC5B;
+      --guard-bg:  #302512;
+      --built:     #7FC79B;
+      --built-bg:  #172A1F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #0E1116;
+    --surface:   #161A21;
+    --sunk:      #1C212A;
+    --ink:       #E7EAEF;
+    --ink-soft:  #A9B0BA;
+    --ink-faint: #7C848F;
+    --rule:      #2A303A;
+    --accent:    #8FAEFF;
+    --accent-bg: #1A2340;
+    --guard:     #E0AC5B;
+    --guard-bg:  #302512;
+    --built:     #7FC79B;
+    --built-bg:  #172A1F;
+  }
+  :root[data-theme="light"] {
+    --paper:     #F7F7F4;
+    --surface:   #FFFFFF;
+    --sunk:      #EDEEE9;
+    --ink:       #16181C;
+    --ink-soft:  #4C5158;
+    --ink-faint: #7B8189;
+    --rule:      #DCDDD6;
+    --accent:    #1F4FD8;
+    --accent-bg: #E7ECFB;
+    --guard:     #8A5A00;
+    --guard-bg:  #F7EEDC;
+    --built:     #2F6B47;
+    --built-bg:  #E2EEE7;
+  }
+
+  * { box-sizing: border-box; }
+  html { font-size: 125%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-underline-offset: 0.15em; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap {
+    max-width: calc(var(--measure) + var(--rail) + 4rem);
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  .mast {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 4rem 0 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mast h1 {
+    font-family: var(--f-display);
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.4rem;
+    text-wrap: balance;
+  }
+  .mast p {
+    margin: 0;
+    max-width: 34ch;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.9rem;
+  }
+  #themeToggle {
+    font: inherit;
+    font-size: 0.8rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: var(--surface);
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  section {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    gap: 0 1.5rem;
+    padding: 3.5rem 0 0;
+  }
+  section > .num {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    padding-top: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+  section > .body { min-width: 0; display: flex; flex-direction: column; gap: 1.1rem; }
+  section > .body > * { margin: 0; }
+
+  h2 {
+    font-family: var(--f-display);
+    font-size: 1.85rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  p, li { max-width: var(--measure); }
+  ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.85em;
+    background: var(--sunk);
+    padding: 0.12em 0.35em;
+    border-radius: 3px;
+    overflow-wrap: break-word;
+  }
+
+  .lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 60ch; }
+
+  .note {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 1rem 1.15rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .note.guard { border-left-color: var(--guard); background: var(--guard-bg); }
+  .note.built { border-left-color: var(--built); background: var(--built-bg); }
+  .note b { font-family: var(--f-body); }
+
+  .scroll { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 34rem;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.8rem 0.6rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  td.mod { font-family: var(--f-mono); font-size: 0.82rem; white-space: nowrap; }
+  td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.st { white-space: nowrap; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+  .tag.built  { color: var(--built); background: var(--built-bg); border-color: var(--built); }
+  .tag.todo   { color: var(--ink-soft); background: var(--sunk); border-color: var(--rule); }
+  .tag.later  { color: var(--ink-faint); background: transparent; border-color: var(--rule); }
+  .tag.guard  { color: var(--guard); background: var(--guard-bg); border-color: var(--guard); }
+
+  .qs { display: flex; flex-direction: column; gap: 0.9rem; }
+  .q {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.9rem 1.05rem;
+    max-width: var(--measure);
+  }
+  .q b { display: block; margin-bottom: 0.2rem; }
+  .q span { font-size: 0.92rem; color: var(--ink-soft); }
+
+  footer {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 46rem) {
+    :root { --rail: 0px; }
+    section { grid-template-columns: 1fr; gap: 0; }
+    section > .num { padding: 0 0 0.6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <p class="eyebrow">FormFill · rahul branch · AI model choice</p>
+      <h1>Which AI model reads your forms, and what it costs</h1>
+      <p>A plain-language explanation of the model choice behind form classification, and what the alternatives would cost.</p>
+    </div>
+    <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
+  </header>
+
+  <section>
+    <div class="num">01</div>
+    <div class="body">
+      <h2>Where AI actually gets used</h2>
+      <p class="lede">Every uploaded PDF is read by a multimodal AI model, which turns it into a list of plain questions and, where the form has real fillable fields, maps its own detections back onto them. Most of the rest of the app — moving between questions, saving your answers, producing the final document — needs no AI at all.</p>
+      <div class="note guard">
+        <span><b>Pivot, 2026-08-03:</b> this used to be two paths — real PDF fields were read locally with no AI involved, and only "flat" forms without fields went to a model. Local field-detection turned out to be unreliable across real-world PDFs (tested against 10-15 real forms), so every PDF now goes through the same model call. See <a href="INTEGRATION.html">the integration doc</a> for the full reasoning. This means AI usage is no longer occasional — it happens on every upload, not just flat ones.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">02</div>
+    <div class="body">
+      <h2>How the model is accessed: OpenRouter</h2>
+      <p>Rather than signing up with one AI company directly, FormFill goes through <strong>OpenRouter</strong>, a single service that gives access to models from many different providers (OpenAI, Google, Anthropic, Meta, and others) through one connection and one bill.</p>
+      <ul>
+        <li><strong>Flexibility:</strong> switching models is a one-line change in the code, not a new integration.</li>
+        <li><strong>Price comparison in one place:</strong> every model's cost is visible side by side, so the cheapest option that still does the job well can be picked deliberately.</li>
+        <li><strong>Free options exist:</strong> several capable models are available at no cost. This project currently uses one of them, described below.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">03</div>
+    <div class="body">
+      <h2>What FormFill targets today</h2>
+      <p><code>src/lib/openrouter/client.ts</code> currently targets <strong><code>google/gemma-3-27b-it</code></strong> (Gemma 3 27B) via OpenRouter — cheap and multimodal, recommended in a 2026-08-02 review as a starting point.</p>
+      <div class="note guard">
+        <span><b>Not finalised.</b> This is a starting point, not a tested decision. Before committing to it for a real demo, the plan is to test several multimodal models locally via Ollama against real forms — comparing accuracy, not just cost — then pick whichever OpenRouter model matches the local winner (or the closest available one, since not every Ollama model has an identical OpenRouter listing).</span>
+      </div>
+      <div class="note built">
+        <span><b>Local test set, chosen to cover different sizes and architecture families:</b> <code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>gemma4:26b</code>, <code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>llama3.2-vision:11b</code>, and <code>minicpm-v</code> (a document-OCR specialist, worth including since reading a form is closer to OCR than general image captioning). <code>deepseek-r1</code> is kept separately as a candidate for the second-pass answer-verification step (§05), which is text-only and doesn't need vision.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04</div>
+    <div class="body">
+      <h2>Pricing comparison — multimodal models only</h2>
+      <p>Pulled live from OpenRouter's models API on 2026-08-04, per <strong>1 million tokens</strong> (roughly 750,000 words), for reading the input (a whole PDF now, not just extracted text — bigger payload than before the pivot) and for the response. A single form classification uses a small fraction of a million tokens either way, so treat this as a rate rather than a per-form cost. Every model below must support image/document input — a text-only model can't do this job at all now.</p>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Model</th>
+              <th scope="col">Cost to read</th>
+              <th scope="col">Cost to respond</th>
+              <th scope="col">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mod">google/gemma-3-27b-it</td>
+              <td class="num">$0.08 / million</td>
+              <td class="num">$0.45 / million</td>
+              <td><span class="tag built">current target</span> — matches the local <code>gemma4:26b</code> test candidate</td>
+            </tr>
+            <tr>
+              <td class="mod">qwen/qwen2.5-vl-72b-instruct</td>
+              <td class="num">$0.80 / million</td>
+              <td class="num">$1.00 / million</td>
+              <td>Closest OpenRouter listing to the Qwen2.5-VL family — no 3b/7b vision variant is actually on OpenRouter, only 72b. Local <code>qwen2.5vl:3b</code>/<code>7b</code> testing is still useful for judging the family's accuracy, just not at this exact price point.</td>
+            </tr>
+            <tr>
+              <td class="mod">openai/gpt-4o-mini</td>
+              <td class="num">$0.15 / million</td>
+              <td class="num">$0.60 / million</td>
+              <td>Well-proven multimodal, dedicated capacity. No Llama 3.2 Vision listing exists on OpenRouter (only text-only 1b/3b) — <code>llama3.2-vision:11b</code> is a local-only comparison point, not a swap-in OpenRouter option</td>
+            </tr>
+            <tr>
+              <td class="mod">google/gemini-2.5-flash</td>
+              <td class="num">$0.30 / million</td>
+              <td class="num">$2.50 / million</td>
+              <td>Strong on messy/complex form layouts, no local equivalent</td>
+            </tr>
+            <tr>
+              <td class="mod">anthropic/claude-haiku-4.5</td>
+              <td class="num">$1.00 / million</td>
+              <td class="num">$5.00 / million</td>
+              <td>Text-only role here — candidate for the second-pass verification step (§05), not classification</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="lede" style="font-size: 0.85rem; color: var(--ink-faint);">
+        Pulled from OpenRouter's public models API (<code>openrouter.ai/api/v1/models</code>) on 2026-08-04. Confirm current numbers at
+        <a href="https://openrouter.ai/models" target="_blank" rel="noopener">openrouter.ai/models</a> before making a budget decision — prices change as providers update them, and this table won't update itself.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">05</div>
+    <div class="body">
+      <h2>The second model: answer verification</h2>
+      <p>Since the pivot, a second, independent model call can review a filled-out form for genuine mistakes before submission — deliberately a different model from classification, so the same blind spot can't pass its own check (<code>src/lib/openrouter/verify-answers.ts</code>, <code>/api/verify</code>). This step is text-only (it reads field labels and typed answers, not the PDF itself), so it doesn't need vision, and can be a much cheaper model than classification.</p>
+      <div class="note">
+        <span><b>Current target:</b> <code>anthropic/claude-haiku-4.5</code>, set in <code>VERIFICATION_MODEL</code>. <code>deepseek-r1</code> is downloaded locally as a candidate to test against it — both are plausible, neither is finalised. The route exists and works standalone; it isn't yet called from a submit flow on either branch's UI.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">06</div>
+    <div class="body">
+      <h2>If a different classification model turns out to work better</h2>
+      <p>The change is a one-line edit in <code>src/lib/openrouter/client.ts</code> (<code>CLASSIFICATION_MODEL</code>). No redesign needed — <code>classify-pdf.ts</code> and the prompt itself don't assume anything model-specific beyond "accepts a PDF file and returns JSON."</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Pricing pulled live from OpenRouter's API as of 2026-08-04. See <a href="KNOWN-ISSUES.html">Known Risks</a> for the reliability and privacy tradeoffs of the current pipeline, and <a href="INTEGRATION.html">the integration doc</a> for where in the process each model gets called.</p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var root = document.documentElement;
+    var stored = null;
+    try { stored = localStorage.getItem('formfill-models-theme'); } catch (e) {}
+    if (stored) { root.setAttribute('data-theme', stored); }
+
+    function isDark() {
+      var attr = root.getAttribute('data-theme');
+      if (attr) { return attr === 'dark'; }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function sync() {
+      var dark = isDark();
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.textContent = dark ? 'Light theme' : 'Dark theme';
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('formfill-models-theme', next); } catch (e) {}
+      sync();
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>

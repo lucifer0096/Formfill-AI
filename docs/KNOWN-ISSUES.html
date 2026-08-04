@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FormFill — Known Risks &amp; Limitations</title>
+<style>
+  :root {
+    --paper:      #F7F7F4;
+    --surface:    #FFFFFF;
+    --sunk:       #EDEEE9;
+    --ink:        #16181C;
+    --ink-soft:   #4C5158;
+    --ink-faint:  #7B8189;
+    --rule:       #DCDDD6;
+    --accent:     #1F4FD8;
+    --accent-bg:  #E7ECFB;
+    --guard:      #8A5A00;
+    --guard-bg:   #F7EEDC;
+    --built:      #2F6B47;
+    --built-bg:   #E2EEE7;
+    --crit:       #B3261E;
+    --crit-bg:    #FBE9E7;
+
+    --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --rail: 4.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:     #0E1116;
+      --surface:   #161A21;
+      --sunk:      #1C212A;
+      --ink:       #E7EAEF;
+      --ink-soft:  #A9B0BA;
+      --ink-faint: #7C848F;
+      --rule:      #2A303A;
+      --accent:    #8FAEFF;
+      --accent-bg: #1A2340;
+      --guard:     #E0AC5B;
+      --guard-bg:  #302512;
+      --built:     #7FC79B;
+      --built-bg:  #172A1F;
+      --crit:      #FF8A80;
+      --crit-bg:   #3A1613;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #0E1116;
+    --surface:   #161A21;
+    --sunk:      #1C212A;
+    --ink:       #E7EAEF;
+    --ink-soft:  #A9B0BA;
+    --ink-faint: #7C848F;
+    --rule:      #2A303A;
+    --accent:    #8FAEFF;
+    --accent-bg: #1A2340;
+    --guard:     #E0AC5B;
+    --guard-bg:  #302512;
+    --built:     #7FC79B;
+    --built-bg:  #172A1F;
+    --crit:      #FF8A80;
+    --crit-bg:   #3A1613;
+  }
+  :root[data-theme="light"] {
+    --paper:     #F7F7F4;
+    --surface:   #FFFFFF;
+    --sunk:      #EDEEE9;
+    --ink:       #16181C;
+    --ink-soft:  #4C5158;
+    --ink-faint: #7B8189;
+    --rule:      #DCDDD6;
+    --accent:    #1F4FD8;
+    --accent-bg: #E7ECFB;
+    --guard:     #8A5A00;
+    --guard-bg:  #F7EEDC;
+    --built:     #2F6B47;
+    --built-bg:  #E2EEE7;
+    --crit:      #B3261E;
+    --crit-bg:   #FBE9E7;
+  }
+
+  * { box-sizing: border-box; }
+  html { font-size: 125%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-underline-offset: 0.15em; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap {
+    max-width: calc(var(--measure) + var(--rail) + 4rem);
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  .mast {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 4rem 0 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mast h1 {
+    font-family: var(--f-display);
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.4rem;
+    text-wrap: balance;
+  }
+  .mast p {
+    margin: 0;
+    max-width: 34ch;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.9rem;
+  }
+  #themeToggle {
+    font: inherit;
+    font-size: 0.8rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: var(--surface);
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  section {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    gap: 0 1.5rem;
+    padding: 3.5rem 0 0;
+  }
+  section > .num {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    padding-top: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+  section > .body { min-width: 0; display: flex; flex-direction: column; gap: 1.1rem; }
+  section > .body > * { margin: 0; }
+
+  h2 {
+    font-family: var(--f-display);
+    font-size: 1.85rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  p, li { max-width: var(--measure); }
+  ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.85em;
+    background: var(--sunk);
+    padding: 0.12em 0.35em;
+    border-radius: 3px;
+    overflow-wrap: break-word;
+  }
+
+  .lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 60ch; }
+
+  .note {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 1rem 1.15rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .note.guard { border-left-color: var(--guard); background: var(--guard-bg); }
+  .note.built { border-left-color: var(--built); background: var(--built-bg); }
+  .note b { font-family: var(--f-body); }
+
+  /* ---- risk cards ---- */
+  .risk {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left-width: 4px;
+    border-radius: 0 6px 6px 0;
+    padding: 1.1rem 1.25rem;
+    max-width: var(--measure);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .risk.high { border-left-color: var(--crit); }
+  .risk.medium { border-left-color: var(--guard); }
+  .risk.low { border-left-color: var(--ink-faint); }
+  .risk-head {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+  }
+  .risk-head b { font-size: 1.02rem; }
+  .sev {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid;
+    font-weight: 650;
+  }
+  .sev.high { color: var(--crit); background: var(--crit-bg); border-color: var(--crit); }
+  .sev.medium { color: var(--guard); background: var(--guard-bg); border-color: var(--guard); }
+  .sev.low { color: var(--ink-faint); background: var(--sunk); border-color: var(--rule); }
+  .risk p { font-size: 0.94rem; color: var(--ink-soft); }
+  .risk .fix {
+    font-size: 0.88rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--rule);
+  }
+  .risk .fix b { color: var(--built); font-family: var(--f-body); }
+
+  .qs { display: flex; flex-direction: column; gap: 0.9rem; }
+
+  footer {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 46rem) {
+    :root { --rail: 0px; }
+    section { grid-template-columns: 1fr; gap: 0; }
+    section > .num { padding: 0 0 0.6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <p class="eyebrow">FormFill · rahul branch · known risks</p>
+      <h1>Things that can break, and what to do about them</h1>
+      <p>A plain list of real risks found while building and testing. These are things that actually happened, not hypotheticals.</p>
+    </div>
+    <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
+  </header>
+
+  <section>
+    <div class="num">01</div>
+    <div class="body">
+      <h2>How to read this page</h2>
+      <p class="lede">Each item below is rated by how likely it is to actually cause a problem during a demo or real use, not by how bad it would theoretically be. Most were found by testing with real forms, not guessed at.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">02</div>
+    <div class="body">
+      <h2>Risks likely to matter for a live demo</h2>
+
+      <div class="risk high">
+        <div class="risk-head">
+          <b>Personal information in a PDF is no longer redacted before the AI call</b>
+          <span class="sev high">High</span>
+        </div>
+        <p>Since the 2026-08-03 pivot to a single multimodal classification call (see <a href="INTEGRATION.html">INTEGRATION.html</a>), the whole PDF is sent to the model, not just extracted text. Redaction (<code>src/lib/redact</code>) only ever pattern-matched PII in text — it has no way to inspect or redact information rendered inside a PDF's pages before those bytes leave the device. This is a real, deliberate tradeoff agreed with Nigel (most of these forms are public forms already in the cloud, and local extraction was too unreliable to keep building the previous redaction step around), not an oversight — but it should be said out loud at a demo, not left implicit.</p>
+        <div class="fix"><b>Status:</b> disclosed tradeoff, not currently mitigated. If this needs to change later, redaction would have to move to either a pre-send image-level pass or be dropped in favour of per-model provider privacy terms.</div>
+      </div>
+
+      <div class="risk high">
+        <div class="risk-head">
+          <b>The new classification pipeline hasn't been tested against real forms yet</b>
+          <span class="sev high">High</span>
+        </div>
+        <p>The multimodal pipeline (any PDF → one model call → structured fields, with real AcroForm field names mapped back for fill-back where they exist) is built and passes typecheck/lint/build, but hasn't yet been run against real forms to confirm accuracy. Local testing against Ollama, then a real model decision, is the planned next step.</p>
+        <div class="fix"><b>Status:</b> open. Do not treat this pipeline as demo-ready until it's been exercised against at least a few real forms of different kinds (fillable, flat, scanned).</div>
+      </div>
+
+      <div class="risk high">
+        <div class="risk-head">
+          <b>The AI model can be slow on large forms</b>
+          <span class="sev high">High</span>
+        </div>
+        <p>On a large real form (30+ questions), turning extracted text into questions took as long as <strong>75 seconds</strong> under the old pipeline using a free model. Not yet re-measured under the new pipeline, which sends a larger payload (the whole PDF, not just its text) — likely to be at least as slow, possibly slower, until a model is chosen and tested.</p>
+        <div class="fix"><b>Mitigation in place:</b> the server is configured to wait up to 60 seconds, the maximum allowed on the current hosting plan, instead of giving up early. <strong>Before any live demo, test the actual form you plan to use against the live site once.</strong> If it's slow, have a smaller backup form ready, or switch to a paid model (see the <a href="MODELS.html">model &amp; pricing doc</a>) for guaranteed speed.</div>
+      </div>
+
+      <div class="risk medium">
+        <div class="risk-head">
+          <b>The free AI model can occasionally be unavailable</b>
+          <span class="sev medium">Medium</span>
+        </div>
+        <p>A different free model was tried first and returned a "rate limited" error within minutes of testing. Free-tier capacity is shared and can run out under demand from other users, not just FormFill's own traffic.</p>
+        <div class="fix"><b>Mitigation in place:</b> switched to a different free model that tested reliably across multiple attempts, and the app shows a clear "couldn't classify this form" message with a retry option rather than freezing or crashing if it does happen.</div>
+      </div>
+
+      <div class="risk medium">
+        <div class="risk-head">
+          <b>Scanned photos and image-only forms aren't supported</b>
+          <span class="sev medium">Medium</span>
+        </div>
+        <p>Only PDFs work today, either with real fillable fields, or flat PDFs with readable text. A photo of a paper form, or a scanned image with no text layer, is detected and clearly flagged as unsupported rather than failing silently.</p>
+        <div class="fix"><b>Recommendation:</b> for any demo, use a real PDF (either kind above), not a photo.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">03</div>
+    <div class="body">
+      <h2>Risks that were found and already fixed</h2>
+      <p>Listed for transparency. These happened during development and are resolved, not currently live issues.</p>
+
+      <div class="qs">
+        <div class="risk low">
+          <div class="risk-head">
+            <b>A page could freeze/crash on certain forms</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>Uploading a real large form once caused the review page to crash with a "maximum update depth exceeded" error, a technical bug where the page kept re-checking the same data in a loop. Found through real testing, root-caused, and fixed the same day, then verified with a full re-test.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Setting the AI service key on the live site broke every request</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>A hidden character got included by accident when saving the AI service's access key to the hosting platform, which caused every request to fail with a confusing error. Traced to the exact cause and fixed by re-saving the key a different way.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Personal information wasn't being stripped before the AI call</b>
+            <span class="sev low">Fixed, then superseded — see §02</span>
+          </div>
+          <p>Text extracted from flat forms was sent to the classification model as-is, with no check for names, emails, national ID numbers, or similar personal details it might contain. Fixed by porting the same detection logic the team's shared codebase already uses, and confirmed by inspecting the exact text sent to the model during testing: real names and email addresses were replaced with placeholders before leaving the server. <strong>This fix no longer applies</strong> — the 2026-08-03 pivot sends the whole PDF to the model instead of extracted text, which the redaction step can't inspect. See the new high-severity entry above.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Checkboxes on real PDFs showed as a text box, and field labels were meaningless</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>Testing against a real government form with real fillable fields surfaced two separate bugs: checkboxes and multiple-choice fields rendered as a free-text box instead of something you tick, and on a form whose fields were auto-named by whatever tool built it (things like "001", "002"), those meaningless internal names were shown as the question itself. Fixed by rendering the right control per field type, and by finding the actual label text printed next to each field on the page (no AI model involved — a local, position-based lookup) instead of relying on the field's internal name.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04</div>
+    <div class="body">
+      <h2>Things to keep in mind, lower urgency</h2>
+      <div class="qs">
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Filled-document output only covers two cases</b>
+            <span class="sev low">Known gap</span>
+          </div>
+          <p>"Confirm and finish" now produces a real download: a genuinely filled PDF for forms with real fillable fields, or a plain question/answer summary for forms that were read as flat text. There's no in-between yet, for example drawing answers onto a flat PDF at their original position, so a flat form's output is a summary document rather than a marked-up copy of the original.</p>
+        </div>
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Not yet reconciled with the team's shared code (<code>main</code> branch)</b>
+            <span class="sev low">Known gap</span>
+          </div>
+          <p>This branch was built independently to move quickly for the hackathon. Four of <code>main</code>'s engine packages (form-model, conversation, validate, redact) have since been ported over with their logic unmodified, so the two branches now behave the same way in those areas — but this is still a hand-copy, not a real npm workspace import, so a genuine merge is intentionally scheduled for after the next team sync, not something skipped by accident.</p>
+        </div>
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Large forms with repeated grids surface every cell as its own question</b>
+            <span class="sev low">Known gap</span>
+          </div>
+          <p>A form built as a table (e.g. a per-room property condition checklist, or a per-person schedule) has no concept of "this is one row" in the current field model — every individual box shows up as a separate question in the flow. Real for genuinely large government/legal forms; no grouping heuristic has been built for it yet.</p>
+        </div>
+        <div class="risk low">
+          <div class="risk-head">
+            <b>No accounts, no saved history between sessions</b>
+            <span class="sev low">By design, for now</span>
+          </div>
+          <p>Closing the browser tab clears everything. This matches the project's privacy-first goal (nothing is stored on a server) but means there's no way to resume a form later. Worth flagging as a product decision to revisit, not a bug.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Compiled from real issues found while building and testing the <code>rahul</code> branch. Keep this list up to date as new risks are found or existing ones are resolved. A stale copy is more dangerous than no page at all.</p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var root = document.documentElement;
+    var stored = null;
+    try { stored = localStorage.getItem('formfill-known-issues-theme'); } catch (e) {}
+    if (stored) { root.setAttribute('data-theme', stored); }
+
+    function isDark() {
+      var attr = root.getAttribute('data-theme');
+      if (attr) { return attr === 'dark'; }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function sync() {
+      var dark = isDark();
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.textContent = dark ? 'Light theme' : 'Dark theme';
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('formfill-known-issues-theme', next); } catch (e) {}
+      sync();
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>

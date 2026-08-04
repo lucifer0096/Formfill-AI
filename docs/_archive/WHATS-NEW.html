@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FormFill — What's New vs. main (for Nigel's review)</title>
+<style>
+  :root {
+    --paper:      #F7F7F4;
+    --surface:    #FFFFFF;
+    --sunk:       #EDEEE9;
+    --ink:        #16181C;
+    --ink-soft:   #4C5158;
+    --ink-faint:  #7B8189;
+    --rule:       #DCDDD6;
+    --accent:     #1F4FD8;
+    --accent-bg:  #E7ECFB;
+    --guard:      #8A5A00;
+    --guard-bg:   #F7EEDC;
+    --built:      #2F6B47;
+    --built-bg:   #E2EEE7;
+
+    --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --rail: 4.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:     #0E1116;
+      --surface:   #161A21;
+      --sunk:      #1C212A;
+      --ink:       #E7EAEF;
+      --ink-soft:  #A9B0BA;
+      --ink-faint: #7C848F;
+      --rule:      #2A303A;
+      --accent:    #8FAEFF;
+      --accent-bg: #1A2340;
+      --guard:     #E0AC5B;
+      --guard-bg:  #302512;
+      --built:     #7FC79B;
+      --built-bg:  #172A1F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #0E1116;
+    --surface:   #161A21;
+    --sunk:      #1C212A;
+    --ink:       #E7EAEF;
+    --ink-soft:  #A9B0BA;
+    --ink-faint: #7C848F;
+    --rule:      #2A303A;
+    --accent:    #8FAEFF;
+    --accent-bg: #1A2340;
+    --guard:     #E0AC5B;
+    --guard-bg:  #302512;
+    --built:     #7FC79B;
+    --built-bg:  #172A1F;
+  }
+  :root[data-theme="light"] {
+    --paper:     #F7F7F4;
+    --surface:   #FFFFFF;
+    --sunk:      #EDEEE9;
+    --ink:       #16181C;
+    --ink-soft:  #4C5158;
+    --ink-faint: #7B8189;
+    --rule:      #DCDDD6;
+    --accent:    #1F4FD8;
+    --accent-bg: #E7ECFB;
+    --guard:     #8A5A00;
+    --guard-bg:  #F7EEDC;
+    --built:     #2F6B47;
+    --built-bg:  #E2EEE7;
+  }
+
+  * { box-sizing: border-box; }
+  html { font-size: 125%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-underline-offset: 0.15em; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap {
+    max-width: calc(var(--measure) + var(--rail) + 4rem);
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  .mast {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 4rem 0 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mast h1 {
+    font-family: var(--f-display);
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.4rem;
+    text-wrap: balance;
+  }
+  .mast p {
+    margin: 0;
+    max-width: 34ch;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.9rem;
+  }
+  #themeToggle {
+    font: inherit;
+    font-size: 0.8rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: var(--surface);
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  section {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    gap: 0 1.5rem;
+    padding: 3.5rem 0 0;
+  }
+  section > .num {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    padding-top: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+  section > .body { min-width: 0; display: flex; flex-direction: column; gap: 1.1rem; }
+  section > .body > * { margin: 0; }
+
+  h2 {
+    font-family: var(--f-display);
+    font-size: 1.85rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  p, li { max-width: var(--measure); }
+  ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.85em;
+    background: var(--sunk);
+    padding: 0.12em 0.35em;
+    border-radius: 3px;
+    overflow-wrap: break-word;
+  }
+
+  .lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 60ch; }
+
+  .note {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 1rem 1.15rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .note.guard { border-left-color: var(--guard); background: var(--guard-bg); }
+  .note.built { border-left-color: var(--built); background: var(--built-bg); }
+  .note b { font-family: var(--f-body); }
+
+  .scroll { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 30rem;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.8rem 0.6rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  td.mod { font-family: var(--f-mono); font-size: 0.8rem; white-space: nowrap; }
+  td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+  .tag.built  { color: var(--built); background: var(--built-bg); border-color: var(--built); }
+  .tag.todo   { color: var(--ink-soft); background: var(--sunk); border-color: var(--rule); }
+  .tag.guard  { color: var(--guard); background: var(--guard-bg); border-color: var(--guard); }
+
+  .qs { display: flex; flex-direction: column; gap: 0.9rem; }
+  .q {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.9rem 1.05rem;
+    max-width: var(--measure);
+  }
+  .q b { display: block; margin-bottom: 0.2rem; }
+  .q span { font-size: 0.92rem; color: var(--ink-soft); }
+
+  footer {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 46rem) {
+    :root { --rail: 0px; }
+    section { grid-template-columns: 1fr; gap: 0; }
+    section > .num { padding: 0 0 0.6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <p class="eyebrow">FormFill · rahul branch · for Nigel's review</p>
+      <h1>What's new on <code>rahul</code>, on top of the UI branch</h1>
+      <p>A summary of everything added since the team's last sync, scoped for review rather than a raw file-by-file diff.</p>
+    </div>
+    <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
+  </header>
+
+  <section>
+    <div class="num">01</div>
+    <div class="body">
+      <h2>Scope of this summary</h2>
+      <p class="lede">This compares the <code>rahul</code> branch against <code>Arya</code>, the UI branch as it stood after the first page (upload) was built, not against <code>main</code>. The gap between <code>main</code> and <code>Arya</code> (the from-scratch UI rebuild) was already covered in an earlier team discussion, so it isn't repeated here.</p>
+      <div class="note">
+        <span><b>Not yet merged anywhere.</b> This branch is independent. Nothing here has touched <code>main</code> or <code>Arya</code>. Reconciling this work with the team's shared <code>packages/*</code> engine code on <code>main</code> is intentionally deferred until after this review.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">02</div>
+    <div class="body">
+      <h2>What was added, by category</h2>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Area</th><th scope="col">What's new</th><th scope="col">Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mod">4 new pages</td><td>Review, Overview, Answer, Confirm: the rest of the form-filling flow after Upload</td><td><span class="tag built">working</span></td></tr>
+            <tr><td class="mod">PDF field reading</td><td>Real PDF form fields read directly, no AI needed</td><td><span class="tag built">working</span></td></tr>
+            <tr><td class="mod">PDF text extraction</td><td>Flat/scanned-text PDFs read locally in the browser</td><td><span class="tag built">working</span></td></tr>
+            <tr><td class="mod">AI classification</td><td>Extracted text turned into plain-language questions via OpenRouter</td><td><span class="tag built">working</span></td></tr>
+            <tr><td class="mod">Accessibility fixes</td><td>Keyboard shortcuts, focus management, live regions, checked against the team's accessibility spec</td><td><span class="tag built">working</span></td></tr>
+            <tr><td class="mod">2 new user-facing pages</td><td>Help and Accessibility info pages (fixed 404s from the nav bar)</td><td><span class="tag built">working</span></td></tr>
+            <tr><td class="mod">4 status/reference docs</td><td>This changelog, plus workflow, model/pricing, and known-risks docs</td><td><span class="tag built">working</span></td></tr>
+            <tr><td class="mod">Live deployment</td><td>Deployed and testable at a public URL, redeployed after each change</td><td><span class="tag built">working</span></td></tr>
+            <tr><td class="mod">Document output</td><td>Filled PDF for real-field forms, summary PDF for flat/classified ones, downloaded on Confirm</td><td><span class="tag built">working</span></td></tr>
+            <tr><td class="mod">Image/scan support</td><td>Photos and image-only PDFs</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td class="mod">Print overlay for flat forms</td><td>Drawing answers onto the original flat PDF at their position, instead of a separate summary</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td class="mod">Reconciliation with <code>main</code></td><td>Wiring into the team's shared <code>packages/*</code> engine</td><td><span class="tag guard">deferred</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">03</div>
+    <div class="body">
+      <h2>Decisions made that diverge from the original design docs</h2>
+      <p>Two choices were made on this branch that differ from what <code>main</code>'s architecture documents originally specified. They're flagged explicitly here so they're a team decision, not a silent drift.</p>
+
+      <div class="qs">
+        <div class="q">
+          <b>Model access: OpenRouter instead of calling Claude directly</b>
+          <span>The original architecture brief specified calling the Claude API directly. This branch instead goes through OpenRouter, which allows switching between many providers' models (including free ones) without changing the integration. See <a href="MODELS.html">the model &amp; pricing doc</a> for the reasoning.</span>
+        </div>
+        <div class="q">
+          <b>A free AI model, not a paid one, for the hackathon demo</b>
+          <span>Cost isn't a concern for a demo, so a free model was chosen deliberately over a paid one, with a documented, tested tradeoff around occasional slowness. Switching to a paid model later is straightforward. See <a href="KNOWN-ISSUES.html">the known-risks doc</a>.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04</div>
+    <div class="body">
+      <h2>Where to look for more detail</h2>
+      <ul>
+        <li><a href="WORKFLOW.html">docs/WORKFLOW.html</a>: what a person actually experiences, page by page</li>
+        <li><a href="INTEGRATION.html">docs/INTEGRATION.html</a>: the technical implementation behind the AI/PDF pipeline</li>
+        <li><a href="ACCESSIBILITY.html">docs/ACCESSIBILITY.html</a>: accessibility status against the team's spec, in detail</li>
+        <li><a href="MODELS.html">docs/MODELS.html</a>: which AI model is used and what alternatives cost</li>
+        <li><a href="KNOWN-ISSUES.html">docs/KNOWN-ISSUES.html</a>: everything currently known to be fragile or unfinished</li>
+        <li><a href="ROADMAP.html">docs/ROADMAP.html</a>: what's built vs planned vs P0-demo-worthy</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p>Prepared for review ahead of the next sync. The underlying code and the four docs linked above are the source of truth if anything here goes out of date. This page is a summary, not a substitute for them.</p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var root = document.documentElement;
+    var stored = null;
+    try { stored = localStorage.getItem('formfill-whats-new-theme'); } catch (e) {}
+    if (stored) { root.setAttribute('data-theme', stored); }
+
+    function isDark() {
+      var attr = root.getAttribute('data-theme');
+      if (attr) { return attr === 'dark'; }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function sync() {
+      var dark = isDark();
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.textContent = dark ? 'Light theme' : 'Dark theme';
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('formfill-whats-new-theme', next); } catch (e) {}
+      sync();
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>

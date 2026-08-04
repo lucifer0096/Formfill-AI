@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FormFill — Accessibility Status (rahul branch)</title>
+<style>
+  :root {
+    --paper:      #F7F7F4;
+    --surface:    #FFFFFF;
+    --sunk:       #EDEEE9;
+    --ink:        #16181C;
+    --ink-soft:   #4C5158;
+    --ink-faint:  #7B8189;
+    --rule:       #DCDDD6;
+    --accent:     #1F4FD8;
+    --accent-bg:  #E7ECFB;
+    --guard:      #8A5A00;
+    --guard-bg:   #F7EEDC;
+    --built:      #2F6B47;
+    --built-bg:   #E2EEE7;
+
+    --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --rail: 4.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:     #0E1116;
+      --surface:   #161A21;
+      --sunk:      #1C212A;
+      --ink:       #E7EAEF;
+      --ink-soft:  #A9B0BA;
+      --ink-faint: #7C848F;
+      --rule:      #2A303A;
+      --accent:    #8FAEFF;
+      --accent-bg: #1A2340;
+      --guard:     #E0AC5B;
+      --guard-bg:  #302512;
+      --built:     #7FC79B;
+      --built-bg:  #172A1F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #0E1116;
+    --surface:   #161A21;
+    --sunk:      #1C212A;
+    --ink:       #E7EAEF;
+    --ink-soft:  #A9B0BA;
+    --ink-faint: #7C848F;
+    --rule:      #2A303A;
+    --accent:    #8FAEFF;
+    --accent-bg: #1A2340;
+    --guard:     #E0AC5B;
+    --guard-bg:  #302512;
+    --built:     #7FC79B;
+    --built-bg:  #172A1F;
+  }
+  :root[data-theme="light"] {
+    --paper:     #F7F7F4;
+    --surface:   #FFFFFF;
+    --sunk:      #EDEEE9;
+    --ink:       #16181C;
+    --ink-soft:  #4C5158;
+    --ink-faint: #7B8189;
+    --rule:      #DCDDD6;
+    --accent:    #1F4FD8;
+    --accent-bg: #E7ECFB;
+    --guard:     #8A5A00;
+    --guard-bg:  #F7EEDC;
+    --built:     #2F6B47;
+    --built-bg:  #E2EEE7;
+  }
+
+  * { box-sizing: border-box; }
+  html { font-size: 125%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-underline-offset: 0.15em; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap {
+    max-width: calc(var(--measure) + var(--rail) + 4rem);
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  /* ---- masthead ---- */
+  .mast {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 4rem 0 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mast h1 {
+    font-family: var(--f-display);
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.4rem;
+    text-wrap: balance;
+  }
+  .mast p {
+    margin: 0;
+    max-width: 34ch;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.9rem;
+  }
+  #themeToggle {
+    font: inherit;
+    font-size: 0.8rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: var(--surface);
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #themeToggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+  /* ---- sections on a numbered rail ---- */
+  section {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    gap: 0 1.5rem;
+    padding: 3.5rem 0 0;
+  }
+  section > .num {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    padding-top: 0.55rem;
+    letter-spacing: 0.08em;
+  }
+  section > .body { min-width: 0; display: flex; flex-direction: column; gap: 1.1rem; }
+  section > .body > * { margin: 0; }
+
+  h2 {
+    font-family: var(--f-display);
+    font-size: 1.85rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  p, li { max-width: var(--measure); }
+  ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.85em;
+    background: var(--sunk);
+    padding: 0.12em 0.35em;
+    border-radius: 3px;
+    overflow-wrap: break-word;
+  }
+
+  .lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 60ch; }
+
+  /* ---- callouts ---- */
+  .note {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 1rem 1.15rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .note.guard { border-left-color: var(--guard); background: var(--guard-bg); }
+  .note.built { border-left-color: var(--built); background: var(--built-bg); }
+  .note b { font-family: var(--f-body); }
+
+  /* ---- table ---- */
+  .scroll { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 34rem;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.8rem 0.6rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 650;
+  }
+  td.mod { font-family: var(--f-mono); font-size: 0.82rem; white-space: nowrap; }
+  td.st { white-space: nowrap; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+  .tag.built  { color: var(--built); background: var(--built-bg); border-color: var(--built); }
+  .tag.todo   { color: var(--ink-soft); background: var(--sunk); border-color: var(--rule); }
+  .tag.later  { color: var(--ink-faint); background: transparent; border-color: var(--rule); }
+  .tag.guard  { color: var(--guard); background: var(--guard-bg); border-color: var(--guard); }
+
+  /* ---- code blocks ---- */
+  pre {
+    font-family: var(--f-mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    margin: 0;
+  }
+  pre .c { color: var(--ink-faint); }
+  pre .k { color: var(--accent); }
+
+  /* ---- keyboard keys ---- */
+  kbd {
+    font-family: var(--f-mono);
+    font-size: 0.78rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 0.1rem 0.45rem;
+    color: var(--ink);
+  }
+  .keys {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .keys > div {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    gap: 0.9rem;
+    align-items: baseline;
+    max-width: var(--measure);
+  }
+  .keys span { color: var(--ink-soft); font-size: 0.92rem; }
+
+  /* ---- walkthrough steps ---- */
+  ol.steps {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    counter-reset: s;
+  }
+  ol.steps li {
+    counter-increment: s;
+    display: grid;
+    grid-template-columns: 1.9rem minmax(0, 1fr);
+    gap: 0.9rem;
+    max-width: var(--measure);
+  }
+  ol.steps li > span,
+  ol.steps li > b {
+    grid-column: 2;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  ol.steps li::before {
+    content: counter(s);
+    grid-column: 1;
+    grid-row: 1 / -1;
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    width: 1.9rem;
+    height: 1.9rem;
+    display: grid;
+    place-items: center;
+    margin-top: 0.15rem;
+  }
+  ol.steps li.done::before {
+    content: "✓";
+    color: var(--built);
+    border-color: var(--built);
+  }
+  ol.steps b { display: block; }
+  ol.steps span { color: var(--ink-soft); font-size: 0.95rem; }
+
+  /* ---- gap cards ---- */
+  .qs { display: flex; flex-direction: column; gap: 0.9rem; }
+  .q {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.9rem 1.05rem;
+    max-width: var(--measure);
+  }
+  .q b { display: block; margin-bottom: 0.2rem; }
+  .q span { font-size: 0.92rem; color: var(--ink-soft); }
+
+  footer {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 46rem) {
+    :root { --rail: 0px; }
+    section { grid-template-columns: 1fr; gap: 0; }
+    section > .num { padding: 0 0 0.6rem; }
+    .keys > div { grid-template-columns: 1fr; gap: 0.2rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <p class="eyebrow">FormFill · rahul branch · accessibility log</p>
+      <h1>What's accessible today, and what's still a gap</h1>
+      <p>A working record of the four session pages, checked line by line against <code>docs/ACCESSIBILITY.md</code> — not a claim of full compliance.</p>
+    </div>
+    <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
+  </header>
+
+  <section>
+    <div class="num">01</div>
+    <div class="body">
+      <h2>Why this page exists</h2>
+      <p class="lede"><code>ACCESSIBILITY.md</code> on <code>main</code> is explicit: for an app whose users are blind, an accessibility defect is a functional defect, not a polish item. This page is the honest answer to "does the code actually do what that spec says" for the four pages built on this branch — <code>/review</code>, <code>/overview</code>, <code>/questions</code>, <code>/confirm</code>.</p>
+      <div class="note">
+        <span><b>How this was checked:</b> by reading the spec section by section and testing each page's markup against it, not by assuming the existing patterns (inherited from Arya's upload page) already covered everything. Several real gaps were found and fixed this way — see §3.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">02</div>
+    <div class="body">
+      <h2>Keyboard: what actually works right now</h2>
+      <p>Everything is reachable by <kbd>Tab</kbd> on every page, per <code>ACCESSIBILITY.md</code> §3's "no exceptions" rule. <code>/questions</code> additionally supports the spec's single-key spoken-mode commands:</p>
+
+      <div class="keys">
+        <div><kbd>N</kbd><span>Next question — same as pressing the Next/Finish button</span></div>
+        <div><kbd>P</kbd><span>Previous question</span></div>
+        <div><kbd>Space</kbd><span>Repeat the current question (moves focus back to it)</span></div>
+        <div><kbd>H</kbd><span>Toggle the plain-language help text</span></div>
+        <div><kbd>S</kbd><span>Skip — only fires when the field is optional</span></div>
+        <div><kbd>L</kbd><span>Read the field's label verbatim, as printed on the source form</span></div>
+        <div><kbd>R</kbd><span>Save the current answer set and jump straight to <code>/confirm</code> for review</span></div>
+      </div>
+
+      <div class="note guard">
+        <span><b>Suspended while typing.</b> §3 calls out "the app ate my typing" as the classic bug here — these single-key commands are disabled the moment focus is inside any <code>&lt;input&gt;</code> or <code>&lt;textarea&gt;</code>, checked directly against the event target rather than a global mode flag. This check is by tag name, not input type, so it also suspends single-key commands while focus is on a checkbox or radio button (e.g. answering a Yes/No question) — overly cautious there since no text is being typed, but consistent and never wrong in the direction that matters.</span>
+      </div>
+
+      <p>On this branch <code>/questions</code> and <code>/confirm</code> are separate routes rather than one page with an internal "reviewing" phase, so <kbd>R</kbd> is implemented as a real navigation (save answers, then <code>router.push("/confirm")</code>) rather than dispatching the engine's own <code>REVIEW</code> event — dispatching that event would just leave the user on <code>/questions</code> in an internal phase no UI on this branch renders. <kbd>L</kbd> dispatches the engine's existing <code>VERBATIM</code> event and shows the resulting announcement on screen (previously only spoken via the sr-only live region). The remaining pages (<code>/review</code>, <code>/overview</code>) still don't have these commands, since neither presents a single field to act on.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">03</div>
+    <div class="body">
+      <h2>Gaps found and fixed this pass</h2>
+      <p>Checked against the spec, not assumed. These were genuinely missing before, despite some of the supporting markup (like <code>tabIndex={-1}</code> on headings) already being in place.</p>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Spec requirement</th><th scope="col">Where</th><th scope="col">Fix</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>§3 — focus moves to the new <code>&lt;h1&gt;</code> on route change, and is announced</td><td class="mod">all 4 pages</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>§3 — focus moves per question, not just once on page load</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>§3 — N / P / Space / H / S single-key commands</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>§3 — single-key commands suspended in text inputs</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>§5 — <code>aria-invalid</code> / <code>aria-required</code> reflect real state</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>§3 — a changing count is announced, not just redrawn</td><td class="mod">/confirm ("heard N of M")</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>§4 — 4.5:1 / 7:1 contrast on non-text UI</td><td class="mod">/review confidence badges</td><td class="st"><span class="tag built">verified, already OK</span></td></tr>
+            <tr><td>§5 — format hints shown/spoken before input, not just after a failed submit</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>§3 — global <kbd>R</kbd> (jump to review) and <kbd>L</kbd> (verbatim label) commands</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>§4 — 44×44px minimum touch target on interactive controls</td><td class="mod">all 4 pages</td><td class="st"><span class="tag built">verified, already OK</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Implementation note for anyone extending these pages: focus handling now lives in one shared hook, <code>src/lib/use-route-focus.ts</code> — attach its ref to a page's <code>&lt;h1 tabIndex={-1}&gt;</code> rather than re-deriving this per page.</p>
+
+      <p>The touch-target check covered every real interactive element: <code>Button</code>/<code>LinkButton</code> share a <code>px-6 py-3</code> base that clears 44px well past the minimum; on <code>/questions</code> the radio/checkbox inputs for boolean and choice/multichoice fields are visually <code>sr-only</code>, but each is wrapped in a full-width <code>&lt;label&gt;</code> with its own <code>px-4 py-3</code> padding, and that label — not the native control — is the actual click target. The only sub-44px element found was <code>ProgressTrail</code>'s 24×24px step-number circles, which are <code>aria-hidden</code> and non-interactive (the step label text next to them isn't a link or button either), so they're decorative and out of scope for this check.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04</div>
+    <div class="body">
+      <h2>Known gaps — not yet built</h2>
+      <p>Named explicitly so they don't get mistaken for "done" by omission.</p>
+      <div class="qs">
+        <div class="q"><b>No <code>sr</code> / <code>spoken</code> mode distinction.</b><span>§1's two-audience problem — a screen-reader user needs the app acoustically silent, a non-screen-reader user needs it to speak aloud — isn't implemented at all on this branch. Everything here relies on the browser's own screen-reader support via correct markup; there's no <code>speechSynthesis</code> integration, no mode detection, and no <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> toggle. That's <code>packages/speech</code>'s job on <code>main</code>, not yet wired into this branch.</span></div>
+        <div class="q"><b>No 400% zoom / reflow testing done.</b><span>§4 and the definition-of-done checklist in §8 call for this on every PR. Not verified on this branch yet.</span></div>
+        <div class="q"><b><code>forced-colors</code> / Windows High Contrast mode untested.</b><span>Also part of §8's per-PR checklist; not verified here.</span></div>
+        <div class="q"><b>No screen-reader testing with a real AT.</b><span>§8 requires NVDA or VoiceOver testing per PR. Everything on this page is markup-level correctness (roles, live regions, focus), not a substitute for that manual pass.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">05</div>
+    <div class="body">
+      <h2>Definition of done, from §8 — scored honestly</h2>
+      <ol class="steps">
+        <li class="done"><b>Full task completable keyboard-only</b><span>Verified by inspection — every control is a real <code>&lt;button&gt;</code>, <code>&lt;input&gt;</code>, or <code>&lt;a&gt;</code>, nothing mouse-only.</span></li>
+        <li><b>axe-core: zero violations</b><span>Not run on this branch yet.</span></li>
+        <li><b>Tested with a real screen reader (NVDA or VoiceOver)</b><span>Not done — see §4.</span></li>
+        <li><b>Announcement transcript reviewed</b><span>N/A in the literal sense — there's no <code>packages/conversation</code> Announcement stream on this branch yet, only ARIA live regions read directly by the browser's AT.</span></li>
+        <li><b>400% zoom, no horizontal scroll</b><span>Not verified.</span></li>
+        <li><b><code>forced-colors: active</code> renders correctly</b><span>Not verified.</span></li>
+        <li class="done"><b>No new <code>speechSynthesis</code> call site outside <code>packages/speech</code></b><span>True by omission — nothing on this branch calls <code>speechSynthesis</code> at all yet.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <p>Reflects the state of the <code>rahul</code> branch through commit <code>ec9e2c4</code> (fixed <code>npm run lint</code>'s <code>react-hooks/set-state-in-effect</code> errors across all 4 pages, and an <code>ol.steps</code> layout bug in this page and <code>docs/INTEGRATION.html</code>). <code>docs/ACCESSIBILITY.md</code> on <code>main</code> remains the normative spec — where anything here is unclear or seems to contradict it, the spec wins.</p>
+    <p>This page follows FormFill's own accessibility spec — 20&nbsp;px base type, light and dark themes, no meaning carried by colour alone — same visual system as <code>docs/OVERVIEW.html</code> and <code>docs/INTEGRATION.html</code>.</p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    var root = document.documentElement;
+    var stored = null;
+    try { stored = localStorage.getItem('formfill-a11y-theme'); } catch (e) {}
+    if (stored) { root.setAttribute('data-theme', stored); }
+
+    function isDark() {
+      var attr = root.getAttribute('data-theme');
+      if (attr) { return attr === 'dark'; }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function sync() {
+      var dark = isDark();
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.textContent = dark ? 'Light theme' : 'Dark theme';
+    }
+    btn.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('formfill-a11y-theme', next); } catch (e) {}
+      sync();
+    });
+    sync();
+  })();
+</script>
+</body>
+</html>
