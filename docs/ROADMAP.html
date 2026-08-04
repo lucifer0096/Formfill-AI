@@ -386,8 +386,8 @@
         </div>
         <div class="scope-card partial">
           <b>Second-pass answer verification</b>
-          <span>A different model reviews filled answers for genuine mistakes before submission (Nigel's reliability check). API route built and callable; not yet wired into a submit flow on either branch's UI.</span>
-          <span class="tag guard">not wired in</span>
+          <span>A different model reviews filled answers for genuine mistakes before submission (Nigel's reliability check) — now called automatically on every download from <code>/confirm</code>. Best-effort, and its result isn't shown anywhere in the UI yet, so a real mistake it catches currently goes unseen by the user.</span>
+          <span class="tag guard">wired in, no UI</span>
         </div>
         <div class="scope-card built">
           <b>Accessibility fundamentals</b>
@@ -407,8 +407,8 @@
       <h2>Working, but with a known limitation</h2>
       <div class="scope-grid">
         <div class="scope-card partial">
-          <b>Model choice isn't final</b>
-          <span><code>CLASSIFICATION_MODEL</code> is still set to Gemma 3 27B in code, but testing has since moved past it: local Ollama testing (<code>docs/MODELS.html</code> §04/§04b) found <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> all genuinely correct, and a follow-up 16-form cloud batch (§04c/§04d) found the free <code>google/gemma-4-26b-a4b-it:free</code> accurate whenever it succeeded (6/16 — the rest were free-tier congestion, not accuracy failures). No model has been swapped into <code>CLASSIFICATION_MODEL</code> yet pending a quieter real-world (non-batch) trial.</span>
+          <b>Model choice tested, but has a known gap</b>
+          <span><code>CLASSIFICATION_MODEL</code> is now <code>google/gemma-4-26b-a4b-it:free</code>, validated across local Ollama cycles and a 16-form OpenRouter batch (<code>docs/MODELS.html</code>) — every success across every test was genuinely accurate. It has one real, repeatable gap: it consistently fails on official NZ government forms specifically (confirmed by retesting those forms individually, ruling out batch congestion as the cause). Root cause still unconfirmed. See <code>docs/KNOWN-ISSUES.html</code>.</span>
         </div>
         <div class="scope-card partial">
           <b>PII redaction doesn't cover this path</b>
@@ -437,7 +437,7 @@
             <tr><th scope="col">Capability</th><th scope="col">Roadmap phase</th><th scope="col">Status</th></tr>
           </thead>
           <tbody>
-            <tr><td>Image / scanned-form support (OCR or vision model)</td><td class="mod">P2</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Non-PDF image support (photos, PNG/JPG scans)</td><td class="mod">P2</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Local autofill profile (name/address/DOB remembered across forms)</td><td class="mod">P1</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Camera capture with audio framing guidance</td><td class="mod">P3</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Print-alignment overlay for flat/paper forms</td><td class="mod">P2 / P3</td><td><span class="tag todo">not started</span></td></tr>
