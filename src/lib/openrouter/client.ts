@@ -7,25 +7,43 @@
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 /**
- * Hardcoded for now to get the pipeline working; revisit static-vs-dynamic
- * model selection later. Free-tier for the hackathon demo — real output
- * tokens are still generated (that's the classification result), but
- * OpenRouter bills both prompt and completion at $0 for this model. Swap to
- * a paid model only if this one's classification quality proves too weak
- * on real forms.
+ * Chosen per the 2026-08-02 meeting with Nigel: forms now go straight to a
+ * multimodal model instead of local text/AcroForm extraction, so the model
+ * needs real vision capability, not just text. Gemma 3 27B via OpenRouter is
+ * his recommendation — cheap (~$0.07/M input, ~$0.30/M output at time of
+ * writing) and multimodal. Test locally against Ollama first (same model
+ * family, e.g. `ollama pull gemma3:27b`) before spending on cloud calls;
+ * swap this constant once real-form testing picks a final model.
  */
-export const CLASSIFICATION_MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
+export const CLASSIFICATION_MODEL = "google/gemma-3-27b-it";
+
+/**
+ * A second, independent model used only to sanity-check a filled-out form
+ * before final output (Nigel's "different model checks the work" reliability
+ * pass) — deliberately not the same model that did the classification, so
+ * the same blind spot can't pass its own check. Cheap text-only models are
+ * fine here since there's no vision need at this stage.
+ */
+export const VERIFICATION_MODEL = "anthropic/claude-haiku-4.5";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | ChatContentPart[];
 }
+
+export type ChatContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } }
+  | { type: "file"; file: { filename: string; file_data: string } };
 
 interface OpenRouterResponse {
   choices: { message: { content: string } }[];
 }
 
-export async function callOpenRouter(messages: ChatMessage[]): Promise<string> {
+export async function callOpenRouter(
+  messages: ChatMessage[],
+  options?: { model?: string },
+): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -40,7 +58,7 @@ export async function callOpenRouter(messages: ChatMessage[]): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: CLASSIFICATION_MODEL,
+      model: options?.model ?? CLASSIFICATION_MODEL,
       messages,
       response_format: { type: "json_object" },
     }),

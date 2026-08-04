@@ -1,7 +1,7 @@
 import type { Field, FieldType, Form, Section } from "@/lib/form-model/types";
 import { formatHintFor } from "@/lib/form-model/format-hint";
-import type { TextBlock } from "@/lib/ingest/text-layer";
-import { callOpenRouter, CLASSIFICATION_MODEL } from "./client";
+import type { TextBlock } from "./text-layer";
+import { callOpenRouter, CLASSIFICATION_MODEL } from "@/lib/openrouter/client";
 import { redactBlocks, rehydrate, RedactionError, type TextBlock as RedactBlock } from "@/lib/redact";
 
 const FIELD_TYPES: FieldType[] = [

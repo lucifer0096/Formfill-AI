@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
 import Notice from "@/components/ui/Notice";
 import ProgressTrail from "@/components/ProgressTrail";
-import { loadIngestResult, PLACEHOLDER_FIELDS, saveIngestResult, type StoredIngest } from "@/lib/session-store";
+import { loadIngestResult, PLACEHOLDER_FIELDS, type StoredIngest } from "@/lib/session-store";
 import { useRouteFocus } from "@/lib/use-route-focus";
-import type { Field, FieldType, Form } from "@/lib/form-model/types";
-import type { TextBlock, TextLayerResult } from "@/lib/ingest/text-layer";
+import type { Field, FieldType } from "@/lib/form-model/types";
 
 type ConfidenceBand = "high" | "medium" | "low";
 
@@ -44,6 +42,13 @@ const CONFIDENCE_LABEL: Record<ConfidenceBand, string> = {
 
 const noopSubscribe = () => () => {};
 
+/**
+ * Classification now happens synchronously during upload (see
+ * src/lib/ingest/index.ts and UploadWorkflow.tsx) — a single multimodal
+ * model call per the 2026-08-02 pivot with Nigel — so this page has nothing
+ * left to fetch on mount. It only has to display what's already in session
+ * storage by the time the user navigates here.
+ */
 export default function ReviewFieldsPage() {
   // sessionStorage is browser-only; useSyncExternalStore reads it safely
   // across server prerendering (getServerSnapshot) and the client, without
@@ -66,10 +71,6 @@ export default function ReviewFieldsPage() {
 
   if (stored?.kind === "form") {
     return <ReviewFields fields={stored.form.sections.flatMap((s) => s.fields)} />;
-  }
-
-  if (stored?.kind === "text-layer") {
-    return <ClassifyAndReview fileName={stored.fileName} result={stored.result} />;
   }
 
   if (stored?.kind === "needs-vision") {
@@ -149,169 +150,6 @@ function ReviewFields({ fields }: { fields: Field[] }) {
   );
 }
 
-/**
- * This PDF has no AcroForm fields, so the text was extracted locally and
- * needs the /api/understand model call to become real questions — see
- * ARCHITECTURE.md §5.1. Calls it once on mount; on success, saves the
- * classified Form so /overview, /questions and /confirm pick it up via
- * loadWorkingForm() same as the AcroForm path. On failure, falls back to
- * showing the raw extracted text rather than hiding what was actually read.
- */
-function ClassifyAndReview({ fileName, result }: { fileName: string; result: TextLayerResult }) {
-  const [status, setStatus] = useState<"loading" | "done" | "error">("loading");
-  const [form, setForm] = useState<Form | null>(null);
-  const [errorMessage, setErrorMessage] = useState("");
-  const loadingRef = useRouteFocus<HTMLParagraphElement>();
-
-  // `result` comes from useSyncExternalStore in the parent, which re-parses
-  // sessionStorage (a fresh object) on every render — it is NOT a stable
-  // reference even when the underlying data hasn't changed. Putting it in
-  // the fetch effect's deps caused an infinite loop: effect runs ->
-  // setStatus -> re-render -> new `result` object -> effect deps look
-  // "changed" -> runs again. A ref captures the latest value for that
-  // effect to read without making it a reactive dependency; only
-  // `fileName` (a real primitive) should restart the classification.
-  // Refs must be written in an effect, not during render itself.
-  const resultRef = useRef(result);
-  useEffect(() => {
-    resultRef.current = result;
-  });
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function run() {
-      try {
-        const { blocks, pageCount } = resultRef.current;
-        const response = await fetch("/api/understand", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ blocks, fileName, pageCount }),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? "Classification failed.");
-        if (cancelled) return;
-        saveIngestResult({ kind: "form", form: data.form });
-        setForm(data.form);
-        setStatus("done");
-      } catch (error) {
-        if (cancelled) return;
-        setErrorMessage(error instanceof Error ? error.message : "Classification failed.");
-        setStatus("error");
-      }
-    }
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [fileName]);
-
-  if (status === "loading") {
-    return (
-      <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-        <ProgressTrail current={2} />
-        <p
-          ref={loadingRef}
-          tabIndex={-1}
-          role="status"
-          aria-live="polite"
-          className="mt-8 text-lg text-muted focus-visible:outline-none"
-        >
-          Reading the questions on <strong>{fileName}</strong>…
-        </p>
-      </main>
-    );
-  }
-
-  if (status === "done" && form) {
-    return <ReviewFields fields={form.sections.flatMap((s) => s.fields)} />;
-  }
-
-  // Classification failed — show the raw extracted text so nothing is hidden,
-  // and let the user retry or go back rather than dead-ending.
-  return <ExtractedText fileName={fileName} result={result} errorMessage={errorMessage} />;
-}
-
-function ExtractedText({
-  fileName,
-  result,
-  errorMessage,
-}: {
-  fileName: string;
-  result: TextLayerResult;
-  errorMessage: string;
-}) {
-  const headingRef = useRouteFocus<HTMLHeadingElement>();
-  const byPage = new Map<number, TextBlock[]>();
-  for (const block of result.blocks) {
-    const list = byPage.get(block.page) ?? [];
-    list.push(block);
-    byPage.set(block.page, list);
-  }
-
-  return (
-    <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-      <ProgressTrail current={2} />
-
-      <section aria-labelledby="page-heading" tabIndex={0} className="mt-8 rounded-lg">
-        <h1
-          id="page-heading"
-          ref={headingRef}
-          tabIndex={-1}
-          className="text-3xl font-bold tracking-tight sm:text-4xl focus-visible:outline-none"
-        >
-          Couldn&apos;t classify this form
-        </h1>
-        <p className="mt-3 text-lg text-muted">
-          We read <strong>{fileName}</strong> locally, but turning it into questions failed:{" "}
-          {errorMessage}. Here is exactly what was read off the page.
-        </p>
-      </section>
-
-      <div className="mt-8">
-        <Button type="button" variant="secondary" onClick={() => window.location.reload()}>
-          Try again
-        </Button>
-      </div>
-
-      <div className="mt-8 space-y-6">
-        {[...byPage.entries()].map(([page, blocks]) => (
-          <Card key={page} as="section" aria-labelledby={`page-${page}-heading`} tabIndex={0}>
-            <h2 id={`page-${page}-heading`} className="text-sm font-semibold text-muted">
-              Page {page} of {result.pageCount}
-            </h2>
-            <p className="mt-3 whitespace-pre-wrap leading-relaxed">{orderedText(blocks)}</p>
-          </Card>
-        ))}
-      </div>
-
-      <div className="mt-8">
-        <LinkButton href="/" variant="secondary">
-          Back to upload
-        </LinkButton>
-      </div>
-    </main>
-  );
-}
-
-/** Reading order: top of page first, then left to right within a line. */
-function orderedText(blocks: TextBlock[]): string {
-  const sorted = [...blocks].sort((a, b) => a.y - b.y || a.x - b.x);
-  const lines: string[][] = [];
-  let currentY: number | null = null;
-
-  for (const block of sorted) {
-    if (currentY === null || Math.abs(block.y - currentY) > block.height * 0.5) {
-      lines.push([]);
-      currentY = block.y;
-    }
-    lines[lines.length - 1]!.push(block.text);
-  }
-
-  return lines.map((line) => line.join(" ")).join("\n");
-}
-
 function NeedsVision({ fileName }: { fileName: string }) {
   const headingRef = useRouteFocus<HTMLHeadingElement>();
   return (
@@ -327,8 +165,8 @@ function NeedsVision({ fileName }: { fileName: string }) {
           Almost there
         </h1>
         <p className="mt-3 text-lg text-muted">
-          <strong>{fileName}</strong> looks like a scanned or image-based form, so we need image
-          understanding to read it. That step isn&apos;t wired up yet.
+          <strong>{fileName}</strong> isn&apos;t a PDF, so we can&apos;t read it yet — only PDF
+          uploads are supported right now.
         </p>
       </section>
       <div className="mt-8">

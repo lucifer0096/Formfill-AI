@@ -303,10 +303,28 @@
 
       <div class="risk high">
         <div class="risk-head">
-          <b>The free AI model can be slow on large forms</b>
+          <b>Personal information in a PDF is no longer redacted before the AI call</b>
           <span class="sev high">High</span>
         </div>
-        <p>On a large real form (30+ questions), turning the extracted text into questions took as long as <strong>75 seconds</strong> using the current free model. Free models share limited capacity across everyone using them at once, so a paid model would very likely be much faster.</p>
+        <p>Since the 2026-08-03 pivot to a single multimodal classification call (see <a href="INTEGRATION.html">INTEGRATION.html</a>), the whole PDF is sent to the model, not just extracted text. Redaction (<code>src/lib/redact</code>) only ever pattern-matched PII in text — it has no way to inspect or redact information rendered inside a PDF's pages before those bytes leave the device. This is a real, deliberate tradeoff agreed with Nigel (most of these forms are public forms already in the cloud, and local extraction was too unreliable to keep building the previous redaction step around), not an oversight — but it should be said out loud at a demo, not left implicit.</p>
+        <div class="fix"><b>Status:</b> disclosed tradeoff, not currently mitigated. If this needs to change later, redaction would have to move to either a pre-send image-level pass or be dropped in favour of per-model provider privacy terms.</div>
+      </div>
+
+      <div class="risk high">
+        <div class="risk-head">
+          <b>The new classification pipeline hasn't been tested against real forms yet</b>
+          <span class="sev high">High</span>
+        </div>
+        <p>The multimodal pipeline (any PDF → one model call → structured fields, with real AcroForm field names mapped back for fill-back where they exist) is built and passes typecheck/lint/build, but hasn't yet been run against real forms to confirm accuracy. Local testing against Ollama, then a real model decision, is the planned next step.</p>
+        <div class="fix"><b>Status:</b> open. Do not treat this pipeline as demo-ready until it's been exercised against at least a few real forms of different kinds (fillable, flat, scanned).</div>
+      </div>
+
+      <div class="risk high">
+        <div class="risk-head">
+          <b>The AI model can be slow on large forms</b>
+          <span class="sev high">High</span>
+        </div>
+        <p>On a large real form (30+ questions), turning extracted text into questions took as long as <strong>75 seconds</strong> under the old pipeline using a free model. Not yet re-measured under the new pipeline, which sends a larger payload (the whole PDF, not just its text) — likely to be at least as slow, possibly slower, until a model is chosen and tested.</p>
         <div class="fix"><b>Mitigation in place:</b> the server is configured to wait up to 60 seconds, the maximum allowed on the current hosting plan, instead of giving up early. <strong>Before any live demo, test the actual form you plan to use against the live site once.</strong> If it's slow, have a smaller backup form ready, or switch to a paid model (see the <a href="MODELS.html">model &amp; pricing doc</a>) for guaranteed speed.</div>
       </div>
 
@@ -356,9 +374,9 @@
         <div class="risk low">
           <div class="risk-head">
             <b>Personal information wasn't being stripped before the AI call</b>
-            <span class="sev low">Fixed</span>
+            <span class="sev low">Fixed, then superseded — see §02</span>
           </div>
-          <p>Text extracted from flat forms was sent to the classification model as-is, with no check for names, emails, national ID numbers, or similar personal details it might contain. Fixed by porting the same detection logic the team's shared codebase already uses, and confirmed by inspecting the exact text sent to the model during testing: real names and email addresses were replaced with placeholders before leaving the server.</p>
+          <p>Text extracted from flat forms was sent to the classification model as-is, with no check for names, emails, national ID numbers, or similar personal details it might contain. Fixed by porting the same detection logic the team's shared codebase already uses, and confirmed by inspecting the exact text sent to the model during testing: real names and email addresses were replaced with placeholders before leaving the server. <strong>This fix no longer applies</strong> — the 2026-08-03 pivot sends the whole PDF to the model instead of extracted text, which the redaction step can't inspect. See the new high-severity entry above.</p>
         </div>
 
         <div class="risk low">

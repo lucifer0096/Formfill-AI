@@ -1,13 +1,17 @@
 /**
  * Holds the original uploaded PDF bytes for the duration of the session, so
- * the AcroForm path can write real answers back into the real fields at
- * Confirm time. sessionStorage can't hold binary data efficiently (string
- * only, ~33% base64 overhead, and a much smaller quota than IndexedDB), so
- * this uses IndexedDB instead — still local-only, still cleared per session,
- * matching PRIVACY.md's "nothing survives past this session" bar.
+ * fillAcroForm can write real answers back into any fields the model
+ * mapped to a real AcroForm field name (Field.anchor.kind === "acroform")
+ * at Confirm time. sessionStorage can't hold binary data efficiently
+ * (string only, ~33% base64 overhead, and a much smaller quota than
+ * IndexedDB), so this uses IndexedDB instead — still local-only, still
+ * cleared per session, matching PRIVACY.md's "nothing survives past this
+ * session" bar.
  *
- * Only used for AcroForm uploads. Flat/text-layer forms have no real fields
- * to write into, so there is nothing for this store to hold for them.
+ * Saved unconditionally on every upload now (see UploadWorkflow.tsx) since
+ * a form classified by the model can have a mix of real and region-anchored
+ * fields — there's no longer a single "AcroForm form" vs "flat form"
+ * distinction at the whole-form level.
  */
 const DB_NAME = "formfill-original-file";
 const STORE_NAME = "file";

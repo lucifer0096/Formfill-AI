@@ -23,12 +23,11 @@ export default function UploadWorkflow() {
     try {
       const result = await ingest(selectedFile);
       if (result.kind === "form") {
-        // Only the AcroForm path needs the original bytes later, to write
-        // real answers into real fields at Confirm time.
+        // The original bytes are still needed at Confirm time to write real
+        // answers into real fields, for forms that have any (anchor.kind
+        // === "acroform" on at least one field).
         await saveOriginalFile(selectedFile);
         saveIngestResult({ kind: "form", form: result.form });
-      } else if (result.kind === "text-layer") {
-        saveIngestResult({ kind: "text-layer", result: result.result, fileName: selectedFile.name });
       } else {
         saveIngestResult({ kind: "needs-vision", fileName: selectedFile.name });
       }

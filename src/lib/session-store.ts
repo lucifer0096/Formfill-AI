@@ -1,5 +1,4 @@
 import type { AnswerSet, Field, Form } from "@/lib/form-model/types";
-import type { TextLayerResult } from "@/lib/ingest/text-layer";
 
 /**
  * Hands data between the session's pages without a network round-trip.
@@ -10,10 +9,7 @@ import type { TextLayerResult } from "@/lib/ingest/text-layer";
 const INGEST_KEY = "formfill:ingest";
 const ANSWERS_KEY = "formfill:answers";
 
-export type StoredIngest =
-  | { kind: "form"; form: Form }
-  | { kind: "text-layer"; result: TextLayerResult; fileName: string }
-  | { kind: "needs-vision"; fileName: string };
+export type StoredIngest = { kind: "form"; form: Form } | { kind: "needs-vision"; fileName: string };
 
 export function saveIngestResult(value: StoredIngest): void {
   sessionStorage.setItem(INGEST_KEY, JSON.stringify(value));

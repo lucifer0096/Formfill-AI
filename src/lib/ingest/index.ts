@@ -1,32 +1,30 @@
 import type { Form } from "@/lib/form-model/types";
-import { extractAcroForm } from "./acroform";
-import { extractTextLayer, type TextLayerResult } from "./text-layer";
+import { listAcroFormFields } from "./acroform-fields";
 
-export type IngestResult =
-  | { kind: "form"; form: Form }
-  | { kind: "text-layer"; result: TextLayerResult }
-  | { kind: "needs-vision" };
+export type IngestResult = { kind: "form"; form: Form } | { kind: "needs-vision" };
 
 /**
- * Decides which extraction path a file needs, per ARCHITECTURE.md §5.1:
- *   1. AcroForm fields present -> build the IR directly, no model call.
- *   2. PDF with a text layer but no form fields -> extract text+geometry,
- *      hand it to /api/understand for classification.
- *   3. Image, or scanned PDF with no extractable text -> needs a vision
- *      model / OCR. Not implemented yet; the caller decides what to do.
+ * Every PDF now goes to the same place: /api/understand, which sends the
+ * whole document to a multimodal model in one call. Per the 2026-08-02
+ * meeting with Nigel, local AcroForm/text-layer detection was too
+ * unreliable across real-world forms to keep as the primary path — see
+ * src/lib/ingest/_archive/README.md. This module now only decides whether
+ * a file is a PDF at all, and (cheaply, locally) whether it has real
+ * fillable fields the model should be told about for fill-back mapping.
  */
 export async function ingest(file: File): Promise<IngestResult> {
   const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  if (!isPdf) return { kind: "needs-vision" };
 
-  if (!isPdf) {
-    return { kind: "needs-vision" };
-  }
+  const acroFields = await listAcroFormFields(file).catch(() => []);
 
-  const form = await extractAcroForm(file);
-  if (form) return { kind: "form", form };
+  const formData = new FormData();
+  formData.set("file", file);
+  formData.set("acroFields", JSON.stringify(acroFields));
 
-  const textLayer = await extractTextLayer(file);
-  if (textLayer.blocks.length > 0) return { kind: "text-layer", result: textLayer };
+  const response = await fetch("/api/understand", { method: "POST", body: formData });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error ?? "Classification failed.");
 
-  return { kind: "needs-vision" };
+  return { kind: "form", form: data.form as Form };
 }
