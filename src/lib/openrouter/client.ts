@@ -4,7 +4,26 @@
  * OpenRouter exposes an OpenAI-compatible chat completions endpoint, so no
  * SDK is needed for a single call shape like this.
  */
+import { Agent, fetch as undiciFetch } from "undici";
+
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+// Node's global fetch is built on undici, whose default Agent has a 300s
+// headersTimeout — the same root cause diagnosed in scripts/model-test-lib.ts
+// for the local Ollama tooling (see that file's comment for the full
+// writeup). A bare "fetch failed" seen retrying residential-tenancy-agreement
+// through scripts/online-test-lib.ts (2026-08-04, §04d retry round) at 76s —
+// under the 300s default — shows a *different* undici-level timeout can
+// still fire unpredictably under real network conditions (e.g. a stalled
+// connection) even when comfortably inside both this app's own timeoutMs
+// and undici's 300s default. Using a dedicated Agent with an explicit,
+// generous headersTimeout/bodyTimeout removes that ambiguity entirely,
+// leaving AbortSignal.timeout as the only intended timeout mechanism.
+const LONG_HEADERS_TIMEOUT_MS = 10 * 60 * 1000; // well above any realistic OpenRouter response time
+const longRunningAgent = new Agent({
+  headersTimeout: LONG_HEADERS_TIMEOUT_MS,
+  bodyTimeout: LONG_HEADERS_TIMEOUT_MS,
+});
 
 /**
  * Chosen per the 2026-08-02 meeting with Nigel: forms now go straight to a
@@ -69,7 +88,7 @@ export async function callOpenRouterWithUsage(
     );
   }
 
-  const response = await fetch(OPENROUTER_URL, {
+  const response = await undiciFetch(OPENROUTER_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -81,6 +100,7 @@ export async function callOpenRouterWithUsage(
       response_format: { type: "json_object" },
       usage: { include: true },
     }),
+    dispatcher: longRunningAgent,
     signal: options?.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined,
   });
 
