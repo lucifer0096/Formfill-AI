@@ -313,7 +313,7 @@
       <h2>What FormFill targets today</h2>
       <p><code>src/lib/openrouter/client.ts</code> currently targets <strong><code>google/gemma-3-27b-it</code></strong> (Gemma 3 27B) via OpenRouter — cheap and multimodal, recommended in a 2026-08-02 review as a starting point.</p>
       <div class="note guard">
-        <span><b>Not finalised.</b> First real test cycle ran 2026-08-04 (see §03b below) — one clean result so far, two candidates that need a retest with more time, three ruled out. Not yet enough to commit to a final choice.</span>
+        <span><b>Not finalised.</b> Two real test cycles ran 2026-08-04 on two different forms (see §04 and §04b below), both against a shrunk 4-model set. <code>gemma4:e4b</code> failed correctness on both forms and is being dropped from rotation. <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> all succeeded on both — the remaining decision is speed vs. marginal accuracy between those three, plus a third form still to come.</span>
       </div>
       <div class="note built">
         <span><b>Local test set, chosen to cover different sizes and architecture families:</b> <code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>gemma4:26b</code>, <code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>llama3.2-vision:11b</code>, and <code>minicpm-v</code> (a document-OCR specialist, worth including since reading a form is closer to OCR than general image captioning). <code>deepseek-r1</code> is kept separately as a candidate for the second-pass answer-verification step (§05), which is text-only and doesn't need vision.</span>
@@ -389,6 +389,107 @@
       </div>
 
       <p><b>Read after this cycle:</b> narrow the next test round to <code>gemma3:4b</code> (confirmed baseline), <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (both unresolved, worth one retest at 60 minutes — the latter is Nigel's own pick). <code>qwen2.5vl:3b</code>, <code>gemma4:e4b</code>, <code>minicpm-v</code>, and <code>llama3.2-vision:11b</code> are deprioritised: the first three failed on correctness rather than just running out of time, and the last has a hard compatibility wall unrelated to timeout or prompting.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04b</div>
+    <div class="body">
+      <h2>Second test cycle — 2026-08-04, ACC claim form</h2>
+      <p>Ran the shrunk 4-model set (<code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>qwen2.5vl:7b</code>, <code>gemma4:26b</code>) against a different real form, <code>acc-form.pdf</code> (a 3-page NZ ACC injury claim: mixed text/date/choice fields, a conditional "previous claim" section, an authorisation/declaration block, and a signature line). Same hardware as §04. Timeout: 60 minutes (raised after the first cycle). All four models finished — no timeouts this time.</p>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Model</th>
+              <th scope="col">Result</th>
+              <th scope="col">Time</th>
+              <th scope="col">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mod">gemma3:4b</td>
+              <td class="st"><span class="tag built">success</span></td>
+              <td class="num">313s</td>
+              <td>Best result of the cycle. Correctly grouped all sections including the declaration, sensible <code>spokenLabel</code>/<code>help</code> text on every field, high confidence throughout, no fabrication.</td>
+            </tr>
+            <tr>
+              <td class="mod">gemma4:e4b</td>
+              <td class="st"><span class="tag todo">failed</span></td>
+              <td class="num">310s</td>
+              <td><b>Fabricated the entire form.</b> Returned a fully-formed but completely unrelated "Membership Enrollment Form" (emergency contact, signature, payment frequency fields) with high confidence scores — not a timeout or a refusal, a confident hallucination. This is the model's second correctness failure in a row on two different forms (see §04's "no PDF received" failure). Recommend dropping it from the rotation.</td>
+            </tr>
+            <tr>
+              <td class="mod">qwen2.5vl:7b</td>
+              <td class="st"><span class="tag built">success</span></td>
+              <td class="num">878s</td>
+              <td>Correct and thorough across all 3 pages, but ~3x slower than <code>gemma3:4b</code> and missing <code>help</code> text on most fields. One field typed <code>"unknown"</code> at confidence 0.5 rather than guessing — arguably better calibration, not a flaw.</td>
+            </tr>
+            <tr>
+              <td class="mod">gemma4:26b</td>
+              <td class="st"><span class="tag built">success</span></td>
+              <td class="num">1183s (~20 min)</td>
+              <td>Nigel's pick. Correct and slightly more thorough section grouping (correctly isolated the conditional "if you already filed a claim" fields), very high confidence (0.95–0.98 across the board). By far the slowest of the four — on CPU-only hardware, ~4x <code>gemma3:4b</code>'s time for a modest accuracy edge.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note guard">
+        <span><b>Read after this cycle:</b> <code>gemma4:e4b</code> is out — two forms, two confident fabrications, worse than a slow-but-correct model or an honest failure. The real decision is now <code>gemma3:4b</code> (fastest, accurate) vs. <code>gemma4:26b</code> (Nigel's pick, marginally higher confidence, ~4x slower) vs. <code>qwen2.5vl:7b</code> (correct but slow, thinner on <code>help</code> text). A third form is planned before committing to a final pick.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">04c</div>
+    <div class="body">
+      <h2>Third test round — trying the same models in the cloud</h2>
+      <p class="lede">Everything above was run on Rahul's own laptop, which has no dedicated graphics card — that's why some of those runs took 15–20 minutes. This round asks a different question: if the same kind of model runs on OpenRouter's servers instead (rented, professional-grade hardware), how much faster does it get, and does it still read forms correctly?</p>
+
+      <div class="note built">
+        <span><b>In plain terms:</b> a "model" here is the AI that looks at an uploaded form and works out what questions it's asking, so the app can read them aloud and let someone answer by voice or text. Two things matter for picking one: <b>does it get the form right</b> (no invented questions, no missed ones), and <b>how fast/cheap is it</b> to run for every person who uses the app. This section tracks both, in something closer to plain English than the technical tables above.</span>
+      </div>
+
+      <p>Test set so far: <code>google/gemma-4-26b-a4b-it</code>, using its <b>free tier</b> (a version of Google's Gemma 4 model that OpenRouter hosts at no cost) — the closest cloud match to Nigel's own recommendation, which was tested locally in §04b. More models and forms are being added to this table as tests continue.</p>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Form tested</th>
+              <th scope="col">Got it right?</th>
+              <th scope="col">How long it took</th>
+              <th scope="col">What it cost</th>
+              <th scope="col">In plain terms</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mod">ACC injury claim form</td>
+              <td class="st"><span class="tag built">yes</span></td>
+              <td class="num">32 seconds</td>
+              <td class="num">$0 (free tier)</td>
+              <td>Correctly found every section of the form (claim details, previous-claim details, the signed declaration) and phrased each one as a clear spoken question. Compare to the same model family locally, which took <b>20 minutes</b> on Rahul's laptop for a similar form — the cloud version is roughly <b>35–40x faster</b>.</td>
+            </tr>
+            <tr>
+              <td class="mod">First Home Partner statutory declaration</td>
+              <td class="st"><span class="tag built">yes</span></td>
+              <td class="num">93 seconds</td>
+              <td class="num">$0 (free tier)</td>
+              <td>This is a genuinely hard form — dense legal paragraphs with multiple conditions bundled into single sentences (e.g. residency status, relationship status, and property ownership all phrased as long legal declarations). The model correctly broke each paragraph down into a clear yes/no question a person could actually answer out loud, without inventing anything or missing a condition. This is the strongest result of any test so far, local or cloud.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note guard">
+        <span><b>About the "$0" cost:</b> OpenRouter's free tier genuinely does not charge — no money has been loaded into the account and nothing has been billed. (The raw API response briefly showed a small non-zero "cost" figure for free-tier calls; this turned out to be a reference number some providers report even on free routes, not a real charge, and the table/tool have since been corrected to only show real costs for paid models.)</span>
+      </div>
+
+      <p><b>Early read:</b> the free cloud version of Nigel's recommended model is matching or beating every local result so far, at zero cost and a fraction of the time. If this holds up across more forms, it's a strong candidate to replace the current production model (<code>google/gemma-3-27b-it</code>, §03) — same family, free instead of paid, dramatically faster since it isn't limited by anyone's laptop hardware.</p>
     </div>
   </section>
 

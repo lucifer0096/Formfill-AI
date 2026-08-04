@@ -40,10 +40,28 @@ interface OpenRouterResponse {
   choices: { message: { content: string } }[];
 }
 
+interface OpenRouterResponseWithUsage extends OpenRouterResponse {
+  usage?: { cost?: number };
+}
+
+export interface CallOpenRouterResult {
+  content: string;
+  costUsd?: number;
+}
+
 export async function callOpenRouter(
   messages: ChatMessage[],
-  options?: { model?: string },
+  options?: { model?: string; timeoutMs?: number },
 ): Promise<string> {
+  const result = await callOpenRouterWithUsage(messages, options);
+  return result.content;
+}
+
+/** Same as callOpenRouter but also surfaces OpenRouter's reported per-call cost, for tooling that needs to track real spend (e.g. scripts/online-test-lib.ts). */
+export async function callOpenRouterWithUsage(
+  messages: ChatMessage[],
+  options?: { model?: string; timeoutMs?: number },
+): Promise<CallOpenRouterResult> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -61,7 +79,9 @@ export async function callOpenRouter(
       model: options?.model ?? CLASSIFICATION_MODEL,
       messages,
       response_format: { type: "json_object" },
+      usage: { include: true },
     }),
+    signal: options?.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined,
   });
 
   if (!response.ok) {
@@ -69,8 +89,8 @@ export async function callOpenRouter(
     throw new Error(`OpenRouter request failed (${response.status}): ${body}`);
   }
 
-  const data = (await response.json()) as OpenRouterResponse;
+  const data = (await response.json()) as OpenRouterResponseWithUsage;
   const content = data.choices[0]?.message.content;
   if (!content) throw new Error("OpenRouter returned no content.");
-  return content;
+  return { content, costUsd: data.usage?.cost };
 }
