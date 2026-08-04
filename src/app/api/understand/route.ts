@@ -46,6 +46,11 @@ export async function POST(request: Request) {
     const form = await classifyPdf(bytes, file.name, acroFields, pageCount);
     return NextResponse.json({ form });
   } catch (error) {
+    // Logged server-side (visible in Vercel's function logs) so failures
+    // like a maxDuration timeout, an OpenRouter rate-limit, or the known
+    // NZ-government-form gap (see docs/KNOWN-ISSUES.html) are diagnosable
+    // without needing the reporter's own browser console.
+    console.error("classifyPdf failed:", error);
     const message = error instanceof Error ? error.message : "Classification failed.";
     return NextResponse.json({ error: message }, { status: 502 });
   }

@@ -32,7 +32,13 @@ export default function UploadWorkflow() {
         saveIngestResult({ kind: "needs-vision", fileName: selectedFile.name });
       }
       router.push("/review");
-    } catch {
+    } catch (error) {
+      // Logged, not shown: the user-facing message stays generic on purpose
+      // (raw model/network errors aren't meaningful to a non-technical
+      // user), but swallowing it entirely made real failures (timeouts,
+      // rate limits, the known NZ-government-form gap) indistinguishable
+      // from a genuinely bad file. See docs/KNOWN-ISSUES.html.
+      console.error("Form classification failed:", error);
       setError("We couldn't read that file. Try a different PDF, or a clearer photo or scan.");
     } finally {
       setIsProcessing(false);
