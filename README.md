@@ -20,13 +20,7 @@ The AI/ingest pipeline (this doc, `docs/INTEGRATION.html`, `src/lib/ingest/`, `s
 | `/help` | How a form session works, keyboard shortcuts, FAQ |
 | `/accessibility` | What's supported today and what's still in progress |
 
-**Pipeline pivot, 2026-08-03** (see [`docs/INTEGRATION.html`](docs/INTEGRATION.html) for the full reasoning): following a meeting with our mentor, local PDF-structure detection (AcroForm field parsing, text-layer extraction) was replaced with a single multimodal model call for every PDF. Local testing against 10-15 real forms found the previous approach unreliable, not just occasionally inaccurate — a solution tuned against one PDF's structure didn't generalise to the next one. The old pipeline is archived, not deleted, at `src/lib/ingest/_archive/`.
-
-Upload a real PDF and the rest of the flow uses what was actually read from it:
-
-- **Every PDF** is sent whole to a multimodal model via OpenRouter (`/api/understand`), which returns the questions it found. A quick local `pdf-lib` pass first lists any real fillable field names (no position/label guessing) and gives them to the model as context, so it can map its own detections back onto real fields for fill-back where they exist — a single form can have a mix of real and non-real fields. Requires `OPENROUTER_API_KEY`, see [Getting started](#getting-started).
-- **PII redaction does not cover this path.** Redaction only ever pattern-matched extracted text; it can't inspect a PDF's rendered content before it's sent. This is a disclosed tradeoff agreed as part of the pivot, not an oversight — see [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html).
-- **Non-PDF files** (photos, other image formats): not supported yet, flagged clearly rather than guessed at.
+Every uploaded PDF is read by an AI model (via OpenRouter) rather than parsed locally — this replaced an earlier local-parsing approach that turned out to be unreliable across real forms. Requires `OPENROUTER_API_KEY`, see [Getting started](#getting-started). Full reasoning and tradeoffs (including a disclosed gap: PII redaction doesn't cover this path) are in [`docs/INTEGRATION.html`](docs/INTEGRATION.html) and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html). Non-PDF files (photos, other image formats) aren't supported yet.
 
 Confirming on `/confirm` downloads a real document: any field the model mapped to a real AcroForm field name gets written into a filled, flattened PDF; everything else appears as a question/answer summary in the same document.
 
@@ -86,7 +80,7 @@ Next.js (App Router, Turbopack) · React · Tailwind CSS · Atkinson Hyperlegibl
 
 The Answer/Confirm flow runs on a pure conversation-engine reducer in `src/lib/conversation/` (hand-copied from the original `packages/conversation`, `form-model`, and `validate` design during development on `rahul`, not imported as workspace packages) — real skip-logic, locale-aware validation, and a two-step review gate instead of a simpler independent implementation.
 
-Classification currently targets Gemma 3 27B via OpenRouter, our mentor's recommendation for a cheap multimodal model — not yet finalised. Two local test cycles ran against Ollama on two real forms (`gemma4:e4b` dropped after fabricating answers on both; `gemma3:4b`, `qwen2.5vl:7b`, and `gemma4:26b` all passed). A follow-up cloud round tested free OpenRouter models across 16 real forms, 48 attempts total: only `google/gemma-4-26b-a4b-it:free` produced usable results (6/16, all accurate when it succeeded — the other 10 failures were free-tier congestion under sustained batch load, not accuracy problems), while two other free candidates (`gemma-4-31b-it:free`, Nvidia's Nemotron) never completed a single run due to rate-limiting/timeouts, so neither is ruled out on quality — they simply haven't been tested fairly yet. See [`docs/MODELS.html`](docs/MODELS.html) §04–§04d for the full results and pricing comparison, and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) for the current known risks (redaction gap, untested pipeline, latency).
+Model choice isn't finalised yet — `google/gemma-4-26b-a4b-it:free` (via OpenRouter) is the current best-tested candidate, though it has a known gap on NZ government forms specifically. See [`docs/MODELS.html`](docs/MODELS.html) for the full testing history and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) for current known risks.
 
 A second, independent model call can review filled answers for real mistakes before submission (`src/lib/openrouter/verify-answers.ts`, `/api/verify`) — built and callable, not yet wired into the submit flow.
 
