@@ -58,6 +58,22 @@ npm run build   # production build
 npm run lint    # eslint
 ```
 
+## Testing local models before picking one
+
+Classification model choice isn't finalised yet — `scripts/` has two standalone tools (not part of the app, never deployed) for comparing local Ollama vision models against real forms before committing to one for production. Both send the exact same system prompt used in `src/lib/openrouter/classify-pdf.ts`, and both talk only to your local Ollama daemon (`http://localhost:11434`) — no OpenRouter, no paid API, nothing leaves your machine.
+
+```bash
+# Browser UI: upload a PDF, pick models, watch results stream in side by side
+npm run test:ui
+# then open http://localhost:3100
+
+# Or from the command line, results saved to scripts/results/<form-name>/
+npm run test:local-models -- path/to/form.pdf
+npm run test:local-models -- path/to/form.pdf --models=gemma4:26b,qwen2.5vl:7b
+```
+
+Requires [Ollama](https://ollama.com) running locally with the models you want to test already pulled — see [`docs/MODELS.html`](docs/MODELS.html) §03 for the current test set and reasoning.
+
 ## Stack
 
 Next.js (App Router, Turbopack) · React · Tailwind CSS · Atkinson Hyperlegible font for readability · `pdf-lib` + `pdfjs-dist` for client-side PDF parsing · OpenRouter for form classification.
