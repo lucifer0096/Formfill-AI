@@ -95,14 +95,17 @@ const PAGE_HTML = `<!doctype html>
   const runBtn = document.getElementById('run');
   const grid = document.getElementById('grid');
 
-  // All 8 pulled models are listed and selectable — this machine is
-  // CPU-only, so only the smallest model is pre-checked by default (avoids
-  // an accidental multi-model run); check the rest deliberately when
-  // you're ready to spend the time on a heavier one.
+  // All pulled models are listed and pre-checked — one click runs the
+  // whole batch, same as before. Safety no longer depends on leaving
+  // models unchecked: runModel() on the server now waits (polls
+  // \`ollama ps\`) until each model is confirmed unloaded before the next
+  // one starts, so a full-batch run can't stack multiple models in memory
+  // at once the way the earlier crash did. Uncheck individual models here
+  // if you want a shorter run, but nothing is held back by default.
   ALL_MODELS.forEach((m) => {
     const label = document.createElement('label');
     const cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.value = m; cb.checked = SAFE_DEFAULT_MODELS.includes(m);
+    cb.type = 'checkbox'; cb.value = m; cb.checked = true;
     label.appendChild(cb);
     label.appendChild(document.createTextNode(m));
     modelsDiv.appendChild(label);
@@ -228,10 +231,12 @@ const server = createServer(async (req, res) => {
       const modelList = models.length > 0 ? models : SAFE_DEFAULT_MODELS;
 
       // Same convention as scripts/test-local-models.ts, so CLI and UI
-      // results land in the same place and can be browsed together.
+      // results land in the same folder per form and can be browsed
+      // together — re-running a form overwrites that form's previous
+      // per-model files rather than creating a new timestamped folder
+      // each time.
       const formName = (fileName ? fileName.replace(extname(fileName), "") : "upload") || "upload";
-      const runStamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const outDir = join("scripts", "results", `${formName}_${runStamp}`);
+      const outDir = join("scripts", "results", formName);
       await mkdir(outDir, { recursive: true });
 
       for (const model of modelList) {

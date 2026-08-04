@@ -24,15 +24,17 @@ export const ALL_MODELS = [
   "gemma4:26b",           // ~26B params, by far the slowest/heaviest on this hardware
 ];
 
-// Running several models here, even sequentially, has caused real system
-// slowdowns (orphaned llama-server processes piling up after an
-// interrupted run — see runModel's unloadModel calls below for the actual
-// fix). As a second layer of safety on top of that, only the single
-// smallest model is pre-checked/run by default — the rest are still fully
-// available (in ALL_MODELS, and as UI checkboxes), just not auto-selected,
-// so a run can't accidentally include more than one model, let alone the
-// heaviest ones, unless chosen deliberately.
-export const SAFE_DEFAULT_MODELS = ["gemma3:4b"];
+// Running several models here, even sequentially, previously caused real
+// system slowdowns — not because of batching itself, but because the
+// unload between models was fire-and-forget (requested, not confirmed),
+// so a slow/failed unload let the next model start on top of the last
+// one's still-resident memory. runModel()'s cleanup now waits (polls
+// `ollama ps`) until each model is actually confirmed unloaded before
+// returning — see unloadModelAndWait below — which is what makes running
+// the full ALL_MODELS batch in one go safe again. Kept as a separate name
+// from ALL_MODELS in case a narrower "quick smoke test" default is wanted
+// later; currently just the same full list.
+export const SAFE_DEFAULT_MODELS = ALL_MODELS;
 
 // Back-compat name — CLI's `models` arg (no --models= override) uses this.
 export const DEFAULT_MODELS = SAFE_DEFAULT_MODELS;
