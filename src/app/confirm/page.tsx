@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
@@ -61,6 +62,7 @@ function readBootstrap(): Bootstrapped {
 }
 
 export default function ConfirmPage() {
+  const router = useRouter();
   const bootstrapped = useSyncExternalStore<Bootstrapped | null>(
     noopSubscribe,
     readBootstrap,
@@ -92,9 +94,32 @@ export default function ConfirmPage() {
   const isAcroForm = fields.some((f) => f.anchor.kind === "acroform");
   const allHeard = fields.length > 0 && fields.every((f) => engine.reviewHeard.has(f.id));
 
-  function dispatch(event: Parameters<typeof step>[1]) {
+  // The engine only ever marks an answer "heard" via reviewLine(), which
+  // runs when NEXT/PREV move reviewIndex while phase === "reviewing" (see
+  // machine.ts) — GOTO (used elsewhere for jumping the asking-phase cursor)
+  // never touches reviewHeard at all. Clicking a specific field's "Read
+  // back" button needs to land reviewIndex on THAT field, not just move it
+  // by one, so this walks NEXT/PREV the right number of steps from
+  // wherever review currently is — same events the keyboard N/P shortcuts
+  // already use during review, just dispatched in a batch.
+  function readBackField(fieldId: string) {
     if (!engine) return;
-    setOverride(step(engine, event));
+    const targetIndex = fields.findIndex((f) => f.id === fieldId);
+    if (targetIndex === -1) return;
+    // advance()'s NEXT/PREV only move reviewIndex while phase is already
+    // "reviewing" — REVIEW re-enters review mode from the top (reviewIndex
+    // 0) if it isn't already, so the walk below always starts from a known
+    // point regardless of what the engine was doing before this click.
+    let current = engine.phase === "reviewing" ? engine : step(engine, { type: "REVIEW" }).state;
+    const startIndex = current.phase === "reviewing" ? current.reviewIndex : 0;
+    const delta = targetIndex - startIndex;
+    const step_ = delta > 0 ? 1 : -1;
+    let result: ReturnType<typeof step> = { state: current, announcements: [] };
+    for (let i = 0; i < Math.abs(delta); i += 1) {
+      result = step(current, { type: step_ > 0 ? "NEXT" : "PREV" });
+      current = result.state;
+    }
+    setOverride(result);
   }
 
   async function handleFinish() {
@@ -105,6 +130,18 @@ export default function ConfirmPage() {
     // once we know we're actually complete.
     const result = step(engine, { type: "CONFIRM" });
     setOverride(result);
+
+    // machine.ts's confirm() jumps its own cursor to the first unanswered
+    // required field (phase becomes "asking") rather than completing, but
+    // that's in-memory engine state only — nothing here previously acted on
+    // it, so the user stayed on /confirm with no visible change at all.
+    // Navigating to /questions with that field id (picked up in that page's
+    // readBootstrap via ?field=<id>) is what actually takes them there.
+    if (result.state.phase === "asking" && result.state.cursor) {
+      saveAnswers(result.state.answers);
+      router.push(`/questions?field=${encodeURIComponent(result.state.cursor)}`);
+      return;
+    }
 
     if (result.state.phase !== "complete") return;
 
@@ -169,7 +206,8 @@ export default function ConfirmPage() {
         <ul className="mt-4 divide-y divide-muted/20">
           {fields.map((field) => {
             const answer = engine.answers[field.id];
-            const value = answer ? speakValue(field, answer.value, engine.locale) : "Not answered";
+            const isAnswered = answer && answer.state !== "skipped";
+            const value = isAnswered ? speakValue(field, answer.value, engine.locale) : "Not answered";
             const isHeard = engine.reviewHeard.has(field.id);
             return (
               <li
@@ -183,10 +221,14 @@ export default function ConfirmPage() {
                 <Button
                   type="button"
                   variant="secondary"
-                  aria-pressed={isHeard}
-                  onClick={() => dispatch({ type: "GOTO", fieldId: field.id })}
+                  aria-pressed={isAnswered ? isHeard : undefined}
+                  onClick={() =>
+                    isAnswered
+                      ? readBackField(field.id)
+                      : router.push(`/questions?field=${encodeURIComponent(field.id)}`)
+                  }
                 >
-                  {isHeard ? "Heard ✓" : "Read back"}
+                  {isAnswered ? (isHeard ? "Heard ✓" : "Read back") : "Answer this"}
                 </Button>
               </li>
             );

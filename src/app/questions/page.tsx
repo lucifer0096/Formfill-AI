@@ -54,17 +54,38 @@ interface Bootstrapped {
 // server AND the client's first paint to both return null, and only a
 // later commit (after hydration settles) re-reads the real client value.
 // Cache keyed by identity so repeated calls during one commit are stable.
-let bootstrapCache: { form: unknown; answers: unknown; value: Bootstrapped } | null = null;
+//
+// jumpTarget is read straight from location.search here rather than via
+// useSearchParams + a useEffect dispatch — the URL is exactly the kind of
+// external, synchronous-to-read state useSyncExternalStore's snapshot is
+// for (same category as sessionStorage, already read below), and folding
+// it into bootstrap avoids the react-hooks/set-state-in-effect problem a
+// separate "dispatch GOTO after mount" effect would have (calling
+// dispatch(), which itself calls setState, synchronously inside an effect).
+let bootstrapCache: { form: unknown; answers: unknown; jumpTarget: string | null; value: Bootstrapped } | null = null;
 
 function readBootstrap(): Bootstrapped {
   const { form } = loadWorkingForm();
   const savedAnswers = loadAnswers();
-  if (bootstrapCache && bootstrapCache.form === form && bootstrapCache.answers === savedAnswers) {
+  const jumpTarget = new URLSearchParams(window.location.search).get("field");
+  if (
+    bootstrapCache &&
+    bootstrapCache.form === form &&
+    bootstrapCache.answers === savedAnswers &&
+    bootstrapCache.jumpTarget === jumpTarget
+  ) {
     return bootstrapCache.value;
   }
   const state: ConversationState = { ...initialState(form), answers: savedAnswers };
-  const value = step(state, { type: "START" });
-  bootstrapCache = { form, answers: savedAnswers, value };
+  const started = step(state, { type: "START" });
+  const value =
+    jumpTarget && fieldById(started.state.form, jumpTarget)
+      ? (() => {
+          const jumped = step(started.state, { type: "GOTO", fieldId: jumpTarget });
+          return { state: jumped.state, announcements: [...started.announcements, ...jumped.announcements] };
+        })()
+      : started;
+  bootstrapCache = { form, answers: savedAnswers, jumpTarget, value };
   return value;
 }
 
@@ -292,7 +313,22 @@ export default function QuestionsPage() {
             submitAnswer();
           }}
         >
-          {field.type === "boolean" ? (
+          {field.type === "signature" ? (
+            // validate() always rejects typed input for signature fields —
+            // "never accepted digitally" is intentional (src/lib/validate),
+            // flagged instead at review for a real handwritten signature.
+            // A plain text box here was a dead end: Next always failed
+            // validation, and Skip was hidden whenever the field was
+            // required, so a required signature field had no way forward
+            // at all. Skip is the actual intended path for every signature
+            // field, so it's offered directly here regardless of required.
+            <div className="rounded-md border-2 border-muted/40 px-4 py-3 text-base text-muted">
+              <p>
+                This form needs a real, handwritten signature — it can&apos;t be typed here. You&apos;ll
+                sign the printed or downloaded copy by hand.
+              </p>
+            </div>
+          ) : field.type === "boolean" ? (
             <div
               role="radiogroup"
               aria-labelledby="question-heading"
@@ -386,9 +422,19 @@ export default function QuestionsPage() {
           )}
 
           <div className="mt-6 flex flex-wrap gap-4">
-            <Button type="submit" variant="primary">
-              Next
-            </Button>
+            {field.type === "signature" ? (
+              // No typed value is ever valid here (see the comment above) —
+              // Skip is the real "Next" for this field type, so it's the
+              // primary action rather than a secondary one hidden behind
+              // `required`.
+              <Button type="button" variant="primary" onClick={() => dispatch({ type: "SKIP" })}>
+                I&apos;ll sign this by hand
+              </Button>
+            ) : (
+              <Button type="submit" variant="primary">
+                Next
+              </Button>
+            )}
             <Button type="button" variant="secondary" onClick={goToPrevious}>
               Previous
             </Button>
@@ -402,7 +448,7 @@ export default function QuestionsPage() {
             >
               {showHelp ? "Hide help" : "Help"}
             </Button>
-            {!field.required && (
+            {!field.required && field.type !== "signature" && (
               <Button type="button" variant="secondary" onClick={() => dispatch({ type: "SKIP" })}>
                 Skip
               </Button>
