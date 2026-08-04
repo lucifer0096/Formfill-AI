@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:local-models": "tsx scripts/test-local-models.ts",
-    "test:ui": "tsx scripts/test-ui-server.ts"
+    "test:ui": "tsx scripts/test-ui-server.ts",
+    "test:online": "tsx scripts/online-test-server.ts"
   },
   "dependencies": {
     "next": "16.2.12",
@@ -23,6 +24,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",

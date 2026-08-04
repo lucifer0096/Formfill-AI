@@ -52,5 +52,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local model test outputs — raw comparison artifacts, not committed
+# local and online model test outputs — raw comparison artifacts, not committed
 /scripts/results/
+/scripts/online-model-results/

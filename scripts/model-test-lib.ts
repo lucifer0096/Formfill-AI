@@ -8,21 +8,33 @@ import { Agent, fetch as undiciFetch } from "undici";
 
 export const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
 
-// Every locally-pulled model worth comparing — see docs/MODELS.html §03
-// for the reasoning behind this set. Ordered smallest/fastest first: this
-// machine has no usable GPU (Intel UHD, ~1GB VRAM), so every model runs on
-// a 4C/8T mobile CPU (i7-10610U) and parameter count is the dominant
-// factor in response time. All 8 are listed here so the UI/CLI can offer
-// every model (e.g. for a group demo), but see SAFE_DEFAULT_MODELS below
-// for which ones are pre-selected by default.
+// Shrunk after the 2026-08-04 test cycle (see docs/MODELS.html §04 for the
+// full results table) — this is no longer "every model worth comparing",
+// it's the models that earned a further look on the next real form:
+//   - gemma3:4b: the only confirmed-correct result (628s, clean structure).
+//   - gemma4:e4b: same family as the one confirmed win, worth a retest —
+//     previously failed with a wrong "no PDF received" response rather
+//     than a timeout, so a single earlier run isn't enough to rule it out.
+//   - qwen2.5vl:7b, gemma4:26b: timed out at the 20-minute cap used for
+//     that cycle, but `ollama ps` confirmed both stayed genuinely active
+//     the whole time, not stuck — unresolved, not ruled out, and worth a
+//     retest now that REQUEST_TIMEOUT_MS is 60 minutes. gemma4:26b is also
+//     the mentor's own recommendation.
+// Dropped, not deleted from history: qwen2.5vl:3b and minicpm-v both
+// finished but produced wrong or schema-breaking output — real
+// correctness failures, not something a longer timeout fixes.
+// llama3.2-vision:11b hit a hard Ollama build incompatibility (unsupported
+// 'mllama' architecture) unrelated to timeout or prompting. Restore any of
+// these individually via --models= (CLI) or by typing the name into the
+// UI if a reason comes up to revisit one specifically.
 export const ALL_MODELS = [
-  "gemma3:4b",           // ~4.3B params, smallest/fastest
-  "qwen2.5vl:3b",         // ~3B params
-  "gemma4:e4b",           // "effective 4B" — small/fast by design
-  "qwen2.5vl:7b",         // ~7B params
-  "minicpm-v",            // ~7.6B params
-  "llama3.2-vision:11b",  // ~11B params
-  "gemma4:26b",           // ~26B params, by far the slowest/heaviest on this hardware
+  "gemma3:4b",     // ~4.3B params, confirmed working — best result so far
+  "gemma4:e4b",     // ~8B params, worth a retest: previously failed with a
+                     // "no PDF received" response rather than a timeout,
+                     // so a longer timeout won't fix it if reproducible,
+                     // but a single run isn't enough to rule it out either
+  "qwen2.5vl:7b",   // ~7B params, unresolved — retest at 60 min
+  "gemma4:26b",     // ~26B params, unresolved — retest at 60 min, mentor's pick
 ];
 
 // Running several models here, even sequentially, previously caused real

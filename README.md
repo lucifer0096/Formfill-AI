@@ -62,21 +62,23 @@ npm run build   # production build
 npm run lint    # eslint
 ```
 
-## Testing local models before picking one
+## Testing models before picking one
 
-Classification model choice isn't finalised yet — `scripts/` has two standalone tools (not part of the app, never deployed) for comparing local Ollama vision models against real forms before committing to one for production. Both send the exact same system prompt used in `src/lib/openrouter/classify-pdf.ts`, and both talk only to your local Ollama daemon (`http://localhost:11434`) — no OpenRouter, no paid API, nothing leaves your machine.
+Classification model choice isn't finalised yet — `scripts/` has three standalone tools (not part of the app, never deployed) for comparing vision models against real forms before committing to one for production. All three send the exact same system prompt used in `src/lib/openrouter/classify-pdf.ts`.
 
 ```bash
-# Browser UI: upload a PDF, pick models, watch results stream in side by side
+# Local (Ollama) — fully offline, no cost, but CPU-only inference is slow (minutes/form)
 npm run test:ui
 # then open http://localhost:3100
-
-# Or from the command line, results saved to scripts/results/<form-name>/
-npm run test:local-models -- path/to/form.pdf
+npm run test:local-models -- path/to/form.pdf   # CLI, results saved to scripts/results/<form-name>/
 npm run test:local-models -- path/to/form.pdf --models=gemma4:26b,qwen2.5vl:7b
+
+# Online (OpenRouter, free-tier models only) — fast, no cost, but shared free-tier capacity
+npm run test:online
+# then open http://localhost:3200, upload one or more PDFs at once
 ```
 
-Requires [Ollama](https://ollama.com) running locally with the models you want to test already pulled — see [`docs/MODELS.html`](docs/MODELS.html) §03 for the current test set and reasoning.
+Local requires [Ollama](https://ollama.com) running with the models you want to test already pulled. Online requires `OPENROUTER_API_KEY` in `.env.local`, but only calls `:free`-suffixed models — no paid model is available in this tool, so a run can never spend money. See [`docs/MODELS.html`](docs/MODELS.html) §04/§04b (local) and §04c/§04d (online) for the current test set, results, and reasoning.
 
 ## Stack
 
@@ -84,7 +86,7 @@ Next.js (App Router, Turbopack) · React · Tailwind CSS · Atkinson Hyperlegibl
 
 The Answer/Confirm flow runs on a pure conversation-engine reducer in `src/lib/conversation/` (hand-copied from the original `packages/conversation`, `form-model`, and `validate` design during development on `rahul`, not imported as workspace packages) — real skip-logic, locale-aware validation, and a two-step review gate instead of a simpler independent implementation.
 
-Classification currently targets Gemma 3 27B via OpenRouter, our mentor's recommendation for a cheap multimodal model — not yet finalised. Local testing against Ollama (`ollama pull gemma3:27b`) is the planned next step before committing to a model for the demo, to avoid burning cloud spend during prompt-tuning. See [`docs/MODELS.html`](docs/MODELS.html) for the reasoning and pricing comparison, and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) for the current known risks (redaction gap, untested pipeline, latency).
+Classification currently targets Gemma 3 27B via OpenRouter, our mentor's recommendation for a cheap multimodal model — not yet finalised. Two local test cycles ran against Ollama on two real forms (`gemma4:e4b` dropped after fabricating answers on both; `gemma3:4b`, `qwen2.5vl:7b`, and `gemma4:26b` all passed). A follow-up cloud round tested free OpenRouter models across 16 real forms, 48 attempts total: only `google/gemma-4-26b-a4b-it:free` produced usable results (6/16, all accurate when it succeeded — the other 10 failures were free-tier congestion under sustained batch load, not accuracy problems), while two other free candidates (`gemma-4-31b-it:free`, Nvidia's Nemotron) never completed a single run due to rate-limiting/timeouts, so neither is ruled out on quality — they simply haven't been tested fairly yet. See [`docs/MODELS.html`](docs/MODELS.html) §04–§04d for the full results and pricing comparison, and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) for the current known risks (redaction gap, untested pipeline, latency).
 
 A second, independent model call can review filled answers for real mistakes before submission (`src/lib/openrouter/verify-answers.ts`, `/api/verify`) — built and callable, not yet wired into the submit flow.
 

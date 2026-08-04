@@ -408,7 +408,7 @@
       <div class="scope-grid">
         <div class="scope-card partial">
           <b>Model choice isn't final</b>
-          <span><code>CLASSIFICATION_MODEL</code> is set to Gemma 3 27B per Nigel's recommendation, but hasn't been validated against real forms yet — local testing against Ollama is the planned next step before committing to it for a demo.</span>
+          <span><code>CLASSIFICATION_MODEL</code> is still set to Gemma 3 27B in code, but testing has since moved past it: local Ollama testing (<code>docs/MODELS.html</code> §04/§04b) found <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> all genuinely correct, and a follow-up 16-form cloud batch (§04c/§04d) found the free <code>google/gemma-4-26b-a4b-it:free</code> accurate whenever it succeeded (6/16 — the rest were free-tier congestion, not accuracy failures). No model has been swapped into <code>CLASSIFICATION_MODEL</code> yet pending a quieter real-world (non-batch) trial.</span>
         </div>
         <div class="scope-card partial">
           <b>PII redaction doesn't cover this path</b>
