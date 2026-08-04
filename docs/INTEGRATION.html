@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FormFill — AI Integration (rahul branch)</title>
+<title>FormFill — AI Integration</title>
 <style>
   :root {
     --paper:      #F7F7F4;
@@ -286,6 +286,13 @@
   }
   pre .c { color: var(--ink-faint); }
   pre .k { color: var(--accent); }
+  pre.mermaid {
+    font-family: var(--f-body);
+    background: transparent;
+    border: none;
+    padding: 0.5rem 0;
+    text-align: center;
+  }
 
   /* ---- walkthrough steps ---- */
   ol.steps {
@@ -422,6 +429,23 @@
       </div>
 
       <p>Model choice: real testing (local Ollama cycles and an OpenRouter cloud batch, both across several real forms) replaced Nigel's starting suggestion, Gemma 3 27B — <code>CLASSIFICATION_MODEL</code> is now <code>google/gemma-4-26b-a4b-it:free</code>, the only model that produced consistently correct results. It has a known gap on official NZ government forms specifically. See <code>docs/MODELS.html</code> for the full testing history and current pricing comparison.</p>
+
+      <p>Same pipeline, as a flowchart — including the branch point the stage list above doesn't show (whether the PDF has real fillable fields changes what gets written back at the end, not what gets sent to the model):</p>
+
+      <div class="scroll">
+        <pre class="mermaid">
+flowchart TD
+    A["Upload a PDF"] --> B["Local, free: list any real\nAcroForm field names\n(acroform-fields.ts)"]
+    B --> C["Whole PDF + field-name list\nsent to CLASSIFICATION_MODEL\nin one call (/api/understand)"]
+    C --> D{"Model matched\na question to a\nreal field name?"}
+    D -- "yes" --> E["Written into that real\nPDF field on Confirm\n(fill-acroform.ts)"]
+    D -- "no" --> F["Listed in the summary\nPDF instead\n(summary-pdf.ts)"]
+    E --> G["Confirm: review gate,\nevery answer heard"]
+    F --> G
+    G --> H["VERIFICATION_MODEL checks\nthe finished answers\n(/api/verify, best-effort)"]
+    H --> I["Download"]
+        </pre>
+      </div>
     </div>
   </section>
 
@@ -559,9 +583,23 @@ Field {
       root.setAttribute('data-theme', next);
       try { localStorage.setItem('formfill-integration-theme', next); } catch (e) {}
       sync();
+      if (window.mermaid) {
+        window.mermaid.initialize({ startOnLoad: false, theme: isDark() ? 'dark' : 'default' });
+        window.mermaid.run();
+      }
     });
     sync();
   })();
+</script>
+<script type="module">
+  // Loaded from a CDN — needs internet access to render. Falls back to
+  // plain text (the raw flowchart syntax) if opened fully offline, rather
+  // than failing silently or breaking the rest of the page.
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  window.mermaid = mermaid;
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark'
+    || (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'default' });
 </script>
 </body>
 </html>
