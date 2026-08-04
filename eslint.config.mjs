@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // packages/* is main's original, never-completed npm-workspace
+    // scaffold (from the initial commit, before the rahul merge) — kept
+    // on disk for reference, not wired to the real app in src/, and not
+    // its own linted/typed project.
+    "packages/**",
+    "vitest.config.ts",
   ]),
 ]);
 
