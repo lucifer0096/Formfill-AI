@@ -37,12 +37,11 @@ If nothing has been uploaded this session (e.g. a page is opened directly), the 
 | [`docs/WORKFLOW.html`](docs/WORKFLOW.html) | Non-technical | What a person experiences, page by page |
 | [`docs/MODELS.html`](docs/MODELS.html) | Non-technical | AI model choice and live OpenRouter pricing |
 | [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) | Non-technical | Known risks and limitations, tested not guessed |
-| [`docs/WHATS-NEW.html`](docs/WHATS-NEW.html) | Non-technical | Summary of what's new since the `Arya` branch point, for review |
 | [`docs/ROADMAP.html`](docs/ROADMAP.html) | Non-technical | What's built vs planned vs P0-demo-worthy, checked against `main`'s roadmap |
-| [`docs/PRE-MEETING-CHECKLIST.html`](docs/PRE-MEETING-CHECKLIST.html) | Non-technical | What to build, verify, or decide before the next Nigel meeting |
-| [`docs/QUESTIONS-FOR-NIGEL.html`](docs/QUESTIONS-FOR-NIGEL.html) | Non-technical | Specific questions grounded in what's actually implemented, for his feedback |
 | [`docs/INTEGRATION.html`](docs/INTEGRATION.html) | Technical | The AI/PDF pipeline implementation, file by file |
 | [`docs/ACCESSIBILITY.html`](docs/ACCESSIBILITY.html) | Technical | Accessibility status against `main`'s normative spec, section by section |
+
+Meeting-scoped and point-in-time docs (pre-meeting checklist, questions drafted for a specific review, an old changelog snapshot) are archived at [`docs/_archive/`](docs/_archive/README.md), not deleted — see that folder's README for what's there and why.
 
 ## Getting started
 
