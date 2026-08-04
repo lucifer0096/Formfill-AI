@@ -287,9 +287,9 @@
     <div class="num">01</div>
     <div class="body">
       <h2>Where AI actually gets used</h2>
-      <p class="lede">FormFill only calls an AI model for one specific job: turning a scanned or "flat" form (one without real digital fields) into a list of plain questions. Most of the app, including reading real PDF form fields, moving between questions, and saving your answers, needs no AI at all.</p>
-      <div class="note">
-        <span><b>Why this matters for cost:</b> AI usage is small and occasional, not constant. It happens once per uploaded form (only the ones without built-in fields), not on every click or every page.</span>
+      <p class="lede">Every uploaded PDF is read by a multimodal AI model, which turns it into a list of plain questions and, where the form has real fillable fields, maps its own detections back onto them. Most of the rest of the app — moving between questions, saving your answers, producing the final document — needs no AI at all.</p>
+      <div class="note guard">
+        <span><b>Pivot, 2026-08-03:</b> this used to be two paths — real PDF fields were read locally with no AI involved, and only "flat" forms without fields went to a model. Local field-detection turned out to be unreliable across real-world PDFs (tested against 10-15 real forms), so every PDF now goes through the same model call. See <a href="INTEGRATION.html">the integration doc</a> for the full reasoning. This means AI usage is no longer occasional — it happens on every upload, not just flat ones.</span>
       </div>
     </div>
   </section>
@@ -310,13 +310,13 @@
   <section>
     <div class="num">03</div>
     <div class="body">
-      <h2>What FormFill uses today</h2>
-      <p>The project currently calls <strong><code>nvidia/nemotron-3-super-120b-a12b:free</code></strong>, a large, capable model made available on OpenRouter at <strong>no cost</strong>.</p>
-      <div class="note built">
-        <span><b>Why free, for now:</b> this is a hackathon project, so demo cost isn't a design priority, but reliability is. A different free model (<code>openai/gpt-oss-20b:free</code>) was tried first and hit rate limits within minutes under real use. The current choice was picked after testing it against real forms, not just on paper.</span>
-      </div>
+      <h2>What FormFill targets today</h2>
+      <p><code>src/lib/openrouter/client.ts</code> currently targets <strong><code>google/gemma-3-27b-it</code></strong> (Gemma 3 27B) via OpenRouter — cheap and multimodal, recommended in a 2026-08-02 review as a starting point.</p>
       <div class="note guard">
-        <span><b>The tradeoff of "free":</b> free models are shared across everyone using OpenRouter at once, so they can be slower or occasionally unavailable compared with a paid model on dedicated capacity. On one large real form (30-plus questions), classification took as long as 75 seconds. See <a href="KNOWN-ISSUES.html">Known Risks</a> for how this is being managed.</span>
+        <span><b>Not finalised.</b> This is a starting point, not a tested decision. Before committing to it for a real demo, the plan is to test several multimodal models locally via Ollama against real forms — comparing accuracy, not just cost — then pick whichever OpenRouter model matches the local winner (or the closest available one, since not every Ollama model has an identical OpenRouter listing).</span>
+      </div>
+      <div class="note built">
+        <span><b>Local test set, chosen to cover different sizes and architecture families:</b> <code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>gemma4:26b</code>, <code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>llama3.2-vision:11b</code>, and <code>minicpm-v</code> (a document-OCR specialist, worth including since reading a form is closer to OCR than general image captioning). <code>deepseek-r1</code> is kept separately as a candidate for the second-pass answer-verification step (§05), which is text-only and doesn't need vision.</span>
       </div>
     </div>
   </section>
@@ -324,8 +324,8 @@
   <section>
     <div class="num">04</div>
     <div class="body">
-      <h2>Pricing comparison</h2>
-      <p>Live pricing pulled directly from OpenRouter, per <strong>1 million tokens</strong> (roughly 750,000 words) of text in, what's sent to the model, and out, what it responds with. A single form classification uses a tiny fraction of a million tokens, so treat this as a rate rather than a per-form cost.</p>
+      <h2>Pricing comparison — multimodal models only</h2>
+      <p>Pulled live from OpenRouter's models API on 2026-08-04, per <strong>1 million tokens</strong> (roughly 750,000 words), for reading the input (a whole PDF now, not just extracted text — bigger payload than before the pivot) and for the response. A single form classification uses a small fraction of a million tokens either way, so treat this as a rate rather than a per-form cost. Every model below must support image/document input — a text-only model can't do this job at all now.</p>
 
       <div class="scroll">
         <table>
@@ -339,66 +339,42 @@
           </thead>
           <tbody>
             <tr>
-              <td class="mod">nvidia/nemotron-3-super-120b-a12b:free</td>
-              <td class="num">Free</td>
-              <td class="num">Free</td>
-              <td><span class="tag built">currently in use</span></td>
+              <td class="mod">google/gemma-3-27b-it</td>
+              <td class="num">$0.08 / million</td>
+              <td class="num">$0.45 / million</td>
+              <td><span class="tag built">current target</span> — matches the local <code>gemma4:26b</code> test candidate</td>
             </tr>
             <tr>
-              <td class="mod">openai/gpt-oss-20b:free</td>
-              <td class="num">Free</td>
-              <td class="num">Free</td>
-              <td>Tried first, dropped after hitting rate limits</td>
-            </tr>
-            <tr>
-              <td class="mod">nvidia/nemotron-nano-9b-v2:free</td>
-              <td class="num">Free</td>
-              <td class="num">Free</td>
-              <td>Smaller free alternative, not yet tested here</td>
-            </tr>
-            <tr>
-              <td class="mod">openai/gpt-oss-120b</td>
-              <td class="num">$0.04 / million</td>
-              <td class="num">$0.17 / million</td>
-              <td>Cheapest paid option with strong structured-output support</td>
+              <td class="mod">qwen/qwen2.5-vl-72b-instruct</td>
+              <td class="num">$0.80 / million</td>
+              <td class="num">$1.00 / million</td>
+              <td>Closest OpenRouter listing to the Qwen2.5-VL family — no 3b/7b vision variant is actually on OpenRouter, only 72b. Local <code>qwen2.5vl:3b</code>/<code>7b</code> testing is still useful for judging the family's accuracy, just not at this exact price point.</td>
             </tr>
             <tr>
               <td class="mod">openai/gpt-4o-mini</td>
               <td class="num">$0.15 / million</td>
               <td class="num">$0.60 / million</td>
-              <td>Well-proven, reliable, dedicated capacity (no free-tier queueing)</td>
-            </tr>
-            <tr>
-              <td class="mod">openai/gpt-5-mini</td>
-              <td class="num">$0.25 / million</td>
-              <td class="num">$2.00 / million</td>
-              <td>Newer, likely stronger reasoning at similar cost</td>
+              <td>Well-proven multimodal, dedicated capacity. No Llama 3.2 Vision listing exists on OpenRouter (only text-only 1b/3b) — <code>llama3.2-vision:11b</code> is a local-only comparison point, not a swap-in OpenRouter option</td>
             </tr>
             <tr>
               <td class="mod">google/gemini-2.5-flash</td>
               <td class="num">$0.30 / million</td>
               <td class="num">$2.50 / million</td>
-              <td>Strong on messy/complex form layouts</td>
+              <td>Strong on messy/complex form layouts, no local equivalent</td>
             </tr>
             <tr>
               <td class="mod">anthropic/claude-haiku-4.5</td>
               <td class="num">$1.00 / million</td>
               <td class="num">$5.00 / million</td>
-              <td>Anthropic's fast, mid-tier model</td>
-            </tr>
-            <tr>
-              <td class="mod">anthropic/claude-sonnet-4.5</td>
-              <td class="num">$3.00 / million</td>
-              <td class="num">$15.00 / million</td>
-              <td>What the project used before switching to a free model</td>
+              <td>Text-only role here — candidate for the second-pass verification step (§05), not classification</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <p class="lede" style="font-size: 0.85rem; color: var(--ink-faint);">
-        Pricing pulled live from OpenRouter's public API. Confirm current numbers at
-        <a href="https://openrouter.ai/models" target="_blank" rel="noopener">openrouter.ai/models</a> before making a budget decision. Prices change as providers update them.
+        Pulled from OpenRouter's public models API (<code>openrouter.ai/api/v1/models</code>) on 2026-08-04. Confirm current numbers at
+        <a href="https://openrouter.ai/models" target="_blank" rel="noopener">openrouter.ai/models</a> before making a budget decision — prices change as providers update them, and this table won't update itself.
       </p>
     </div>
   </section>
@@ -406,19 +382,24 @@
   <section>
     <div class="num">05</div>
     <div class="body">
-      <h2>If reliability becomes more important than cost</h2>
-      <p>The free model is a deliberate choice for a hackathon demo, not a permanent decision. If FormFill moves toward a live pilot or a more important demo, swapping to <strong><code>openai/gpt-4o-mini</code></strong> is the recommended next step:</p>
-      <ul>
-        <li>Roughly 20&times; cheaper than what the project used before this switch.</li>
-        <li>Well-tested for this kind of structured extraction task.</li>
-        <li>Not shared with the free-tier queue, so no rate-limit or slowdown risk.</li>
-      </ul>
-      <p>The change itself is a one-line edit in the code (<code>src/lib/openrouter/client.ts</code>). No redesign needed.</p>
+      <h2>The second model: answer verification</h2>
+      <p>Since the pivot, a second, independent model call can review a filled-out form for genuine mistakes before submission — deliberately a different model from classification, so the same blind spot can't pass its own check (<code>src/lib/openrouter/verify-answers.ts</code>, <code>/api/verify</code>). This step is text-only (it reads field labels and typed answers, not the PDF itself), so it doesn't need vision, and can be a much cheaper model than classification.</p>
+      <div class="note">
+        <span><b>Current target:</b> <code>anthropic/claude-haiku-4.5</code>, set in <code>VERIFICATION_MODEL</code>. <code>deepseek-r1</code> is downloaded locally as a candidate to test against it — both are plausible, neither is finalised. The route exists and works standalone; it isn't yet called from a submit flow on either branch's UI.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">06</div>
+    <div class="body">
+      <h2>If a different classification model turns out to work better</h2>
+      <p>The change is a one-line edit in <code>src/lib/openrouter/client.ts</code> (<code>CLASSIFICATION_MODEL</code>). No redesign needed — <code>classify-pdf.ts</code> and the prompt itself don't assume anything model-specific beyond "accepts a PDF file and returns JSON."</p>
     </div>
   </section>
 
   <footer>
-    <p>Pricing and model availability are current as of this document's publish date. OpenRouter adds, removes, and re-prices models regularly. See <a href="KNOWN-ISSUES.html">Known Risks</a> for the reliability tradeoffs of the current free-tier choice, and <a href="WORKFLOW.html">the workflow doc</a> for where in the process this model gets called.</p>
+    <p>Pricing pulled live from OpenRouter's API as of 2026-08-04. See <a href="KNOWN-ISSUES.html">Known Risks</a> for the reliability and privacy tradeoffs of the current pipeline, and <a href="INTEGRATION.html">the integration doc</a> for where in the process each model gets called.</p>
   </footer>
 
 </div>
