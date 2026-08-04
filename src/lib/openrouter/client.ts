@@ -26,15 +26,16 @@ const longRunningAgent = new Agent({
 });
 
 /**
- * Chosen per the 2026-08-02 meeting with Nigel: forms now go straight to a
- * multimodal model instead of local text/AcroForm extraction, so the model
- * needs real vision capability, not just text. Gemma 3 27B via OpenRouter is
- * his recommendation — cheap (~$0.07/M input, ~$0.30/M output at time of
- * writing) and multimodal. Test locally against Ollama first (same model
- * family, e.g. `ollama pull gemma3:27b`) before spending on cloud calls;
- * swap this constant once real-form testing picks a final model.
+ * Nigel's original recommendation was google/gemma-3-27b-it, but real-form
+ * testing (docs/MODELS.html §04-§04e: 3 local model cycles, a 16-form cloud
+ * batch, and a follow-up single-file retry round) never actually validated
+ * that model — all of it tested the Gemma 4 family instead.
+ * google/gemma-4-26b-a4b-it:free is the only model that produced
+ * consistently accurate, genuinely-tested results, and it's free. Known
+ * gap: reliably fails on official NZ government forms specifically — see
+ * docs/KNOWN-ISSUES.html.
  */
-export const CLASSIFICATION_MODEL = "google/gemma-3-27b-it";
+export const CLASSIFICATION_MODEL = "google/gemma-4-26b-a4b-it:free";
 
 /**
  * A second, independent model used only to sanity-check a filled-out form
