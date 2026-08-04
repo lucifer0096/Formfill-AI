@@ -373,6 +373,30 @@
 
         <div class="risk low">
           <div class="risk-head">
+            <b>Confirming with unanswered required questions didn't take you back to them</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>Trying to finish with a required question still unanswered is meant to send you straight back to it — the underlying logic already worked out which question that was, but nothing ever acted on it, so the review page just sat there with no visible change at all. Fixed so it now genuinely takes you to that question.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
+            <b>A required signature question could not be gotten past</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>Signature questions were shown as an ordinary text box, but typing anything into one was always rejected on purpose — this product never accepts a signature typed on a keyboard, only a real one signed by hand afterward. The "Skip" option that should have offered a way past it was hidden whenever the question was required, so a required signature question was a genuine dead end: nothing you typed would ever be accepted, and there was no button to move on. Fixed with a clear explanation and a direct "I'll sign this by hand" button in its place.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
+            <b>"Read back" on the review page didn't actually mark an answer as heard</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>The review gate (the rule that every answer must genuinely be heard before finishing) relies on tracking which answers were actually stepped through — but clicking an individual answer's "Read back" button used a different, unrelated action that never updated that tracking at all. Clicking it looked like it should count, but it silently never did, which could make the gate feel like it was ignoring the user. Also, an unanswered question showed a "Read back" button that made no sense on nothing — it now correctly says "Answer this" and takes you to that question instead.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
             <b>A page could freeze/crash on certain forms</b>
             <span class="sev low">Fixed</span>
           </div>
