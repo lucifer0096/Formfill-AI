@@ -26,6 +26,20 @@ const KEY_ACTIONS = new Set(["n", "p", " ", "h", "s", "r", "l"]);
 
 const noopSubscribe = () => () => {};
 
+/**
+ * inputValue is a plain string (used directly in text inputs, split/joined
+ * for multichoice), but a saved Answer.value can be string | string[] |
+ * boolean | null. Converts a saved answer back to what the input should
+ * show when revisiting a field, so Previous (and any other navigation back
+ * to an already-answered field) doesn't present an empty box.
+ */
+function answerToInputValue(value: string | string[] | boolean | null | undefined): string {
+  if (value == null) return "";
+  if (Array.isArray(value)) return value.join(",");
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  return value;
+}
+
 interface Bootstrapped {
   state: ConversationState;
   announcements: Announcement[];
@@ -71,7 +85,15 @@ export default function QuestionsPage() {
   const [override, setOverride] = useState<Bootstrapped | null>(null);
   const engine = (override ?? bootstrapped)?.state ?? null;
   const lastAnnouncements = (override ?? bootstrapped)?.announcements ?? [];
-  const [inputValue, setInputValue] = useState("");
+  // Same derived-state pattern as helpOpenFor/showHelp below: rawInputValue
+  // only ever holds what the user actually typed for editedFor's field.
+  // Once the question changes (Next, Previous, jumping via review),
+  // editedFor no longer matches the new currentField.id, so inputValue
+  // falls back to whatever's already saved for it instead of showing
+  // stale text from the previous question — no effect needed to "sync"
+  // this, same reasoning as the override comment above.
+  const [rawInputValue, setRawInputValue] = useState("");
+  const [editedFor, setEditedFor] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   // Tracks which field's id the panel was opened for, rather than a plain
   // boolean, so switching questions closes the panel automatically (derived
@@ -85,6 +107,16 @@ export default function QuestionsPage() {
   const currentField = engine?.cursor ? fieldById(engine.form, engine.cursor) : undefined;
   const showHelp = helpOpenFor === currentField?.id;
   const showVerbatim = verbatimOpenFor === currentField?.id;
+
+  const inputValue =
+    editedFor === currentField?.id
+      ? rawInputValue
+      : answerToInputValue(currentField ? engine?.answers[currentField.id]?.value : null);
+
+  function setInputValue(value: string) {
+    if (currentField) setEditedFor(currentField.id);
+    setRawInputValue(value);
+  }
 
   // Focus (and therefore announce, for a screen reader) the new question
   // every time it changes — not just once on mount. ACCESSIBILITY.md §3.
@@ -103,8 +135,23 @@ export default function QuestionsPage() {
   function submitAnswer() {
     setTouched(true);
     dispatch({ type: "ANSWER", value: inputValue });
-    setInputValue("");
+    setEditedFor(null);
     setTouched(false);
+    setHelpOpenFor(null);
+  }
+
+  // Previous must not silently discard whatever the user just typed.
+  // Only submits if inputValue actually differs from what's already saved
+  // (so revisiting a field and going back again without changing anything
+  // doesn't re-run validation and risk blocking navigation on a required
+  // field the user hasn't gotten to yet).
+  function goToPrevious() {
+    const saved = currentField ? answerToInputValue(engine?.answers[currentField.id]?.value) : "";
+    if (inputValue !== saved && inputValue.trim() !== "") {
+      dispatch({ type: "ANSWER", value: inputValue });
+    }
+    dispatch({ type: "PREV" });
+    setEditedFor(null);
     setHelpOpenFor(null);
   }
 
@@ -123,7 +170,7 @@ export default function QuestionsPage() {
         break;
       case "p":
         event.preventDefault();
-        dispatch({ type: "PREV" });
+        goToPrevious();
         break;
       case " ":
         event.preventDefault();
@@ -342,7 +389,7 @@ export default function QuestionsPage() {
             <Button type="submit" variant="primary">
               Next
             </Button>
-            <Button type="button" variant="secondary" onClick={() => dispatch({ type: "PREV" })}>
+            <Button type="button" variant="secondary" onClick={goToPrevious}>
               Previous
             </Button>
             <Button
