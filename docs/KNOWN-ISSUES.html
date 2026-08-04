@@ -310,31 +310,31 @@
         <div class="fix"><b>Status:</b> disclosed tradeoff, not currently mitigated. If this needs to change later, redaction would have to move to either a pre-send image-level pass or be dropped in favour of per-model provider privacy terms.</div>
       </div>
 
-      <div class="risk high">
+      <div class="risk medium">
         <div class="risk-head">
-          <b>No local model has produced a reliably correct result yet</b>
-          <span class="sev high">High</span>
+          <b>Best-known model still isn't fully reliable under sustained load</b>
+          <span class="sev medium">Medium</span>
         </div>
-        <p>First real test cycle ran 2026-08-04 against one real form across 7 local Ollama models (see <a href="MODELS.html">MODELS.html §04</a> for the full table). Only one model, <code>gemma3:4b</code>, produced a genuinely correct result. Two models (<code>gemma4:e4b</code>, <code>minicpm-v</code>) finished but returned wrong or schema-breaking output — fabricated fields, invented types outside the allowed list, confidence scores that don't calibrate at all. One (<code>llama3.2-vision:11b</code>) hit a hard Ollama compatibility wall unrelated to the prompt. Three (<code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>gemma4:26b</code> — the last being the mentor-recommended model) simply didn't finish within the 20-minute timeout used for that cycle, since raised to 60 minutes; they remain unresolved, not ruled out.</p>
-        <div class="fix"><b>Status:</b> open. No model has been validated as demo-ready. Next step is a retest of the three unresolved models at the longer timeout, per <a href="MODELS.html">MODELS.html §04</a>'s recommendation.</div>
+        <p>Local testing (see <a href="MODELS.html">MODELS.html §04/§04b</a>) found three working local models across two forms: <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (the mentor-recommended model) — all produced genuinely correct results. A follow-up cloud round tested free OpenRouter models across 16 real forms (<a href="MODELS.html">MODELS.html §04c/§04d</a>): <code>google/gemma-4-26b-a4b-it:free</code> succeeded on 6/16 with every success genuinely accurate, but slowed down and started timing out partway through a large back-to-back batch before recovering — most likely free-tier congestion under sustained load, not a flaw in the model itself. Two other free candidates (<code>gemma-4-31b-it:free</code>, Nvidia's Nemotron) never completed a single run in that batch due to rate-limiting and timeouts, so neither is ruled out on accuracy, only on availability so far.</p>
+        <div class="fix"><b>Status:</b> a demo-viable model exists (<code>gemma-4-26b-a4b-it:free</code>, or the local <code>gemma3:4b</code>/<code>gemma4:26b</code>), but hasn't been proven reliable under heavy concurrent load. A single-form real-world trial, not a back-to-back batch, is the fairer next test before committing to a production model.</div>
       </div>
 
-      <div class="risk high">
+      <div class="risk medium">
         <div class="risk-head">
-          <b>The AI model can be slow on large forms</b>
-          <span class="sev high">High</span>
+          <b>The AI model can be slow on large, dense forms</b>
+          <span class="sev medium">Medium</span>
         </div>
-        <p>On a large real form (30+ questions), turning extracted text into questions took as long as <strong>75 seconds</strong> under the old pipeline using a free model. Not yet re-measured under the new pipeline, which sends a larger payload (the whole PDF, not just its text) — likely to be at least as slow, possibly slower, until a model is chosen and tested.</p>
+        <p>In the 16-form cloud batch, the two longest/densest forms (a 26-page citizenship application, a 13-page sponsorship form) were among several that timed out at the 2-minute test limit — though a 3-page form also timed out during the same batch, so form length alone doesn't fully explain it (see the load-related entry above).</p>
         <div class="fix"><b>Mitigation in place:</b> the server is configured to wait up to 60 seconds, the maximum allowed on the current hosting plan, instead of giving up early. <strong>Before any live demo, test the actual form you plan to use against the live site once.</strong> If it's slow, have a smaller backup form ready, or switch to a paid model (see the <a href="MODELS.html">model &amp; pricing doc</a>) for guaranteed speed.</div>
       </div>
 
       <div class="risk medium">
         <div class="risk-head">
-          <b>The free AI model can occasionally be unavailable</b>
+          <b>OpenRouter's own PDF-reading step can go down independently of any model</b>
           <span class="sev medium">Medium</span>
         </div>
-        <p>A different free model was tried first and returned a "rate limited" error within minutes of testing. Free-tier capacity is shared and can run out under demand from other users, not just FormFill's own traffic.</p>
-        <div class="fix"><b>Mitigation in place:</b> switched to a different free model that tested reliably across multiple attempts, and the app shows a clear "couldn't classify this form" message with a retry option rather than freezing or crashing if it does happen.</div>
+        <p>During the 16-form cloud batch (<a href="MODELS.html">MODELS.html §04d</a>), one form failed identically and instantly on all three models tested with "Failed to parse." The error detail showed OpenRouter uses a separate, shared document-reading service (from Mistral) to turn a PDF into readable text before any model sees it — and that service was briefly unavailable, unrelated to model choice.</p>
+        <div class="fix"><b>Status:</b> disclosed, not yet mitigated — no retry-on-parse-failure logic exists in <code>classify-pdf.ts</code> today. A simple one-retry-after-delay would likely cover transient outages like this one.</div>
       </div>
 
       <div class="risk medium">
