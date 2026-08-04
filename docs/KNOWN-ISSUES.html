@@ -357,6 +357,22 @@
       <div class="qs">
         <div class="risk low">
           <div class="risk-head">
+            <b>The live site was quietly using an untested, paid model instead of the free one that was actually tested</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>All the real-form testing in §04–§04e validated <code>google/gemma-4-26b-a4b-it:free</code>, but the production code's model setting was never actually updated to match — it was still pointed at Nigel's original suggestion, <code>google/gemma-3-27b-it</code>, which had never been tested against a real form and turned out to be frequently rate-limited. Found by reproducing a real "couldn't read that file" report and adding proper error logging (previously the real error was silently discarded) — the logs showed the wrong model name immediately. This wasn't just a quality problem: it was quietly spending real OpenRouter credits on failed requests instead of using the free, validated model. Fixed by correcting the model setting and redeploying; confirmed afterward with a successful real upload.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Clicking Previous discarded what was typed and didn't show answers already given</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>Two related bugs on the question-answering page: clicking Previous (or pressing the P key) before submitting an answer silently threw away whatever had just been typed, and going back to a question that already had an answer showed an empty box instead of what was actually saved. Both traced to the same cause — the on-screen answer box wasn't actually connected to the saved answers, just its own temporary memory that got wiped on every question change. Fixed so Previous now saves a genuinely new answer before going back (but doesn't force an answer on a question being left blank on purpose), and revisiting any question always shows what was actually saved for it.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
             <b>A page could freeze/crash on certain forms</b>
             <span class="sev low">Fixed</span>
           </div>
