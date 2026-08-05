@@ -276,12 +276,51 @@
 
   <header class="mast">
     <div>
-      <p class="eyebrow">FormFill · rahul branch · AI model choice</p>
+      <p class="eyebrow">FormFill · AI model selection</p>
       <h1>Which AI model reads your forms, and what it costs</h1>
-      <p>A plain-language explanation of the model choice behind form classification, and what the alternatives would cost.</p>
+      <p>An overview of the model selection process behind form classification, and the tradeoffs between the available options.</p>
     </div>
     <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
   </header>
+
+  <section>
+    <div class="num">00</div>
+    <div class="body">
+      <h2>Summary</h2>
+      <p class="lede">Model testing proceeded in three phases: local inference on consumer hardware, free-tier cloud models, and paid cloud models. Each phase used real form PDFs, not synthetic test data. Full results and methodology for each phase are documented below; this table summarises the headline finding from each.</p>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Phase</th>
+              <th scope="col">Scope</th>
+              <th scope="col">Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mod">1. Local (Ollama)</td>
+              <td>7 models narrowed to 4, evaluated on 2 real forms</td>
+              <td><code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (the mentor's recommendation) all produced correct results. Consumer hardware without a dedicated GPU made this impractically slow for production (5–20 minutes per form).</td>
+            </tr>
+            <tr>
+              <td class="mod">2. Cloud, free tier</td>
+              <td>3 free OpenRouter models, evaluated on 16 real forms with individual retesting</td>
+              <td>Only <code>google/gemma-4-26b-a4b-it:free</code> proved reliable — fast (seconds per form) and accurate whenever it succeeded, with one confirmed limitation: consistent failures on official NZ government forms specifically. The other two free models never returned a usable result.</td>
+            </tr>
+            <tr>
+              <td class="mod">3. Cloud, paid tier</td>
+              <td>7 paid OpenRouter models, including the mentor's original recommendation, benchmarked against the free-tier result on 5 real forms</td>
+              <td>Paid models were 15–35× faster than local inference at a cost of a few cents per form, and confirmed to resolve the free tier's government-form limitation. However, 3 of 7 paid models introduced accuracy regressions not present in the free-tier baseline. <code>google/gemma-3-27b-it</code> (the mentor's recommendation), <code>anthropic/claude-haiku-4.5</code>, and <code>mistralai/mistral-small-3.2-24b-instruct</code> showed no regressions across any tested form.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--ink-faint);">Total spend across all paid-tier testing: approximately $0.30. Local and free-tier testing incurred no cost.</p>
+    </div>
+  </section>
 
   <section>
     <div class="num">01</div>
@@ -313,10 +352,10 @@
       <h2>What FormFill targets today</h2>
       <p><code>src/lib/openrouter/client.ts</code> currently targets <strong><code>google/gemma-3-27b-it</code></strong> (Gemma 3 27B) via OpenRouter — cheap and multimodal, recommended in a 2026-08-02 review as a starting point.</p>
       <div class="note guard">
-        <span><b>Not finalised.</b> Two real test cycles ran 2026-08-04 on two different forms (see §04 and §04b below), both against a shrunk 4-model set. <code>gemma4:e4b</code> failed correctness on both forms and is being dropped from rotation. <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> all succeeded on both — the remaining decision is speed vs. marginal accuracy between those three, plus a third form still to come.</span>
+        <span><b>Not finalised.</b> Two real test cycles ran 2026-08-04 on two different forms (see the first and second test cycles below), both against a shrunk 4-model set. <code>gemma4:e4b</code> failed correctness on both forms and is being dropped from rotation. <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> all succeeded on both — the remaining decision is speed vs. marginal accuracy between those three, plus a third form still to come.</span>
       </div>
       <div class="note built">
-        <span><b>Local test set, chosen to cover different sizes and architecture families:</b> <code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>gemma4:26b</code>, <code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>llama3.2-vision:11b</code>, and <code>minicpm-v</code> (a document-OCR specialist, worth including since reading a form is closer to OCR than general image captioning). The second-pass answer-verification step (§06) is text-only and doesn't need vision — see that section for its own model choice.</span>
+        <span><b>Local test set, chosen to cover different sizes and architecture families:</b> <code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>gemma4:26b</code>, <code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>llama3.2-vision:11b</code>, and <code>minicpm-v</code> (a document-OCR specialist, worth including since reading a form is closer to OCR than general image captioning). The second-pass answer-verification step (further down, "The second model: answer verification") is text-only and doesn't need vision — see that section for its own model choice.</span>
       </div>
     </div>
   </section>
@@ -396,7 +435,7 @@
     <div class="num">04b</div>
     <div class="body">
       <h2>Second test cycle — 2026-08-04, ACC claim form</h2>
-      <p>Ran the shrunk 4-model set (<code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>qwen2.5vl:7b</code>, <code>gemma4:26b</code>) against a different real form, <code>acc-form.pdf</code> (a 3-page NZ ACC injury claim: mixed text/date/choice fields, a conditional "previous claim" section, an authorisation/declaration block, and a signature line). Same hardware as §04. Timeout: 60 minutes (raised after the first cycle). All four models finished — no timeouts this time.</p>
+      <p>Ran the shrunk 4-model set (<code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>qwen2.5vl:7b</code>, <code>gemma4:26b</code>) against a different real form, <code>acc-form.pdf</code> (a 3-page NZ ACC injury claim: mixed text/date/choice fields, a conditional "previous claim" section, an authorisation/declaration block, and a signature line). Same hardware as the first test cycle. Timeout: 60 minutes (raised after the first cycle). All four models finished — no timeouts this time.</p>
 
       <div class="scroll">
         <table>
@@ -419,7 +458,7 @@
               <td class="mod">gemma4:e4b</td>
               <td class="st"><span class="tag todo">failed</span></td>
               <td class="num">310s</td>
-              <td><b>Fabricated the entire form.</b> Returned a fully-formed but completely unrelated "Membership Enrollment Form" (emergency contact, signature, payment frequency fields) with high confidence scores — not a timeout or a refusal, a confident hallucination. This is the model's second correctness failure in a row on two different forms (see §04's "no PDF received" failure). Recommend dropping it from the rotation.</td>
+              <td><b>Fabricated the entire form.</b> Returned a fully-formed but completely unrelated "Membership Enrollment Form" (emergency contact, signature, payment frequency fields) with high confidence scores — not a timeout or a refusal, a confident hallucination. This is the model's second correctness failure in a row on two different forms (see the first test cycle's "no PDF received" failure). Recommend dropping it from the rotation.</td>
             </tr>
             <tr>
               <td class="mod">qwen2.5vl:7b</td>
@@ -453,7 +492,7 @@
         <span><b>In plain terms:</b> a "model" here is the AI that looks at an uploaded form and works out what questions it's asking, so the app can read them aloud and let someone answer by voice or text. Two things matter for picking one: <b>does it get the form right</b> (no invented questions, no missed ones), and <b>how fast/cheap is it</b> to run for every person who uses the app. This section tracks both, in something closer to plain English than the technical tables above.</span>
       </div>
 
-      <p>Test set so far: <code>google/gemma-4-26b-a4b-it</code>, using its <b>free tier</b> (a version of Google's Gemma 4 model that OpenRouter hosts at no cost) — the closest cloud match to Nigel's own recommendation, which was tested locally in §04b. More models and forms are being added to this table as tests continue.</p>
+      <p>Test set so far: <code>google/gemma-4-26b-a4b-it</code>, using its <b>free tier</b> (a version of Google's Gemma 4 model that OpenRouter hosts at no cost) — the closest cloud match to Nigel's own recommendation, which was tested locally in the second test cycle. More models and forms are being added to this table as tests continue.</p>
 
       <div class="scroll">
         <table>
@@ -510,7 +549,7 @@
         <span><b>About the "$0" cost:</b> OpenRouter's free tier genuinely does not charge — no money has been loaded into the account and nothing has been billed. (The raw API response briefly showed a small non-zero "cost" figure for free-tier calls; this turned out to be a reference number some providers report even on free routes, not a real charge, and the table/tool have since been corrected to only show real costs for paid models.)</span>
       </div>
 
-      <p>This first wave (5 forms, one model) looked very strong. The next step was a much bigger, harsher test — see §04d.</p>
+      <p>This first wave (5 forms, one model) looked very strong. The next step was a much bigger, harsher test — see the fourth test round below.</p>
     </div>
   </section>
 
@@ -573,7 +612,7 @@
     <div class="num">04e</div>
     <div class="body">
       <h2>Fifth test round — retrying the 10 failures, one form at a time</h2>
-      <p class="lede">§04d's headline theory was "the model itself is fine, it just got overwhelmed running 16 forms back to back." The fair way to test that theory is to try the exact same 10 failed forms again, individually this time, with real gaps between each — only <code>gemma-4-26b-a4b-it:free</code> was used (the other two free models were dropped from routine testing, since neither ever produced a single result to judge).</p>
+      <p class="lede">The fourth test round's headline theory was "the model itself is fine, it just got overwhelmed running 16 forms back to back." The fair way to test that theory is to try the exact same 10 failed forms again, individually this time, with real gaps between each — only <code>gemma-4-26b-a4b-it:free</code> was used (the other two free models were dropped from routine testing, since neither ever produced a single result to judge).</p>
 
       <div class="scroll">
         <table>
@@ -696,7 +735,7 @@
               <td class="mod">anthropic/claude-haiku-4.5</td>
               <td class="num">$1.00 / million</td>
               <td class="num">$5.00 / million</td>
-              <td>Text-only role here — was the second-pass verification target, replaced by a free model (§06) since this step doesn't need a paid model's capability for the job it does</td>
+              <td>Text-only role here — was the second-pass verification target, replaced by a free model (see "The second model: answer verification" below) since this step doesn't need a paid model's capability for the job it does</td>
             </tr>
           </tbody>
         </table>
