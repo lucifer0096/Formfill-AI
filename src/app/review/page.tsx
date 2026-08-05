@@ -176,8 +176,8 @@ function NeedsVision({ fileName }: { fileName: string }) {
           Almost there
         </h1>
         <p className="mt-3 text-lg text-muted">
-          <strong>{fileName}</strong> isn&apos;t a PDF, so we can&apos;t read it yet — only PDF
-          uploads are supported right now.
+          <strong>{fileName}</strong> isn&apos;t a file type we can read yet. Only PDF, PNG, and
+          JPG uploads are supported right now.
         </p>
       </section>
       <div className="mt-8">

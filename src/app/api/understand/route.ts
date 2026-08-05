@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
   try {
     const bytes = await file.arrayBuffer();
-    const form = await classifyPdf(bytes, file.name, acroFields, pageCount);
+    const form = await classifyPdf(bytes, file.name, acroFields, pageCount, file.type);
     return NextResponse.json({ form });
   } catch (error) {
     // Logged server-side (visible in Vercel's function logs) so failures
