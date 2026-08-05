@@ -302,17 +302,17 @@
             <tr>
               <td class="mod">1. Local (Ollama)</td>
               <td>7 models narrowed to 4, evaluated on 2 real forms</td>
-              <td><code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (the mentor's recommendation) all produced correct results. Consumer hardware without a dedicated GPU made this impractically slow for production (5–20 minutes per form).</td>
+              <td><code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (the mentor's recommendation) all produced correct results. Consumer hardware without a dedicated GPU made this impractically slow for production (5 to 20 minutes per form).</td>
             </tr>
             <tr>
               <td class="mod">2. Cloud, free tier</td>
               <td>3 free OpenRouter models, evaluated on 16 real forms with individual retesting</td>
-              <td>Only <code>google/gemma-4-26b-a4b-it:free</code> proved reliable — fast (seconds per form) and accurate whenever it succeeded, with one confirmed limitation: consistent failures on official NZ government forms specifically. The other two free models never returned a usable result.</td>
+              <td>Only <code>google/gemma-4-26b-a4b-it:free</code> proved reliable: fast (seconds per form) and accurate whenever it succeeded, with one confirmed limitation, consistent failures on official NZ government forms specifically. The other two free models never returned a usable result.</td>
             </tr>
             <tr>
               <td class="mod">3. Cloud, paid tier</td>
               <td>7 paid OpenRouter models, including the mentor's original recommendation, benchmarked against the free-tier result on 5 real forms</td>
-              <td>Paid models were 15–35× faster than local inference at a cost of a few cents per form, and confirmed to resolve the free tier's government-form limitation. However, 3 of 7 paid models introduced accuracy regressions not present in the free-tier baseline. <code>google/gemma-3-27b-it</code> (the mentor's recommendation), <code>anthropic/claude-haiku-4.5</code>, and <code>mistralai/mistral-small-3.2-24b-instruct</code> showed no regressions across any tested form.</td>
+              <td>Paid models were 15 to 35 times faster than local inference at a cost of a few cents per form, and confirmed to resolve the free tier's government-form limitation. However, 3 of 7 paid models introduced accuracy regressions not present in the free-tier baseline. <code>google/gemma-3-27b-it</code> (the mentor's recommendation), <code>anthropic/claude-haiku-4.5</code>, and <code>mistralai/mistral-small-3.2-24b-instruct</code> showed no regressions across any tested form.</td>
             </tr>
           </tbody>
         </table>
@@ -326,9 +326,9 @@
     <div class="num">01</div>
     <div class="body">
       <h2>Where AI actually gets used</h2>
-      <p class="lede">Every uploaded PDF is read by a multimodal AI model, which turns it into a list of plain questions and, where the form has real fillable fields, maps its own detections back onto them. Most of the rest of the app — moving between questions, saving your answers, producing the final document — needs no AI at all.</p>
+      <p class="lede">Every uploaded PDF is read by a multimodal AI model, which turns it into a list of plain questions and, where the form has real fillable fields, maps its own detections back onto them. Most of the rest of the app (moving between questions, saving answers, producing the final document) needs no AI at all.</p>
       <div class="note guard">
-        <span><b>Pivot, 2026-08-03:</b> this used to be two paths — real PDF fields were read locally with no AI involved, and only "flat" forms without fields went to a model. Local field-detection turned out to be unreliable across real-world PDFs (tested against 10-15 real forms), so every PDF now goes through the same model call. See <a href="INTEGRATION.html">the integration doc</a> for the full reasoning. This means AI usage is no longer occasional — it happens on every upload, not just flat ones.</span>
+        <span><b>Pivot.</b> This used to be two paths: real PDF fields were read locally with no AI involved, and only "flat" forms without fields went to a model. Local field detection turned out to be unreliable across real-world PDFs, tested against 10 to 15 real forms, so every PDF now goes through the same model call. See <a href="INTEGRATION.html">the integration doc</a> for the full reasoning. AI usage is no longer occasional; it happens on every upload, not just flat ones.</span>
       </div>
     </div>
   </section>
@@ -350,12 +350,9 @@
     <div class="num">03</div>
     <div class="body">
       <h2>What FormFill targets today</h2>
-      <p><code>src/lib/openrouter/client.ts</code> currently targets <strong><code>google/gemma-3-27b-it</code></strong> (Gemma 3 27B) via OpenRouter — cheap and multimodal, recommended in a 2026-08-02 review as a starting point.</p>
-      <div class="note guard">
-        <span><b>Not finalised.</b> Two real test cycles ran 2026-08-04 on two different forms (see the first and second test cycles below), both against a shrunk 4-model set. <code>gemma4:e4b</code> failed correctness on both forms and is being dropped from rotation. <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> all succeeded on both — the remaining decision is speed vs. marginal accuracy between those three, plus a third form still to come.</span>
-      </div>
+      <p><code>src/lib/openrouter/client.ts</code> targets <strong><code>google/gemma-4-26b-a4b-it:free</code></strong> for classification: free, and the only model validated as consistently accurate across real-form testing. It has one known limitation, detailed in section 4e below and in the paid-model comparison in section 6b.</p>
       <div class="note built">
-        <span><b>Local test set, chosen to cover different sizes and architecture families:</b> <code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>gemma4:26b</code>, <code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>llama3.2-vision:11b</code>, and <code>minicpm-v</code> (a document-OCR specialist, worth including since reading a form is closer to OCR than general image captioning). The second-pass answer-verification step (further down, "The second model: answer verification") is text-only and doesn't need vision — see that section for its own model choice.</span>
+        <span><b>Local test set, chosen to cover different sizes and architecture families:</b> <code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>gemma4:26b</code>, <code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>llama3.2-vision:11b</code>, and <code>minicpm-v</code> (a document-OCR specialist, included since reading a form is closer to OCR than general image captioning). The second-pass answer-verification step (section 6, "The second model: answer verification") is text-only and doesn't need vision; see that section for its own model choice.</span>
       </div>
     </div>
   </section>
@@ -363,8 +360,8 @@
   <section>
     <div class="num">04</div>
     <div class="body">
-      <h2>First real test cycle — 2026-08-04</h2>
-      <p>Ran the full 7-model local set (<code>npm run test:ui</code>) against one real form, <code>FHP-Statutory-Declaration-Form.pdf</code> (a multi-page statutory declaration with mixed field types: text, choice, boolean, file-attachment references, a signature line). Hardware: Intel i7-10610U, 4C/8T mobile CPU, 32GB RAM, no usable GPU (Intel UHD, ~1GB VRAM) — every model ran on CPU alone. Timeout was 20 minutes for this cycle (raised to 60 minutes afterward — see the note below).</p>
+      <h2>First local test cycle</h2>
+      <p>The full 7-model local set (<code>npm run test:ui</code>) was run against one real form, <code>FHP-Statutory-Declaration-Form.pdf</code> (a multi-page statutory declaration with mixed field types: text, choice, boolean, file-attachment references, a signature line). Hardware: Intel i7-10610U, 4C/8T mobile CPU, 32GB RAM, no usable GPU (Intel UHD, approximately 1GB VRAM); every model ran on CPU alone. Timeout was 20 minutes for this cycle, later raised to 60 minutes (see the note below).</p>
 
       <div class="scroll">
         <table>
@@ -381,61 +378,61 @@
               <td class="mod">gemma3:4b</td>
               <td class="st"><span class="tag built">success</span></td>
               <td class="num">628s</td>
-              <td>Only clean result. Correct title, 6 sensible sections, 13 fields with correct types (name, text, address, choice, date, signature). One cosmetic issue: stray <code>”,, </code> characters appended to several labels — the model echoing its own JSON-formatting punctuation into the label text.</td>
+              <td>Only clean result. Correct title, 6 sensible sections, 13 fields with correct types (name, text, address, choice, date, signature). One cosmetic issue: stray formatting characters appended to several labels, the model echoing its own JSON punctuation into the label text.</td>
             </tr>
             <tr>
               <td class="mod">qwen2.5vl:3b</td>
               <td class="st"><span class="tag guard">timed out</span></td>
               <td class="num">1200s (cap)</td>
-              <td>Never finished — <code>ollama ps</code> confirmed it stayed loaded and active the whole time, not stuck. No verdict either way at this timeout length.</td>
+              <td>Never finished. <code>ollama ps</code> confirmed it stayed loaded and active the whole time, not stuck. No verdict either way at this timeout length.</td>
             </tr>
             <tr>
               <td class="mod">gemma4:e4b</td>
               <td class="st"><span class="tag todo">failed</span></td>
               <td class="num">307s</td>
-              <td>Finished fast but returned a confidently wrong response claiming no PDF/image was received at all (<code>confidence: 1</code> on a fabricated "please provide the source document" field) — a real correctness failure, not a speed one.</td>
+              <td>Finished fast but returned a confidently wrong response claiming no PDF or image was received at all (<code>confidence: 1</code> on a fabricated field). A correctness failure, not a speed one.</td>
             </tr>
             <tr>
               <td class="mod">qwen2.5vl:7b</td>
               <td class="st"><span class="tag guard">timed out</span></td>
               <td class="num">1200s (cap)</td>
-              <td>Same as the 3b version — no verdict yet at 20 minutes.</td>
+              <td>Same as the 3b version. No verdict at 20 minutes.</td>
             </tr>
             <tr>
               <td class="mod">minicpm-v</td>
               <td class="st"><span class="tag todo">failed</span></td>
               <td class="num">870s</td>
-              <td>Finished, but broke the response schema: invented a <code>"file"</code> field type outside the allowed list, three bare string entries (<code>"officialStampSection"</code>) inside what should be an array of field objects, and <code>confidence: 1</code> on literally every field regardless of ambiguity — the prompt explicitly calls for honest low-confidence flags, so this isn't calibrating at all.</td>
+              <td>Finished, but broke the response schema: invented a field type outside the allowed list, several bare string entries inside what should be an array of field objects, and full confidence on every field regardless of ambiguity. The prompt explicitly calls for honest low-confidence flags; this model wasn't calibrating at all.</td>
             </tr>
             <tr>
               <td class="mod">llama3.2-vision:11b</td>
               <td class="st"><span class="tag todo">failed</span></td>
               <td class="num">1.7s</td>
-              <td>Hard failure, not a hardware/timeout issue: <code>error loading model: unknown model architecture: 'mllama'</code> — this Ollama build doesn't support this model's architecture at all. Retesting won't help without an Ollama update.</td>
+              <td>Hard failure, not a hardware or timeout issue: this Ollama build doesn't support the model's architecture at all. Retesting would not help without an Ollama update.</td>
             </tr>
             <tr>
               <td class="mod">gemma4:26b</td>
               <td class="st"><span class="tag guard">timed out</span></td>
               <td class="num">1200s (cap)</td>
-              <td>Nigel's actual recommendation — never got a real verdict at 20 minutes. Worth one retest at the new 60-minute timeout before ruling out.</td>
+              <td>The mentor's original recommendation. No verdict at 20 minutes; worth a retest at the extended timeout.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="note guard">
-        <span><b>Timeout raised from 20 to 60 minutes after this cycle</b> (<code>scripts/model-test-lib.ts</code>). Three of the seven models hit the 20-minute cap without a real result either way — confirmed still genuinely working via <code>ollama ps</code>, not stuck. A separate root-cause fix landed the same day: Node's global <code>fetch</code> is built on <code>undici</code>, whose default 300-second <code>headersTimeout</code> was silently failing every model taking longer than 5 minutes with a bare "fetch failed", before this file's own timeout logic ever got a chance to apply. Fixed by using <code>undici</code>'s <code>fetch</code> directly with a custom <code>Agent</code>.</span>
+        <span><b>Timeout raised from 20 to 60 minutes after this cycle</b> (<code>scripts/model-test-lib.ts</code>). Three of the seven models hit the 20-minute cap without a real result either way, confirmed still genuinely working via <code>ollama ps</code>, not stuck. A separate root-cause fix landed the same day: Node's global <code>fetch</code> is built on <code>undici</code>, whose default 300-second header timeout was silently failing every model taking longer than 5 minutes with a bare "fetch failed," before this file's own timeout logic ever got a chance to apply. Fixed by using <code>undici</code>'s <code>fetch</code> directly with a custom agent.</span>
       </div>
 
-      <p><b>Read after this cycle:</b> narrow the next test round to <code>gemma3:4b</code> (confirmed baseline), <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (both unresolved, worth one retest at 60 minutes — the latter is Nigel's own pick). <code>qwen2.5vl:3b</code>, <code>gemma4:e4b</code>, <code>minicpm-v</code>, and <code>llama3.2-vision:11b</code> are deprioritised: the first three failed on correctness rather than just running out of time, and the last has a hard compatibility wall unrelated to timeout or prompting.</p>
+      <p><b>Conclusion:</b> narrow the next test round to <code>gemma3:4b</code> (confirmed baseline), <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (both unresolved, worth a retest at 60 minutes; the latter is the mentor's own pick). <code>qwen2.5vl:3b</code>, <code>gemma4:e4b</code>, <code>minicpm-v</code>, and <code>llama3.2-vision:11b</code> are deprioritised: the first three failed on correctness rather than just running out of time, and the last has a hard compatibility wall unrelated to timeout or prompting.</p>
     </div>
   </section>
 
   <section>
     <div class="num">04b</div>
     <div class="body">
-      <h2>Second test cycle — 2026-08-04, ACC claim form</h2>
-      <p>Ran the shrunk 4-model set (<code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>qwen2.5vl:7b</code>, <code>gemma4:26b</code>) against a different real form, <code>acc-form.pdf</code> (a 3-page NZ ACC injury claim: mixed text/date/choice fields, a conditional "previous claim" section, an authorisation/declaration block, and a signature line). Same hardware as the first test cycle. Timeout: 60 minutes (raised after the first cycle). All four models finished — no timeouts this time.</p>
+      <h2>Second local test cycle: ACC claim form</h2>
+      <p>The shrunk 4-model set (<code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>qwen2.5vl:7b</code>, <code>gemma4:26b</code>) was run against a different real form, <code>acc-form.pdf</code> (a 3-page NZ ACC injury claim: mixed text, date, and choice fields, a conditional "previous claim" section, an authorisation and declaration block, and a signature line). Same hardware as the first cycle. Timeout: 60 minutes. All four models finished; no timeouts this time.</p>
 
       <div class="scroll">
         <table>
@@ -452,32 +449,32 @@
               <td class="mod">gemma3:4b</td>
               <td class="st"><span class="tag built">success</span></td>
               <td class="num">313s</td>
-              <td>Best result of the cycle. Correctly grouped all sections including the declaration, sensible <code>spokenLabel</code>/<code>help</code> text on every field, high confidence throughout, no fabrication.</td>
+              <td>Best result of the cycle. Correctly grouped all sections including the declaration, sensible help text on every field, high confidence throughout, no fabrication.</td>
             </tr>
             <tr>
               <td class="mod">gemma4:e4b</td>
               <td class="st"><span class="tag todo">failed</span></td>
               <td class="num">310s</td>
-              <td><b>Fabricated the entire form.</b> Returned a fully-formed but completely unrelated "Membership Enrollment Form" (emergency contact, signature, payment frequency fields) with high confidence scores — not a timeout or a refusal, a confident hallucination. This is the model's second correctness failure in a row on two different forms (see the first test cycle's "no PDF received" failure). Recommend dropping it from the rotation.</td>
+              <td><b>Fabricated the entire form.</b> Returned a fully formed but completely unrelated "Membership Enrollment Form" with high confidence scores; not a timeout or a refusal, a confident hallucination. The model's second correctness failure in a row on two different forms. Dropped from the rotation.</td>
             </tr>
             <tr>
               <td class="mod">qwen2.5vl:7b</td>
               <td class="st"><span class="tag built">success</span></td>
               <td class="num">878s</td>
-              <td>Correct and thorough across all 3 pages, but ~3x slower than <code>gemma3:4b</code> and missing <code>help</code> text on most fields. One field typed <code>"unknown"</code> at confidence 0.5 rather than guessing — arguably better calibration, not a flaw.</td>
+              <td>Correct and thorough across all 3 pages, but roughly 3 times slower than <code>gemma3:4b</code> and missing help text on most fields. One field typed as "unknown" at confidence 0.5 rather than guessing; arguably better calibration, not a flaw.</td>
             </tr>
             <tr>
               <td class="mod">gemma4:26b</td>
               <td class="st"><span class="tag built">success</span></td>
-              <td class="num">1183s (~20 min)</td>
-              <td>Nigel's pick. Correct and slightly more thorough section grouping (correctly isolated the conditional "if you already filed a claim" fields), very high confidence (0.95–0.98 across the board). By far the slowest of the four — on CPU-only hardware, ~4x <code>gemma3:4b</code>'s time for a modest accuracy edge.</td>
+              <td class="num">1183s (about 20 min)</td>
+              <td>The mentor's pick. Correct and slightly more thorough section grouping, very high confidence (0.95 to 0.98) throughout. By far the slowest of the four; roughly 4 times <code>gemma3:4b</code>'s time for a modest accuracy edge.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="note guard">
-        <span><b>Read after this cycle:</b> <code>gemma4:e4b</code> is out — two forms, two confident fabrications, worse than a slow-but-correct model or an honest failure. The real decision is now <code>gemma3:4b</code> (fastest, accurate) vs. <code>gemma4:26b</code> (Nigel's pick, marginally higher confidence, ~4x slower) vs. <code>qwen2.5vl:7b</code> (correct but slow, thinner on <code>help</code> text). A third form is planned before committing to a final pick.</span>
+        <span><b>Conclusion:</b> <code>gemma4:e4b</code> is out; two forms, two confident fabrications, worse than a slow-but-correct model or an honest failure. The remaining decision is <code>gemma3:4b</code> (fastest, accurate) versus <code>gemma4:26b</code> (the mentor's pick, marginally higher confidence, roughly 4 times slower) versus <code>qwen2.5vl:7b</code> (correct but slow, thinner on help text).</span>
       </div>
     </div>
   </section>
@@ -485,82 +482,82 @@
   <section>
     <div class="num">04c</div>
     <div class="body">
-      <h2>Third test round — trying the same models in the cloud</h2>
-      <p class="lede">Everything above was run on Rahul's own laptop, which has no dedicated graphics card — that's why some of those runs took 15–20 minutes. This round asks a different question: if the same kind of model runs on OpenRouter's servers instead (rented, professional-grade hardware), how much faster does it get, and does it still read forms correctly?</p>
+      <h2>Third test round: the same models in the cloud</h2>
+      <p class="lede">Local testing ran on a laptop with no dedicated graphics card, which is why some runs took 15 to 20 minutes. This round tests whether the same model family, running on OpenRouter's infrastructure instead, is both faster and still accurate.</p>
 
       <div class="note built">
-        <span><b>In plain terms:</b> a "model" here is the AI that looks at an uploaded form and works out what questions it's asking, so the app can read them aloud and let someone answer by voice or text. Two things matter for picking one: <b>does it get the form right</b> (no invented questions, no missed ones), and <b>how fast/cheap is it</b> to run for every person who uses the app. This section tracks both, in something closer to plain English than the technical tables above.</span>
+        <span><b>Context:</b> two things matter in picking a model here: whether it gets the form right (no invented questions, none missed), and how fast and inexpensive it is to run for every user. This section tracks both.</span>
       </div>
 
-      <p>Test set so far: <code>google/gemma-4-26b-a4b-it</code>, using its <b>free tier</b> (a version of Google's Gemma 4 model that OpenRouter hosts at no cost) — the closest cloud match to Nigel's own recommendation, which was tested locally in the second test cycle. More models and forms are being added to this table as tests continue.</p>
+      <p>Initial candidate: <code>google/gemma-4-26b-a4b-it</code>, using its free tier, the closest cloud match to the mentor's own recommendation tested locally in the second cycle above.</p>
 
       <div class="scroll">
         <table>
           <thead>
             <tr>
               <th scope="col">Form tested</th>
-              <th scope="col">Got it right?</th>
-              <th scope="col">How long it took</th>
-              <th scope="col">What it cost</th>
-              <th scope="col">In plain terms</th>
+              <th scope="col">Result</th>
+              <th scope="col">Time</th>
+              <th scope="col">Cost</th>
+              <th scope="col">Notes</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td class="mod">ACC injury claim form</td>
-              <td class="st"><span class="tag built">yes</span></td>
+              <td class="st"><span class="tag built">success</span></td>
               <td class="num">32 seconds</td>
               <td class="num">$0 (free tier)</td>
-              <td>Correctly found every section of the form (claim details, previous-claim details, the signed declaration) and phrased each one as a clear spoken question. Compare to the same model family locally, which took <b>20 minutes</b> on Rahul's laptop for a similar form — the cloud version is roughly <b>35–40x faster</b>.</td>
+              <td>Correctly found every section of the form and phrased each as a clear spoken question. The same model family took 20 minutes locally for a similar form; the cloud version was roughly 35 to 40 times faster.</td>
             </tr>
             <tr>
               <td class="mod">First Home Partner statutory declaration</td>
-              <td class="st"><span class="tag built">yes</span></td>
+              <td class="st"><span class="tag built">success</span></td>
               <td class="num">93 seconds</td>
               <td class="num">$0 (free tier)</td>
-              <td>This is a genuinely hard form — dense legal paragraphs with multiple conditions bundled into single sentences (e.g. residency status, relationship status, and property ownership all phrased as long legal declarations). The model correctly broke each paragraph down into a clear yes/no question a person could actually answer out loud, without inventing anything or missing a condition. This is the strongest result of any test so far, local or cloud.</td>
+              <td>A genuinely hard form: dense legal paragraphs with multiple conditions bundled into single sentences. The model correctly broke each paragraph into a clear yes/no question, without inventing anything or missing a condition. The strongest result of any test to that point.</td>
             </tr>
             <tr>
               <td class="mod">NZ Operational Service Medal application</td>
-              <td class="st"><span class="tag built">yes</span></td>
+              <td class="st"><span class="tag built">success</span></td>
               <td class="num">73 seconds</td>
               <td class="num">$0 (free tier)</td>
-              <td>A tricky government form where the person filling it in ("your contact details") isn't always the same person the application is about ("service personnel details") — the model kept these two people's information correctly separated. It also correctly told apart two different declaration sections that only apply in different situations (one for a living ex-service member, one for a posthumous/deceased application), and honestly flagged lower confidence on a handwritten-style fill-in-the-blank date line rather than guessing.</td>
+              <td>A form where the person filling it in is not always the person the application concerns; the model kept the two identities correctly separated, told apart two conditional declaration sections, and honestly flagged lower confidence on a handwritten-style field rather than guessing.</td>
             </tr>
             <tr>
               <td class="mod">Northland Pharmacist Pathway Scholarship application</td>
-              <td class="st"><span class="tag built">yes</span></td>
+              <td class="st"><span class="tag built">success</span></td>
               <td class="num">61 seconds</td>
               <td class="num">$0 (free tier)</td>
-              <td>Correctly noticed that some fields only apply to certain applicants (e.g. "Student ID Number" is only needed if you're already a University of Otago student) and added that as a helpful note rather than treating it as always-required. Also correctly separated the short structured questions on page 1 from a longer, essay-style "tell us about your interest" question on page 2.</td>
+              <td>Correctly identified conditional field requirements and added them as guidance rather than treating them as always-required. Correctly separated short structured questions from a longer essay-style question.</td>
             </tr>
             <tr>
               <td class="mod">NZ citizenship application (adult)</td>
-              <td class="st"><span class="tag todo">error (twice)</span></td>
-              <td class="num">2s, then 120s (timed out)</td>
+              <td class="st"><span class="tag todo">failed (twice)</span></td>
+              <td class="num">2s, then 120s (timeout)</td>
               <td class="num">—</td>
-              <td>Failed twice in two different ways. First attempt: OpenRouter's own file handling rejected the PDF ("Failed to parse") before the model ever saw it, in under 2 seconds. Second attempt (retried): the file was accepted this time, but the model never replied within the 2-minute safety limit. Two different failures on the same file suggests this specific form is a genuine problem case — likely because NZ citizenship application forms are unusually long/dense — rather than a one-off hiccup. Worth testing with the current paid production model (<code>google/gemma-3-27b-it</code>) to see if dedicated (non-free) capacity handles it better, since the free tier is shared and rate-limited.</td>
+              <td>Failed twice in two different ways. First attempt: OpenRouter's own file handling rejected the PDF before the model saw it, in under 2 seconds. Second attempt: the file was accepted, but the model did not respond within the 2-minute limit. Two different failures on the same file suggested a genuine problem case, possibly related to length or density; flagged for follow-up testing with a paid model.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="note guard">
-        <span><b>About the "$0" cost:</b> OpenRouter's free tier genuinely does not charge — no money has been loaded into the account and nothing has been billed. (The raw API response briefly showed a small non-zero "cost" figure for free-tier calls; this turned out to be a reference number some providers report even on free routes, not a real charge, and the table/tool have since been corrected to only show real costs for paid models.)</span>
+        <span><b>On the "$0" figures:</b> OpenRouter's free tier does not charge; no funds had been loaded into the account and nothing was billed. An early version of this table briefly showed a small non-zero cost figure from the raw API response; this turned out to be a reference value some providers report even on free routes, not an actual charge, and has since been corrected.</span>
       </div>
 
-      <p>This first wave (5 forms, one model) looked very strong. The next step was a much bigger, harsher test — see the fourth test round below.</p>
+      <p>This first wave (5 forms, one model) was strong. The next step was a larger stress test; see the fourth test round below.</p>
     </div>
   </section>
 
   <section>
     <div class="num">04d</div>
     <div class="body">
-      <h2>Fourth test round — a full 16-form stress test, three free cloud models</h2>
-      <p class="lede">Once the first five cloud results looked promising, the natural next question was: does this hold up at real scale, uploaded as a batch, back to back, with no gaps in between? Two more free models were added for comparison at the same time — Google's slightly larger Gemma 4 31B, and a completely different model family from Nvidia (Nemotron), specifically built for reading documents rather than general chat. 16 real forms were uploaded together and run through all three models — <b>48 attempts total.</b></p>
+      <h2>Fourth test round: a 16-form stress test, three free cloud models</h2>
+      <p class="lede">The next question was whether the strong initial results held up at scale, uploaded as a batch with no gaps between forms. Two more free models were added for comparison: a slightly larger Gemma 4 variant, and a document-focused model from Nvidia (Nemotron). 16 real forms were run through all three models, 48 attempts in total.</p>
 
       <div class="note built">
-        <span><b>Headline result:</b> only one of the three models actually worked: <code>google/gemma-4-26b-a4b-it:free</code>, and even it started strong then slowed down partway through the batch before recovering by the end. The other two free models (<code>gemma-4-31b-it:free</code> and Nvidia's Nemotron) <b>never once produced a usable result across all 16 forms</b> — not because they read forms badly, but because neither ever got a real chance to finish: one was constantly told to slow down by its host, the other consistently ran out of time before answering.</span>
+        <span><b>Result:</b> only one of the three models worked at all, <code>google/gemma-4-26b-a4b-it:free</code>, and even it slowed through the middle of the batch before recovering by the end. The other two models never produced a single usable result across all 16 forms, not because of accuracy problems but because neither completed enough attempts to be judged: one was consistently rate-limited by its provider, the other consistently timed out.</span>
       </div>
 
       <div class="scroll">
@@ -568,133 +565,133 @@
           <thead>
             <tr>
               <th scope="col">Model</th>
-              <th scope="col">Worked</th>
-              <th scope="col">What went wrong the rest of the time</th>
-              <th scope="col">In plain terms</th>
+              <th scope="col">Success rate</th>
+              <th scope="col">Failure modes</th>
+              <th scope="col">Notes</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td class="mod">google/gemma-4-26b-a4b-it:free</td>
               <td class="st"><span class="tag built">6 / 16</span></td>
-              <td>8 timed out, 1 hit a shared file-reading outage, 1 tripped a bug in our own comparison tool (not the model's fault)</td>
-              <td>The only model that worked at all, and every time it did succeed, the result was genuinely accurate — same quality bar as the earlier single-form tests. But it visibly slowed down and started timing out through the middle of this large back-to-back batch, then came right again on the very last form. This looks like the free tier getting busy under sustained heavy use, not a flaw in the model itself — a real person using the app one form at a time, not 16 in a row, would likely see far fewer of these failures.</td>
+              <td>8 timed out, 1 hit a shared file-reading outage, 1 tripped a bug in the comparison tool</td>
+              <td>The only model that worked at all, and accurate every time it did: the same quality bar as the earlier single-form tests. It visibly slowed and began timing out through the middle of this large batch, then recovered on the final form, consistent with free-tier congestion under sustained load rather than a model limitation.</td>
             </tr>
             <tr>
               <td class="mod">google/gemma-4-31b-it:free</td>
               <td class="st"><span class="tag todo">0 / 16</span></td>
-              <td>14 rejected instantly with "temporarily rate-limited," 1 hit the same file-reading outage, 1 tool bug</td>
-              <td>This model's free capacity was essentially unavailable for the entire test, usually rejecting the request within 2–7 seconds with a message saying it was overloaded and to try again later. This says nothing about whether the model is any good at reading forms — it never actually got to try. Not a viable option right now, but not ruled out for the future either.</td>
+              <td>14 rejected instantly as rate-limited, 1 hit the shared outage, 1 tool bug</td>
+              <td>Free capacity for this model was effectively unavailable throughout the test, typically rejecting requests within 2 to 7 seconds. This reflects availability, not accuracy; the model never got a real attempt.</td>
             </tr>
             <tr>
               <td class="mod">nvidia/nemotron-nano-12b-v2-vl:free</td>
               <td class="st"><span class="tag todo">0 / 16</span></td>
-              <td>15 out of 16 ran out of time (2-minute safety limit) with no answer at all, 1 hit the shared file-reading outage</td>
-              <td>Every single attempt either timed out or failed before reaching the model. Like the model above, this tells us nothing about actual accuracy — it never once produced a real answer to judge. Either this model is currently too slow to be practical on the free tier, or its free capacity is similarly overloaded.</td>
+              <td>15 of 16 timed out at the 2-minute limit, 1 hit the shared outage</td>
+              <td>Every attempt either timed out or failed before reaching the model. As with the model above, this says nothing about accuracy; no real answer was ever produced to evaluate.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="note guard">
-        <span><b>A shared outage, not a model problem:</b> one form ("Criminal history consent form") failed identically and instantly on all three models with the message "Failed to parse." A closer look at one of these errors showed OpenRouter uses a separate, shared document-reading service behind the scenes (from a company called Mistral) to turn a PDF into readable text before any model sees it — and that service was briefly down. This affected every model equally and had nothing to do with which AI was chosen.</span>
+        <span><b>A shared infrastructure outage, not a model problem:</b> one form failed identically and instantly on all three models. The error detail showed OpenRouter uses a separate, shared document pre-processing service (from Mistral) to convert a PDF into readable content before any model sees it, and that service was briefly unavailable. This affected every model equally and was unrelated to model choice.</span>
       </div>
 
       <div class="note">
-        <span><b>A bug in our own testing tool, not the model:</b> twice, <code>gemma-4-26b</code> returned an answer but our comparison tool crashed while trying to read it ("Cannot read properties of undefined"), because the tool assumed every answer would always include a list of form sections and didn't handle the rare case where that was missing. This has been fixed in <code>scripts/online-test-lib.ts</code> so future runs don't lose that data — but it means 2 of the 16 results for this model are unknown rather than pass/fail.</span>
+        <span><b>A bug in the comparison tool, not the model:</b> twice, <code>gemma-4-26b</code> returned a valid answer, but the comparison tool crashed while reading it, because it assumed every response would include a populated sections array and did not handle the case where that was missing. Fixed in <code>scripts/online-test-lib.ts</code>; 2 of the 16 results for this model were recorded as unknown rather than pass or fail as a result.</span>
       </div>
 
-      <p><b>What this means for choosing a model:</b> <code>gemma-4-26b-a4b-it:free</code> remains the clear front-runner — it is the only model that has ever successfully read a real form in any test so far, local or cloud, and every time it succeeds the result is high quality. But this batch shows it isn't yet bulletproof under heavy back-to-back load, so it shouldn't be treated as "solved" — a smaller-scale real-world trial (one form at a time, like an actual user) is the fairer next test. The other two free models are not ruled out, but they need to be tried again on quieter days, or with a longer time limit, before any real verdict can be reached on their accuracy.</p>
+      <p><b>Conclusion:</b> <code>gemma-4-26b-a4b-it:free</code> remained the clear front-runner, the only model to have successfully read a real form in any test to that point, with consistently high quality when it succeeded. The batch showed it was not yet reliable under heavy concurrent load, so a smaller-scale, more realistic trial (one form at a time) was identified as the fairer next test. The other two free models were not ruled out on accuracy, since neither was given a fair opportunity to demonstrate it.</p>
     </div>
   </section>
 
   <section>
     <div class="num">04e</div>
     <div class="body">
-      <h2>Fifth test round — retrying the 10 failures, one form at a time</h2>
-      <p class="lede">The fourth test round's headline theory was "the model itself is fine, it just got overwhelmed running 16 forms back to back." The fair way to test that theory is to try the exact same 10 failed forms again, individually this time, with real gaps between each — only <code>gemma-4-26b-a4b-it:free</code> was used (the other two free models were dropped from routine testing, since neither ever produced a single result to judge).</p>
+      <h2>Fifth test round: retrying the 10 failures individually</h2>
+      <p class="lede">The fourth round's working theory was that the model itself was sound but had been overwhelmed running 16 forms back to back. To test that theory directly, the same 10 failed forms were retried individually, with real gaps between attempts, using only <code>gemma-4-26b-a4b-it:free</code> (the other two free models were dropped from routine testing, having never produced a single result to evaluate).</p>
 
       <div class="scroll">
         <table>
           <thead>
             <tr>
               <th scope="col">Form</th>
-              <th scope="col">Result this time</th>
-              <th scope="col">In plain terms</th>
+              <th scope="col">Result</th>
+              <th scope="col">Notes</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td class="mod">Medical Examiner designation application</td>
               <td class="st"><span class="tag built">succeeded</span></td>
-              <td>Timed out in the big batch, worked cleanly alone (114s). Supports the "batch fatigue" theory.</td>
+              <td>Timed out in the batch; worked cleanly alone (114s). Supports the batch-congestion theory.</td>
             </tr>
             <tr>
               <td class="mod">Criminal history consent form</td>
               <td class="st"><span class="tag built">succeeded</span></td>
-              <td>Hit the shared "Failed to parse" outage in the big batch, worked cleanly alone (106s) — confirms that failure really was the outage, not this file.</td>
+              <td>Hit the shared parsing outage in the batch; worked cleanly alone (106s), confirming the earlier failure was the outage, not this file.</td>
             </tr>
             <tr>
               <td class="mod">IR330 (tax code declaration)</td>
               <td class="st"><span class="tag built">succeeded</span></td>
-              <td>Previously hit our own tool's bug (fixed since — see below) rather than a real model failure. Now returns a fast (55s), accurate result.</td>
+              <td>Previously hit the comparison tool's bug rather than a real model failure. Now returns a fast (55s), accurate result.</td>
             </tr>
             <tr>
               <td class="mod">NZ citizenship application (adult)</td>
               <td class="st"><span class="tag todo">failed again</span></td>
-              <td>Timed out a second time, alone this time — not batch fatigue. This is the longest form tested (26 pages of dense text), and a genuine NZ government form.</td>
+              <td>Timed out a second time, this time in isolation, ruling out batch congestion. The longest form tested (26 pages) and an official NZ government form.</td>
             </tr>
             <tr>
               <td class="mod">IR742 (offshore IRD number application)</td>
               <td class="st"><span class="tag todo">failed again</span></td>
-              <td>Timed out a second time, alone. Only 4 pages, so length alone doesn't explain it — another NZ government form.</td>
+              <td>Timed out a second time in isolation. Only 4 pages, so length alone does not explain it. Another NZ government form.</td>
             </tr>
             <tr>
               <td class="mod">PAS310 (NZ passport application)</td>
               <td class="st"><span class="tag todo">failed again</span></td>
-              <td>Timed out a second time, alone. Another NZ government form.</td>
+              <td>Timed out a second time in isolation. Another NZ government form.</td>
             </tr>
             <tr>
               <td class="mod">Sponsorship Form for Temporary Entry (INZ 1025)</td>
               <td class="st"><span class="tag todo">failed again</span></td>
-              <td>Timed out a second time, alone. A long (13-page) NZ Immigration form.</td>
+              <td>Timed out a second time in isolation. A 13-page NZ Immigration form.</td>
             </tr>
             <tr>
               <td class="mod">Childcare and OSCAR subsidy application</td>
               <td class="st"><span class="tag todo">failed again</span></td>
-              <td>Its first real chance to be tested (previously hit the tool bug) — still timed out on its own. A Work and Income (MSD) form.</td>
+              <td>First real attempt, having previously hit the tool bug; still timed out in isolation. A Work and Income (MSD) form.</td>
             </tr>
             <tr>
               <td class="mod">Community Services Card application</td>
               <td class="st"><span class="tag todo">failed again</span></td>
-              <td>Timed out a second time, alone. Another Work and Income (MSD) form.</td>
+              <td>Timed out a second time in isolation. Another Work and Income (MSD) form.</td>
             </tr>
             <tr>
               <td class="mod">Residential tenancy agreement</td>
               <td class="st"><span class="tag todo">failed differently</span></td>
-              <td>Previously hit the tool bug; this time failed with a bare "fetch failed" after 76 seconds — a different, technical failure traced to a gap in how the testing tool made its network request (fixed, see below). Not a government form, but similar dense legal/official boilerplate.</td>
+              <td>Previously hit the tool bug; this attempt failed with a network-level error after 76 seconds, traced to a gap in the testing tool's request configuration (since fixed). Not a government form, but similar in legal density.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="note built">
-        <span><b>A real pattern, not just bad luck:</b> every single one of the 6 forms that failed twice (NZ citizenship, IR742, PAS310 passport, the sponsorship form, the childcare subsidy form, and the community services card) is an <b>official New Zealand government form</b> (Inland Revenue, Internal Affairs, Immigration NZ, or Work and Income). Every form that succeeded once retried alone was <b>not</b> a government form (ACC, a university scholarship, a real estate consent form, a defence force medal application, a tax code declaration). This is 6-for-6 vs. 3-for-3 — a strong enough split to treat as a genuine finding, not coincidence, though the exact reason (form length, layout density, something about how these particular PDFs are built) isn't confirmed yet.</span>
+        <span><b>A genuine pattern, not coincidence:</b> every one of the 6 forms that failed twice (NZ citizenship, IR742, PAS310, the sponsorship form, the childcare subsidy form, and the community services card) is an official New Zealand government form (Inland Revenue, Internal Affairs, Immigration NZ, or Work and Income). Every form that succeeded once retried alone was not a government form. A 6-for-6 versus 3-for-3 split is a strong enough signal to treat as a genuine finding, though the exact cause (form length, layout density, or something specific to how these PDFs are constructed) has not been confirmed.</span>
       </div>
 
       <div class="note guard">
-        <span><b>A second, previously-hidden bug found and fixed:</b> the residential tenancy agreement's "fetch failed" traced back to how Node's built-in network requests work. The testing tool (and, it turns out, the real production code that talks to OpenRouter) was using a default network setting that can silently cut off a slow-but-working request before it finishes, separate from the 2-minute limit this project intentionally sets. This has now been fixed in both the testing tool and the actual app code (<code>src/lib/openrouter/client.ts</code>) so this failure mode shouldn't happen again, in testing or for a real user.</span>
+        <span><b>A second, previously hidden bug, found and fixed:</b> the residential tenancy agreement's network error traced back to a Node.js default network timeout setting that could silently cut off a slow-but-working request, independent of this project's own intended 2-minute limit. Fixed in both the testing tool and the production client code (<code>src/lib/openrouter/client.ts</code>).</span>
       </div>
 
-      <p><b>What this means for choosing a model:</b> <code>gemma-4-26b-a4b-it:free</code> is confirmed reliable on ordinary forms — 6 real successes now across two rounds, zero failures on any non-government form. But it has a real, repeatable blind spot on New Zealand government forms specifically, which needs to be understood (and ideally fixed, e.g. with a longer timeout for these specific forms) before this model can be called demo-ready for a product whose whole point is helping people fill out exactly these kinds of forms.</p>
+      <p><b>Conclusion:</b> <code>gemma-4-26b-a4b-it:free</code> is confirmed reliable on ordinary forms, with 6 successes across two rounds and zero failures on any non-government form. It has a real, repeatable limitation on New Zealand government forms specifically, addressed further in section 6b below.</p>
     </div>
   </section>
 
   <section>
     <div class="num">05</div>
     <div class="body">
-      <h2>Pricing comparison — multimodal models only</h2>
-      <p>Pulled live from OpenRouter's models API on 2026-08-04, per <strong>1 million tokens</strong> (roughly 750,000 words), for reading the input (a whole PDF now, not just extracted text — bigger payload than before the pivot) and for the response. A single form classification uses a small fraction of a million tokens either way, so treat this as a rate rather than a per-form cost. Every model below must support image/document input — a text-only model can't do this job at all now.</p>
+      <h2>Pricing comparison: multimodal models</h2>
+      <p>Pricing pulled live from OpenRouter's models API, per 1 million tokens (roughly 750,000 words), covering both the input (a whole PDF, not just extracted text) and the response. A single form classification uses a small fraction of a million tokens, so treat this as a rate rather than a per-form cost. Every model listed must support image or document input.</p>
 
       <div class="scroll">
         <table>
@@ -711,39 +708,39 @@
               <td class="mod">google/gemma-3-27b-it</td>
               <td class="num">$0.08 / million</td>
               <td class="num">$0.45 / million</td>
-              <td><span class="tag built">current target</span> — matches the local <code>gemma4:26b</code> test candidate</td>
+              <td>Matches the local <code>gemma4:26b</code> test candidate</td>
             </tr>
             <tr>
               <td class="mod">qwen/qwen2.5-vl-72b-instruct</td>
               <td class="num">$0.80 / million</td>
               <td class="num">$1.00 / million</td>
-              <td>Closest OpenRouter listing to the Qwen2.5-VL family — no 3b/7b vision variant is actually on OpenRouter, only 72b. Local <code>qwen2.5vl:3b</code>/<code>7b</code> testing is still useful for judging the family's accuracy, just not at this exact price point.</td>
+              <td>Closest OpenRouter listing to the Qwen2.5-VL family; only a 72B vision variant is available on OpenRouter.</td>
             </tr>
             <tr>
               <td class="mod">openai/gpt-4o-mini</td>
               <td class="num">$0.15 / million</td>
               <td class="num">$0.60 / million</td>
-              <td>Well-proven multimodal, dedicated capacity. No Llama 3.2 Vision listing exists on OpenRouter (only text-only 1b/3b) — <code>llama3.2-vision:11b</code> is a local-only comparison point, not a swap-in OpenRouter option</td>
+              <td>Well-proven multimodal model, dedicated capacity.</td>
             </tr>
             <tr>
               <td class="mod">google/gemini-2.5-flash</td>
               <td class="num">$0.30 / million</td>
               <td class="num">$2.50 / million</td>
-              <td>Strong on messy/complex form layouts, no local equivalent</td>
+              <td>Strong on complex form layouts; no local equivalent tested.</td>
             </tr>
             <tr>
               <td class="mod">anthropic/claude-haiku-4.5</td>
               <td class="num">$1.00 / million</td>
               <td class="num">$5.00 / million</td>
-              <td>Text-only role here — was the second-pass verification target, replaced by a free model (see "The second model: answer verification" below) since this step doesn't need a paid model's capability for the job it does</td>
+              <td>Text-only role here; formerly the second-pass verification target, now replaced by a free model (see section 6 below).</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <p class="lede" style="font-size: 0.85rem; color: var(--ink-faint);">
-        Pulled from OpenRouter's public models API (<code>openrouter.ai/api/v1/models</code>) on 2026-08-04. Confirm current numbers at
-        <a href="https://openrouter.ai/models" target="_blank" rel="noopener">openrouter.ai/models</a> before making a budget decision — prices change as providers update them, and this table won't update itself.
+        Pulled from OpenRouter's public models API. Confirm current numbers at
+        <a href="https://openrouter.ai/models" target="_blank" rel="noopener">openrouter.ai/models</a> before making a budget decision; prices change as providers update them.
       </p>
     </div>
   </section>
@@ -752,12 +749,12 @@
     <div class="num">06</div>
     <div class="body">
       <h2>The second model: answer verification</h2>
-      <p>Since the pivot, a second, independent model call can review a filled-out form for genuine mistakes before submission — deliberately a different model from classification, so the same blind spot can't pass its own check (<code>src/lib/openrouter/verify-answers.ts</code>, <code>/api/verify</code>). This step is text-only (it reads field labels and typed answers, not the PDF itself), so it doesn't need vision, and can be a much cheaper model than classification.</p>
+      <p>A second, independent model call reviews a filled-out form for genuine mistakes before submission, deliberately a different model from classification so the same blind spot cannot pass its own check (<code>src/lib/openrouter/verify-answers.ts</code>, <code>/api/verify</code>). This step is text-only, reading field labels and typed answers rather than the PDF itself, so it does not need vision and can use a much cheaper model than classification.</p>
       <div class="note built">
-        <span><b>Current target:</b> <code>nvidia/nemotron-3-super-120b-a12b:free</code>, set in <code>VERIFICATION_MODEL</code>. Nigel's original suggestion was a free DeepSeek model, but no DeepSeek listing on OpenRouter is currently free (checked 2026-08-04 against the live models API — cheapest paid option is <code>deepseek/deepseek-v4-flash-0731</code> at $0.09/M input). Nemotron 3 Super is the closest substitute that still meets the actual requirement: free, a genuinely different model family from the classifier (Gemma), and large (120B) enough to be a real reasoning check rather than a token-saving shortcut.</span>
+        <span><b>Current target:</b> <code>nvidia/nemotron-3-super-120b-a12b:free</code>, set in <code>VERIFICATION_MODEL</code>. The original intent was a free DeepSeek model, but no DeepSeek listing on OpenRouter is currently free (the cheapest paid option is <code>deepseek/deepseek-v4-flash-0731</code> at $0.09 per million input tokens). Nemotron 3 Super is the closest substitute meeting the actual requirement: free, a genuinely different model family from the classifier, and large enough (120B parameters) to serve as a real reasoning check.</span>
       </div>
       <div class="note built">
-        <span><b>Tested directly against <code>/api/verify</code>, 2026-08-04:</b> two real requests. First, a name typed into an email field (a genuine mismatch) — correctly flagged with a clear, plain-language message. Second, three genuinely valid answers including a deliberately minimal "N/A" on an optional field — correctly returned no issues at all, matching the prompt's "flag sparingly, don't nitpick style" instruction. Now called from the real <code>/confirm</code> flow (<code>handleFinish()</code>) whenever a form is confirmed and downloaded — deliberately best-effort and not yet surfaced anywhere in the UI (a verification failure never blocks the download), so the result is available but there's no warning banner or gate built on it yet. That UI decision is left open for whoever picks it up next.</span>
+        <span><b>Tested directly against <code>/api/verify</code>:</b> two real requests. First, a name typed into an email field, a genuine mismatch, correctly flagged with a clear message. Second, three genuinely valid answers including a deliberately minimal response on an optional field, correctly returned with no issues, matching the prompt's instruction to flag sparingly rather than nitpick style. Now called from the production confirm flow whenever a form is confirmed and downloaded, deliberately best-effort: a verification failure never blocks the download. The result is not yet surfaced anywhere in the UI; that design decision remains open.</span>
       </div>
     </div>
   </section>
@@ -765,11 +762,11 @@
   <section>
     <div class="num">06b</div>
     <div class="body">
-      <h2>Free vs. paid, head to head — 2026-08-05</h2>
-      <p class="lede">Prompted by a real question: does paying for a model actually fix the free model's known gap on long/dense forms, and if it does, is the free model's <em>accuracy</em> still competitive, or is speed the only thing free is winning on? Ran <code>google/gemma-4-26b-a4b-it:free</code> (already validated) against 7 paid candidates, all 8 models on the same 5 real forms.</p>
+      <h2>Free versus paid: head-to-head comparison</h2>
+      <p class="lede">This comparison was prompted by two questions: does paying for a model resolve the free model's known limitation on long or dense forms, and if so, does the free model's accuracy remain competitive, or is speed the only advantage of paying? <code>google/gemma-4-26b-a4b-it:free</code> (already validated) was benchmarked against 7 paid candidates, all 8 models on the same 5 real forms.</p>
 
       <div class="note guard">
-        <span><b>Total cost:</b> $0.21 across 35 paid calls (7 models × 5 forms) — see the per-model breakdown below. Estimated at ~$0.35 beforehand; came in under that.</span>
+        <span><b>Total cost:</b> $0.21 across 35 paid calls (7 models times 5 forms). Estimated at approximately $0.35 beforehand; came in under estimate.</span>
       </div>
 
       <div class="scroll">
@@ -788,56 +785,56 @@
               <td class="mod">google/gemma-4-26b-a4b-it:free</td>
               <td class="num">90.2s</td>
               <td class="num">$0</td>
-              <td>Real — 2–4 distinct confidence values on every form</td>
-              <td>None across 128 fields checked</td>
+              <td>Genuine variation: 2 to 4 distinct confidence values on every form</td>
+              <td>None, across 128 fields checked</td>
             </tr>
             <tr>
               <td class="mod">anthropic/claude-haiku-4.5</td>
               <td class="num">7.7s</td>
               <td class="num">$0.0714</td>
-              <td>Real — 3–4 distinct values on every form, the most consistent of any paid model</td>
+              <td>Genuine variation: 3 to 4 distinct values on every form, the most consistent of any paid model</td>
               <td>None</td>
             </tr>
             <tr>
-              <td class="mod">google/gemma-3-27b-it (Nigel's pick)</td>
+              <td class="mod">google/gemma-3-27b-it (mentor's pick)</td>
               <td class="num">3.6s</td>
               <td class="num">$0.0280</td>
-              <td>Real — 1–5 distinct values, mostly good</td>
+              <td>Genuine variation: 1 to 5 distinct values, mostly good</td>
               <td>None</td>
             </tr>
             <tr>
               <td class="mod">mistralai/mistral-small-3.2-24b-instruct</td>
               <td class="num">3.4s</td>
               <td class="num">$0.0268</td>
-              <td>Real — 2–3 distinct values consistently</td>
+              <td>Genuine variation: 2 to 3 distinct values consistently</td>
               <td>None</td>
             </tr>
             <tr>
               <td class="mod">google/gemini-2.5-flash</td>
               <td class="num">2.8s</td>
               <td class="num">$0.0268</td>
-              <td class="st"><span class="tag guard">Weak</span> — collapsed to a single confidence value (all fields identical) on 2 of 5 forms</td>
+              <td class="st"><span class="tag guard">Weak</span>: collapsed to a single confidence value on 2 of 5 forms</td>
               <td>None</td>
             </tr>
             <tr>
               <td class="mod">openai/gpt-4o-mini</td>
               <td class="num">2.8s</td>
               <td class="num">$0.0202</td>
-              <td>Real — 2–5 distinct values</td>
-              <td class="st"><span class="tag todo">Yes</span> — returned only 7 of 23 real fields on Criminal history consent form (missed ~70% of the form)</td>
+              <td>Genuine variation: 2 to 5 distinct values</td>
+              <td class="st"><span class="tag todo">Yes</span>: returned only 7 of 23 real fields on the criminal history consent form, missing roughly 70 percent of the form</td>
             </tr>
             <tr>
               <td class="mod">google/gemini-2.5-flash-lite</td>
               <td class="num">3.3s</td>
               <td class="num">$0.0049</td>
-              <td class="st"><span class="tag guard">Weak</span> — collapsed to a single value on 3 of 5 forms, worse than the full Flash model</td>
-              <td class="st"><span class="tag todo">Yes</span> — split a single Yes/No question into two disconnected boolean fields on acc-form</td>
+              <td class="st"><span class="tag guard">Weak</span>: collapsed to a single value on 3 of 5 forms, worse than the full Flash model</td>
+              <td class="st"><span class="tag todo">Yes</span>: split a single yes/no question into two disconnected boolean fields on the ACC form</td>
             </tr>
             <tr>
               <td class="mod">qwen/qwen2.5-vl-72b-instruct</td>
               <td class="num">4.3s</td>
               <td class="num">$0.0317</td>
-              <td class="st"><span class="tag todo">Broken</span> — a single confidence value (no variation at all) on <b>every one of the 5 forms</b></td>
+              <td class="st"><span class="tag todo">Broken</span>: a single confidence value, no variation at all, on every one of the 5 forms</td>
               <td>None</td>
             </tr>
           </tbody>
@@ -845,31 +842,31 @@
       </div>
 
       <div class="note built">
-        <span><b>Speed and cost:</b> every paid model here is 15–35× faster than the free model, at a cost of roughly 1–4 cents per form. This is the clearest, most unambiguous result — paid models genuinely solve the free model's biggest weakness (timing out on long/dense forms, confirmed separately on a 26-page form that failed 3 times on the free tier and succeeded in 5.3s with Gemini 2.5 Flash).</span>
+        <span><b>Speed and cost:</b> every paid model tested was 15 to 35 times faster than the free model, at a cost of roughly 1 to 4 cents per form. This is the clearest and most unambiguous result: paid models resolve the free model's primary weakness, timing out on long or dense forms, confirmed separately on a 26-page form that failed three times on the free tier and succeeded in 5.3 seconds with Gemini 2.5 Flash.</span>
       </div>
 
       <div class="note guard">
-        <span><b>Accuracy is not simply "better because paid."</b> Two real, repeatable problems showed up only in paid models, never in the free model across the same 5 forms:
+        <span><b>Accuracy is not simply better because a model is paid.</b> Two real, repeatable problems appeared only in paid models, never in the free model, across the same 5 forms.
         <br><br>
-        <b>Confidence calibration collapse.</b> The whole point of a confidence score is flagging genuinely uncertain fields for a closer look (<code>/review</code> tags anything under 0.5). Three paid models — both Gemini variants and Qwen2.5-VL — returned the exact same confidence value for every field on at least one form, sometimes every form. That's not real calibration, it's a constant. If this ships, low-confidence flagging silently stops meaning anything for any form processed by one of these three.
+        <b>Confidence calibration collapse.</b> A confidence score exists to flag genuinely uncertain fields for closer review (the review page tags anything under 0.5). Three paid models, both Gemini variants and Qwen2.5-VL, returned the exact same confidence value for every field on at least one form, sometimes every form. That is not calibration, it is a constant, and it would silently defeat low-confidence flagging on any form processed by one of these three.
         <br><br>
-        <b>Missed and mis-structured fields.</b> <code>gpt-4o-mini</code> silently dropped 16 of 23 real questions on one form — no error, no low confidence, just gone. <code>gemini-2.5-flash-lite</code> split a single Yes/No question into two separate disconnected boolean fields (the same structural bug flagged earlier from a single-form test) — a real usability problem, since nothing stops someone answering "yes" to both halves.</span>
+        <b>Missed and mis-structured fields.</b> <code>gpt-4o-mini</code> silently dropped 16 of 23 real questions on one form, with no error and no low-confidence flag. <code>gemini-2.5-flash-lite</code> split a single yes/no question into two separate, disconnected boolean fields, the same structural issue observed in an earlier single-form test, a real usability problem since nothing prevents a user from answering yes to both halves.</span>
       </div>
 
-      <p><b>Read after this comparison:</b> <code>claude-haiku-4.5</code>, <code>gemma-3-27b-it</code> (Nigel's original pick), and <code>mistral-small-3.2-24b</code> are the three paid models that showed <em>no</em> accuracy regression against the free model across all 5 forms — all real confidence variation, zero structural bugs. Of those three, <code>gemma-3-27b-it</code> and <code>mistral-small-3.2-24b</code> are meaningfully cheaper per form than Claude Haiku. If switching to a paid model for the demo, one of those three is the evidence-backed choice — not simply "whichever is fastest or cheapest," since two of the cheapest/fastest options (the Gemini variants, Qwen) are exactly the ones with real accuracy problems.</p>
+      <p><b>Conclusion:</b> <code>claude-haiku-4.5</code>, <code>gemma-3-27b-it</code> (the mentor's original recommendation), and <code>mistral-small-3.2-24b</code> showed no accuracy regression against the free model across any of the 5 forms tested, with genuine confidence variation and zero structural bugs. Of the three, <code>gemma-3-27b-it</code> and <code>mistral-small-3.2-24b</code> are meaningfully cheaper per form than Claude Haiku. If moving to a paid model, one of these three is the evidence-based choice; the cheapest or fastest options in this comparison were also the ones with real accuracy problems.</p>
     </div>
   </section>
 
   <section>
     <div class="num">07</div>
     <div class="body">
-      <h2>If a different classification model turns out to work better</h2>
-      <p>The change is a one-line edit in <code>src/lib/openrouter/client.ts</code> (<code>CLASSIFICATION_MODEL</code>). No redesign needed — <code>classify-pdf.ts</code> and the prompt itself don't assume anything model-specific beyond "accepts a PDF file and returns JSON."</p>
+      <h2>Switching classification models</h2>
+      <p>Changing the classification model is a one-line edit in <code>src/lib/openrouter/client.ts</code> (<code>CLASSIFICATION_MODEL</code>). No further changes are needed; <code>classify-pdf.ts</code> and the prompt itself make no assumptions specific to any one model beyond accepting a PDF file and returning JSON.</p>
     </div>
   </section>
 
   <footer>
-    <p>Pricing pulled live from OpenRouter's API as of 2026-08-04. See <a href="KNOWN-ISSUES.html">Known Risks</a> for the reliability and privacy tradeoffs of the current pipeline, and <a href="INTEGRATION.html">the integration doc</a> for where in the process each model gets called.</p>
+    <p>Pricing pulled live from OpenRouter's API. See <a href="KNOWN-ISSUES.html">Known Risks</a> for the reliability and privacy tradeoffs of the current pipeline, and <a href="INTEGRATION.html">the integration doc</a> for where in the process each model gets called.</p>
   </footer>
 
 </div>
