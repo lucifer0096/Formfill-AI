@@ -99,10 +99,20 @@ export async function callOpenRouter(
 // retry once alone), 502 (OpenRouter's Mistral-OCR PDF pre-processing step
 // going down independently of any model — confirmed by a retry succeeding
 // on the exact file that failed), 504 (upstream timeout/gateway). Not
-// retried: 400/401/403 (bad request, auth, permission — retrying changes
-// nothing) or a missing/malformed response body (a model or parsing
-// problem, not a network one).
+// retried by default: 400/401/403 (bad request, auth, permission —
+// retrying usually changes nothing) or a missing/malformed response body
+// (a model or parsing problem, not a network one).
 const RETRYABLE_STATUSES = new Set([429, 502, 504]);
+
+// One specific 400 IS worth retrying: "Failed to parse" is OpenRouter's
+// Mistral-OCR PDF pre-processing step rejecting the file before any model
+// sees it — the same underlying outage as the 502 case above, just
+// surfaced as a 400 instead. Confirmed transient: the exact form that hit
+// this retried successfully, unmodified, minutes later (docs/MODELS.html
+// §04e). A genuinely malformed request (bad model name, invalid payload)
+// would fail with a different message and isn't matched by this.
+const RETRYABLE_400_MESSAGE = /failed to parse/i;
+
 const RETRY_DELAY_MS = 3_000;
 
 async function sleep(ms: number): Promise<void> {
@@ -152,6 +162,7 @@ export async function callOpenRouterWithUsage(
     if (!response.ok) {
       if (attempt === 0 && RETRYABLE_STATUSES.has(response.status)) continue;
       const body = await response.text();
+      if (attempt === 0 && response.status === 400 && RETRYABLE_400_MESSAGE.test(body)) continue;
       throw new Error(`OpenRouter request failed (${response.status}): ${body}`);
     }
 

@@ -334,7 +334,7 @@
           <span class="sev medium">Medium</span>
         </div>
         <p>During the 16-form cloud batch (<a href="MODELS.html">MODELS.html §04d</a>), one form failed identically and instantly on all three models tested with "Failed to parse." The error detail showed OpenRouter uses a separate, shared document-reading service (from Mistral) to turn a PDF into readable text before any model sees it — and that service was briefly unavailable, unrelated to model choice. Retrying that same form alone (§04e) succeeded cleanly, confirming it was a transient outage, not a problem with the file.</p>
-        <div class="fix"><b>Status:</b> disclosed, not yet mitigated — no retry-on-parse-failure logic exists in <code>classify-pdf.ts</code> today. A simple one-retry-after-delay would likely cover transient outages like this one.</div>
+        <div class="fix"><b>Status:</b> fixed. <code>src/lib/openrouter/client.ts</code> now retries once, after a short delay, specifically when the error message says "Failed to parse" — the same signature confirmed transient here. A genuinely malformed request (wrong model name, broken payload) isn't matched by this and still fails immediately, since retrying that would never help.</div>
       </div>
 
       <div class="risk low">
