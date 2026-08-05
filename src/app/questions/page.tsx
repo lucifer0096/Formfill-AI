@@ -13,7 +13,7 @@ import {
   type ConversationState,
 } from "@/lib/conversation/machine";
 import type { Announcement } from "@/lib/conversation/announce";
-import { fieldById } from "@/lib/form-model/traverse";
+import { applicableFields, fieldById } from "@/lib/form-model/traverse";
 
 /**
  * Global single-key commands from ACCESSIBILITY.md §3. Only active when
@@ -253,6 +253,13 @@ export default function QuestionsPage() {
   const suggestionAnnouncement = lastAnnouncements.find((a) => a.kind === "suggestion");
   const verbatimAnnouncement = lastAnnouncements.find((a) => a.kind === "verbatim");
 
+  // Same field list and position the engine's own spoken "Question N of M"
+  // announcement is built from (machine.ts) — this only adds a second,
+  // visual channel for the same information, not a replacement for it.
+  const allFields = applicableFields(engine.form, engine.answers);
+  const questionPosition = allFields.findIndex((f) => f.id === field.id) + 1;
+  const questionTotal = allFields.length;
+
   return (
     <main
       id="main-content"
@@ -260,6 +267,20 @@ export default function QuestionsPage() {
       onKeyDown={handleKeyDown}
     >
       <ProgressTrail current={4} />
+
+      {questionTotal > 0 && (
+        <div className="mt-4 flex items-center gap-3" aria-hidden="true">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/20">
+            <div
+              className="h-full rounded-full bg-accent-strong transition-[width]"
+              style={{ width: `${(questionPosition / questionTotal) * 100}%` }}
+            />
+          </div>
+          <span className="shrink-0 text-xs text-muted">
+            {questionPosition} / {questionTotal}
+          </span>
+        </div>
+      )}
 
       <p className="sr-only" role="status" aria-live="assertive">
         {questionAnnouncement?.text}
@@ -322,8 +343,19 @@ export default function QuestionsPage() {
             // required, so a required signature field had no way forward
             // at all. Skip is the actual intended path for every signature
             // field, so it's offered directly here regardless of required.
-            <div className="rounded-md border-2 border-muted/40 px-4 py-3 text-base text-muted">
-              <p>
+            <div className="flex items-start gap-3 rounded-md border-2 border-accent-strong/40 bg-accent-strong/5 px-4 py-3 text-base">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="mt-0.5 h-5 w-5 shrink-0 text-accent-strong"
+              >
+                <path d="M3 17c3-1 5-4 6-7 1-3 2-6 4-6s1 4-1 7-5 5-8 6c3 0 6-1 8-3" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M15 19h6" strokeLinecap="round" />
+              </svg>
+              <p className="text-muted">
                 This form needs a real, handwritten signature — it can&apos;t be typed here. You&apos;ll
                 sign the printed or downloaded copy by hand.
               </p>

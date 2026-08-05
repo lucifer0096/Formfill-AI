@@ -83,6 +83,7 @@ export default function ReviewFieldsPage() {
 
 function ReviewFields({ fields }: { fields: Field[] }) {
   const headingRef = useRouteFocus<HTMLHeadingElement>();
+  const lowConfidenceCount = fields.filter((field) => bandFor(field.confidence) === "low").length;
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
       <ProgressTrail current={2} />
@@ -106,7 +107,17 @@ function ReviewFields({ fields }: { fields: Field[] }) {
         <h2 id="fields-heading" className="sr-only">
           Detected fields
         </h2>
-        <ul className="divide-y divide-muted/20">
+        <div className="flex items-center justify-between gap-4 rounded-md bg-muted/10 px-4 py-3">
+          <p className="text-sm font-semibold">
+            {fields.length} {fields.length === 1 ? "question" : "questions"} found
+          </p>
+          {lowConfidenceCount > 0 && (
+            <span className="shrink-0 rounded-full bg-accent-strong/10 px-3 py-1 text-xs font-semibold text-accent-strong">
+              {lowConfidenceCount} {lowConfidenceCount === 1 ? "needs" : "need"} a closer look
+            </span>
+          )}
+        </div>
+        <ul className="mt-4 divide-y divide-muted/20">
           {fields.map((field) => {
             const band = bandFor(field.confidence);
             return (

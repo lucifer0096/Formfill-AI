@@ -1,6 +1,7 @@
 import SupportedFileTypes from "@/components/upload/SupportedFileTypes";
 import StepsPanel, { type Step } from "@/components/StepsPanel";
 import UploadWorkflow from "@/components/upload/UploadWorkflow";
+import ProgressTrail from "@/components/ProgressTrail";
 
 const NEXT_STEPS: Step[] = [
   { title: "Upload form", description: "Upload your PDF, PNG, or JPG form." },
@@ -13,13 +14,15 @@ const NEXT_STEPS: Step[] = [
 export default function Home() {
   return (
     <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+      <ProgressTrail current={1} />
+
       {/*
         DOM order (and therefore Tab order) stays 1-2-3-4 regardless of screen
         size. The `session-grid` rule in globals.css only repositions items
         visually on md+ screens: 1 and 2 stack in the left column, 3 sits
         beside them on the right, 4 spans full width underneath.
       */}
-      <div className="session-grid space-y-10 md:space-y-0">
+      <div className="session-grid mt-8 space-y-10 md:space-y-0">
         {/* Tab stop 1: page intro */}
         <section aria-labelledby="page-heading" tabIndex={0} className="rounded-lg">
           <h1 id="page-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">

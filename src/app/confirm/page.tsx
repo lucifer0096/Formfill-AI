@@ -214,6 +214,20 @@ export default function ConfirmPage() {
         </p>
       </section>
 
+      {verificationResult && !verificationResult.ok && verificationResult.issues.length > 0 && (
+        <div className="mt-8">
+          <Notice tone="warning">
+            <span className="font-semibold">Worth a second look: </span>
+            {verificationResult.issues.map((issue, index) => (
+              <span key={issue.fieldId}>
+                {index > 0 && " "}
+                {issue.concern}
+              </span>
+            ))}
+          </Notice>
+        </div>
+      )}
+
       <Card as="section" aria-labelledby="answers-heading" tabIndex={0} className="mt-8">
         <div className="flex items-baseline justify-between gap-4">
           <h2 id="answers-heading" className="sr-only">
