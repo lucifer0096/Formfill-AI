@@ -406,6 +406,38 @@
 
         <div class="risk low">
           <div class="risk-head">
+            <b>A skipped signature question still blocked confirmation forever</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>Fixing the dead end above surfaced a second, deeper issue: the review gate treated a skipped signature question exactly like an unanswered one, so confirming was refused and the user was sent back to the same signature question indefinitely, with no way to ever finish a form that required one. A skipped signature is the correct, expected outcome for that question type, not an outstanding answer, so it no longer blocks confirmation.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
+            <b>A single yes-or-no question could be split into two dead-end questions</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>On at least one real form, the classification model represented a single yes-or-no question as two separate choice questions instead of one, each offering only "Yes" or only "No" as its sole option. Answering one left the other still outstanding with no way to answer it meaningfully. This kind of split is now detected and merged back into a single question after classification, independent of which model produced it.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Finishing the last question could leave the answer flow on a blank screen</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>Answering or skipping the final question moves the underlying engine into its review phase, but the answer flow page had no view for that phase and misread it as an empty form, showing a bare fallback message instead of continuing to the review page. It now recognizes this phase correctly and continues automatically.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
+            <b>Answers from a previous upload could persist into a new one</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>Question identifiers are regenerated fresh on every classification call, not held stable across uploads. Starting a new upload without clearing the previous session's answers meant a new form's third question, for example, could silently inherit whatever answer had been given to a completely unrelated previous form's third question. A new upload now clears any answers left over from a prior session first.</p>
+        </div>
+
+        <div class="risk low">
+          <div class="risk-head">
             <b>"Read back" on the review page didn't actually mark an answer as heard</b>
             <span class="sev low">Fixed</span>
           </div>
