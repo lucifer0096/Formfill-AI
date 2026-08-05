@@ -281,7 +281,7 @@
 
   <header class="mast">
     <div>
-      <p class="eyebrow">FormFill · rahul branch · known risks</p>
+      <p class="eyebrow">FormFill · known risks</p>
       <h1>Things that can break, and what to do about them</h1>
       <p>A plain list of real risks found while building and testing. These are things that actually happened, not hypotheticals.</p>
     </div>
@@ -292,7 +292,7 @@
     <div class="num">01</div>
     <div class="body">
       <h2>How to read this page</h2>
-      <p class="lede">Each item below is rated by how likely it is to actually cause a problem during a demo or real use, not by how bad it would theoretically be. Most were found by testing with real forms, not guessed at.</p>
+      <p class="lede">Each item is rated by how likely it is to cause a problem during a demo or real use, not by how severe it would be in theory. Most were found through testing with real forms, not identified by inspection alone.</p>
     </div>
   </section>
 
@@ -306,17 +306,17 @@
           <b>Personal information in a PDF is no longer redacted before the AI call</b>
           <span class="sev high">High</span>
         </div>
-        <p>Since the 2026-08-03 pivot to a single multimodal classification call (see <a href="INTEGRATION.html">INTEGRATION.html</a>), the whole PDF is sent to the model, not just extracted text. Redaction (<code>src/lib/redact</code>) only ever pattern-matched PII in text — it has no way to inspect or redact information rendered inside a PDF's pages before those bytes leave the device. This is a real, deliberate tradeoff agreed with Nigel (most of these forms are public forms already in the cloud, and local extraction was too unreliable to keep building the previous redaction step around), not an oversight — but it should be said out loud at a demo, not left implicit.</p>
-        <div class="fix"><b>Status:</b> disclosed tradeoff, not currently mitigated. If this needs to change later, redaction would have to move to either a pre-send image-level pass or be dropped in favour of per-model provider privacy terms.</div>
+        <p>Since the pivot to a single multimodal classification call (see <a href="INTEGRATION.html">the integration doc</a>), the whole PDF is sent to the model, not just extracted text. Redaction (<code>src/lib/redact</code>) only ever pattern-matched personal information in text; it has no way to inspect or redact information rendered inside a PDF's pages before those bytes leave the device. This is a deliberate tradeoff agreed with the mentor: most of these forms are public forms already handled in the cloud, and local extraction proved too unreliable to justify keeping the previous redaction step. It should be stated explicitly at a demo, not left implicit.</p>
+        <div class="fix"><b>Status:</b> disclosed tradeoff, not currently mitigated. If this needs to change, redaction would have to move to a pre-send image-level pass, or be dropped in favour of per-model provider privacy terms.</div>
       </div>
 
       <div class="risk high">
         <div class="risk-head">
-          <b>The best-known model consistently fails on NZ government forms specifically</b>
+          <b>The best-known model consistently fails on New Zealand government forms</b>
           <span class="sev high">High</span>
         </div>
-        <p>Local testing (see <a href="MODELS.html">MODELS.html §04/§04b</a>) found three working local models across two forms: <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (the mentor-recommended model) — all produced genuinely correct results. A 16-form cloud batch (<a href="MODELS.html">MODELS.html §04c/§04d</a>) then found <code>google/gemma-4-26b-a4b-it:free</code> succeeding on 6/16, with the rest assumed to be free-tier congestion under batch load. A follow-up round retried those 10 failures one at a time, with real gaps between each, to test that theory (<a href="MODELS.html">MODELS.html §04e</a>): <strong>6 of the 10 failed again, even alone</strong> — and every one of those 6 is an official NZ government form (Inland Revenue, Internal Affairs, Immigration NZ, Work and Income). Every form that succeeded once retried alone was <em>not</em> a government form. This is a 6-for-6 vs. 3-for-3 split, strong enough to treat as a genuine pattern rather than coincidence, though the exact cause (length, layout density, something about how these specific PDFs are built) isn't confirmed.</p>
-        <div class="fix"><b>Status:</b> partially resolved. A paid model (<code>google/gemini-2.5-flash</code>) was tested directly against the worst-affected form (a 26-page NZ citizenship application that timed out 3 times on the free tier) and succeeded in 5.3 seconds — strong evidence the failure was free-tier capacity/rate-limiting, not a genuine limit on what the model can handle. Paying for a model is a real, confirmed fix for this specific issue if the demo needs to use a long/dense or government form. See the entry below on paid-model accuracy tradeoffs before picking which paid model, though — not every paid option is a clean upgrade.</div>
+        <p>Local testing found three working models across two forms: <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (the mentor's recommendation), all producing correct results. A subsequent 16-form cloud batch found <code>google/gemma-4-26b-a4b-it:free</code> succeeding on 6 of 16, with the remainder initially attributed to free-tier congestion under batch load. A follow-up round retried those 10 failures individually, with real gaps between attempts, to test that assumption. Six of the ten failed again, even in isolation, and every one of those six is an official New Zealand government form (Inland Revenue, Internal Affairs, Immigration New Zealand, or Work and Income). Every form that succeeded once retried alone was not a government form. A 6-for-6 versus 3-for-3 split is a strong enough signal to treat as a genuine pattern rather than coincidence, though the exact cause (length, layout density, or something specific to how these particular PDFs are constructed) has not been confirmed.</p>
+        <div class="fix"><b>Status:</b> partially resolved. A paid model (<code>google/gemini-2.5-flash</code>) was tested directly against the worst-affected form, a 26-page NZ citizenship application that had timed out three times on the free tier, and succeeded in 5.3 seconds. This is strong evidence the failure was free-tier capacity or rate-limiting rather than a genuine limit on model capability. Paying for a model is a confirmed fix for this issue where a demo requires a long, dense, or government form. See the entry below on paid-model accuracy tradeoffs before selecting a paid model, since not every paid option is a clean upgrade.</div>
       </div>
 
       <div class="risk medium">
@@ -324,8 +324,8 @@
           <b>Not every paid model is a clean upgrade over the free one</b>
           <span class="sev medium">Medium</span>
         </div>
-        <p>A head-to-head comparison (<a href="MODELS.html">MODELS.html §06b</a>, 2026-08-05) ran the free model against 7 paid candidates on the same 5 real forms. Every paid model was 15–35× faster for 1–4 cents per form — a clear, unambiguous win. But two real accuracy problems showed up <em>only</em> in certain paid models, never in the free model across the same forms: three models (both Gemini variants, and Qwen2.5-VL) returned the exact same confidence score for every field on at least one form — sometimes every form — which silently defeats the low-confidence flagging this product relies on to keep a blind or low-vision user safe from a wrong guess. Separately, <code>gpt-4o-mini</code> silently dropped 16 of 23 real questions on one form (no error, just missing), and <code>gemini-2.5-flash-lite</code> repeated a structural bug seen earlier — splitting one Yes/No question into two disconnected fields.</p>
-        <div class="fix"><b>Recommendation:</b> if switching to a paid model, three came back clean on every form tested — <code>anthropic/claude-haiku-4.5</code>, <code>google/gemma-3-27b-it</code> (the mentor's original recommendation), and <code>mistralai/mistral-small-3.2-24b-instruct</code>. Of those, the latter two are meaningfully cheaper per form. Avoid picking a paid model purely on speed or price without checking this table first — the cheapest/fastest options in this comparison were also the ones with real accuracy problems.</div>
+        <p>A head-to-head comparison benchmarked the free model against 7 paid candidates on the same 5 real forms. Every paid model was 15 to 35 times faster for 1 to 4 cents per form, a clear win. But two real accuracy problems appeared only in certain paid models, never in the free model, across the same forms. Three models (both Gemini variants, and Qwen2.5-VL) returned the exact same confidence score for every field on at least one form, sometimes every form, which silently defeats the low-confidence flagging this product relies on to protect a blind or low-vision user from a wrong guess. Separately, <code>gpt-4o-mini</code> silently dropped 16 of 23 real questions on one form with no error, and <code>gemini-2.5-flash-lite</code> repeated a structural bug seen earlier, splitting one yes/no question into two disconnected fields.</p>
+        <div class="fix"><b>Recommendation:</b> three models came back clean on every form tested: <code>anthropic/claude-haiku-4.5</code>, <code>google/gemma-3-27b-it</code> (the mentor's original recommendation), and <code>mistralai/mistral-small-3.2-24b-instruct</code>. Of these, the latter two are meaningfully cheaper per form. A paid model should not be selected on speed or price alone; the cheapest and fastest options in this comparison were also the ones with real accuracy problems.</div>
       </div>
 
       <div class="risk medium">
@@ -333,8 +333,8 @@
           <b>OpenRouter's own PDF-reading step can go down independently of any model</b>
           <span class="sev medium">Medium</span>
         </div>
-        <p>During the 16-form cloud batch (<a href="MODELS.html">MODELS.html §04d</a>), one form failed identically and instantly on all three models tested with "Failed to parse." The error detail showed OpenRouter uses a separate, shared document-reading service (from Mistral) to turn a PDF into readable text before any model sees it — and that service was briefly unavailable, unrelated to model choice. Retrying that same form alone (§04e) succeeded cleanly, confirming it was a transient outage, not a problem with the file.</p>
-        <div class="fix"><b>Status:</b> fixed. <code>src/lib/openrouter/client.ts</code> now retries once, after a short delay, specifically when the error message says "Failed to parse" — the same signature confirmed transient here. A genuinely malformed request (wrong model name, broken payload) isn't matched by this and still fails immediately, since retrying that would never help.</div>
+        <p>During the 16-form cloud batch, one form failed identically and instantly on all three models tested, with a "Failed to parse" error. The error detail showed OpenRouter uses a separate, shared document-reading service (from Mistral) to convert a PDF into readable text before any model sees it, and that service was briefly unavailable. Retrying the same form alone succeeded cleanly, confirming this was a transient outage rather than a problem with the file.</p>
+        <div class="fix"><b>Status:</b> fixed. <code>src/lib/openrouter/client.ts</code> now retries once, after a short delay, specifically when the error message indicates a parsing failure, the same signature confirmed transient here. A genuinely malformed request (wrong model name, broken payload) is not matched by this and still fails immediately, since retrying would not help in that case.</div>
       </div>
 
       <div class="risk low">
@@ -342,8 +342,8 @@
           <b>A network-level timeout gap could silently cut off a slow-but-working request</b>
           <span class="sev low">Fixed</span>
         </div>
-        <p>The §04e retry round surfaced a bare "fetch failed" on one form after 76 seconds — well under the app's own 2-minute intended limit. Root cause: Node's built-in <code>fetch</code> is built on <code>undici</code>, whose default network Agent has its own separate 300-second header timeout that can behave unpredictably under real network conditions, independent of any timeout this app sets deliberately. The same underlying issue was previously found and fixed in the local model-testing tooling (<code>scripts/model-test-lib.ts</code>).</p>
-        <div class="fix"><b>Status:</b> fixed in <code>src/lib/openrouter/client.ts</code> (the real production code every model call goes through, not just testing tools) by using <code>undici</code>'s <code>fetch</code> directly with an explicit, generous timeout Agent, removing the ambiguity between two different timeout systems fighting each other.</div>
+        <p>A retry round surfaced a bare "fetch failed" on one form after 76 seconds, well under the app's own intended 2-minute limit. The root cause: Node's built-in <code>fetch</code> is built on <code>undici</code>, whose default network agent has its own separate 300-second header timeout that can behave unpredictably under real network conditions, independent of any timeout this app sets deliberately. The same underlying issue was previously found and fixed in the local model-testing tooling.</p>
+        <div class="fix"><b>Status:</b> fixed in <code>src/lib/openrouter/client.ts</code>, the production code every model call goes through, by using <code>undici</code>'s <code>fetch</code> directly with an explicit, generous timeout agent, removing the conflict between two different timeout systems.</div>
       </div>
 
       <div class="risk medium">
@@ -351,8 +351,8 @@
           <b>Scanned photos and image-only forms aren't supported</b>
           <span class="sev medium">Medium</span>
         </div>
-        <p>Only PDFs work today, either with real fillable fields, or flat PDFs with readable text. A photo of a paper form, or a scanned image with no text layer, is detected and clearly flagged as unsupported rather than failing silently.</p>
-        <div class="fix"><b>Recommendation:</b> for any demo, use a real PDF (either kind above), not a photo.</div>
+        <p>Only PDFs work today, whether they have real fillable fields or are flat PDFs with readable text. A photo of a paper form, or a scanned image with no text layer, is detected and clearly flagged as unsupported rather than failing silently.</p>
+        <div class="fix"><b>Recommendation:</b> for any demo, use a real PDF of either kind above, not a photo.</div>
       </div>
     </div>
   </section>
@@ -361,7 +361,7 @@
     <div class="num">03</div>
     <div class="body">
       <h2>Risks that were found and already fixed</h2>
-      <p>Listed for transparency. These happened during development and are resolved, not currently live issues.</p>
+      <p>Listed for transparency. These occurred during development and are resolved, not currently live issues.</p>
 
       <div class="qs">
         <div class="risk low">
@@ -369,7 +369,7 @@
             <b>A model wrapping its answer in markdown could crash reading the form entirely</b>
             <span class="sev low">Fixed</span>
           </div>
-          <p>Every AI prompt in this app explicitly says "no markdown fencing," but not every model actually follows that. Found directly while comparing 7 paid models on 2026-08-05: <code>anthropic/claude-haiku-4.5</code> wrapped its answer in a code block on every single one of 5 real test forms, despite being told not to. The code that reads the model's answer had no defense against this — it would have failed outright with a technical error instead of showing a form, the day any model (not just this one) decided to add formatting. Fixed by having the app strip that wrapping automatically before reading the answer, regardless of which model sends it.</p>
+          <p>Every AI prompt in this app explicitly instructs the model not to use markdown fencing, but not every model follows that instruction. Found directly while comparing 7 paid models: <code>anthropic/claude-haiku-4.5</code> wrapped its answer in a code block on every one of 5 real test forms, despite being told not to. The code that reads the model's answer had no defence against this; it would have failed outright with a technical error instead of showing a form, the first time any model decided to add formatting. Fixed by having the app strip that wrapping automatically before reading the answer, regardless of which model sends it.</p>
         </div>
 
         <div class="risk low">
@@ -377,7 +377,7 @@
             <b>The live site was quietly using an untested, paid model instead of the free one that was actually tested</b>
             <span class="sev low">Fixed</span>
           </div>
-          <p>All the real-form testing in §04–§04e validated <code>google/gemma-4-26b-a4b-it:free</code>, but the production code's model setting was never actually updated to match — it was still pointed at Nigel's original suggestion, <code>google/gemma-3-27b-it</code>, which had never been tested against a real form and turned out to be frequently rate-limited. Found by reproducing a real "couldn't read that file" report and adding proper error logging (previously the real error was silently discarded) — the logs showed the wrong model name immediately. This wasn't just a quality problem: it was quietly spending real OpenRouter credits on failed requests instead of using the free, validated model. Fixed by correcting the model setting and redeploying; confirmed afterward with a successful real upload.</p>
+          <p>Extensive real-form testing validated <code>google/gemma-4-26b-a4b-it:free</code>, but the production code's model setting was never updated to match; it was still pointed at the mentor's original suggestion, <code>google/gemma-3-27b-it</code>, which had never been tested against a real form and turned out to be frequently rate-limited. Found by reproducing a real "couldn't read that file" report and adding proper error logging, since the underlying error had previously been silently discarded; the logs showed the incorrect model name immediately. This was not only a quality issue: it was quietly spending real OpenRouter credits on failed requests instead of using the free, validated model. Fixed by correcting the model setting and redeploying, confirmed with a successful real upload afterward.</p>
         </div>
 
         <div class="risk low">
@@ -385,7 +385,7 @@
             <b>Clicking Previous discarded what was typed and didn't show answers already given</b>
             <span class="sev low">Fixed</span>
           </div>
-          <p>Two related bugs on the question-answering page: clicking Previous (or pressing the P key) before submitting an answer silently threw away whatever had just been typed, and going back to a question that already had an answer showed an empty box instead of what was actually saved. Both traced to the same cause — the on-screen answer box wasn't actually connected to the saved answers, just its own temporary memory that got wiped on every question change. Fixed so Previous now saves a genuinely new answer before going back (but doesn't force an answer on a question being left blank on purpose), and revisiting any question always shows what was actually saved for it.</p>
+          <p>Two related bugs on the question-answering page: clicking Previous, or pressing the P key, before submitting an answer silently discarded whatever had just been typed, and returning to a question that already had an answer showed an empty box instead of what was actually saved. Both traced to the same cause: the on-screen answer box was not actually connected to the saved answers, only to its own temporary memory that was cleared on every question change. Fixed so Previous now saves a genuinely new answer before navigating back, without forcing an answer on a question being deliberately left blank, and revisiting any question always shows what was actually saved.</p>
         </div>
 
         <div class="risk low">
@@ -393,15 +393,15 @@
             <b>Confirming with unanswered required questions didn't take you back to them</b>
             <span class="sev low">Fixed</span>
           </div>
-          <p>Trying to finish with a required question still unanswered is meant to send you straight back to it — the underlying logic already worked out which question that was, but nothing ever acted on it, so the review page just sat there with no visible change at all. Fixed so it now genuinely takes you to that question.</p>
+          <p>Attempting to finish with a required question still unanswered is meant to return the user to it directly. The underlying logic already identified which question that was, but nothing acted on it, so the review page showed no visible change. Fixed so it now genuinely navigates to that question.</p>
         </div>
 
         <div class="risk low">
           <div class="risk-head">
-            <b>A required signature question could not be gotten past</b>
+            <b>A required signature question could not be completed</b>
             <span class="sev low">Fixed</span>
           </div>
-          <p>Signature questions were shown as an ordinary text box, but typing anything into one was always rejected on purpose — this product never accepts a signature typed on a keyboard, only a real one signed by hand afterward. The "Skip" option that should have offered a way past it was hidden whenever the question was required, so a required signature question was a genuine dead end: nothing you typed would ever be accepted, and there was no button to move on. Fixed with a clear explanation and a direct "I'll sign this by hand" button in its place.</p>
+          <p>Signature questions were presented as an ordinary text box, but any typed input was rejected by design, since this product never accepts a signature typed on a keyboard, only a genuine one signed by hand afterward. The Skip option that should have offered a way past it was hidden whenever the question was required, so a required signature question was a genuine dead end: nothing typed would ever be accepted, and there was no button to proceed. Fixed with a clear explanation and a direct "I'll sign this by hand" action in its place.</p>
         </div>
 
         <div class="risk low">
@@ -409,15 +409,15 @@
             <b>"Read back" on the review page didn't actually mark an answer as heard</b>
             <span class="sev low">Fixed</span>
           </div>
-          <p>The review gate (the rule that every answer must genuinely be heard before finishing) relies on tracking which answers were actually stepped through — but clicking an individual answer's "Read back" button used a different, unrelated action that never updated that tracking at all. Clicking it looked like it should count, but it silently never did, which could make the gate feel like it was ignoring the user. Also, an unanswered question showed a "Read back" button that made no sense on nothing — it now correctly says "Answer this" and takes you to that question instead.</p>
+          <p>The review gate, the rule that every answer must genuinely be heard before finishing, relies on tracking which answers were actually stepped through. Clicking an individual answer's "Read back" button used a different, unrelated action that never updated that tracking. The click appeared to register but never counted, which could make the gate feel unresponsive. Additionally, an unanswered question showed a "Read back" button that made no sense on an empty field; it now correctly reads "Answer this" and navigates to that question.</p>
         </div>
 
         <div class="risk low">
           <div class="risk-head">
-            <b>A page could freeze/crash on certain forms</b>
+            <b>A page could freeze or crash on certain forms</b>
             <span class="sev low">Fixed</span>
           </div>
-          <p>Uploading a real large form once caused the review page to crash with a "maximum update depth exceeded" error, a technical bug where the page kept re-checking the same data in a loop. Found through real testing, root-caused, and fixed the same day, then verified with a full re-test.</p>
+          <p>Uploading a real large form once caused the review page to crash with a "maximum update depth exceeded" error, a technical issue where the page repeatedly re-checked the same data in a loop. Found through real testing, root-caused, and fixed the same day, then verified with a full retest.</p>
         </div>
 
         <div class="risk low">
@@ -425,15 +425,15 @@
             <b>Setting the AI service key on the live site broke every request</b>
             <span class="sev low">Fixed</span>
           </div>
-          <p>A hidden character got included by accident when saving the AI service's access key to the hosting platform, which caused every request to fail with a confusing error. Traced to the exact cause and fixed by re-saving the key a different way.</p>
+          <p>A hidden character was included by accident when saving the AI service's access key to the hosting platform, causing every request to fail with a confusing error. Traced to the exact cause and fixed by re-saving the key a different way.</p>
         </div>
 
         <div class="risk low">
           <div class="risk-head">
             <b>Personal information wasn't being stripped before the AI call</b>
-            <span class="sev low">Fixed, then superseded — see §02</span>
+            <span class="sev low">Fixed, then superseded (see the high-severity entry above)</span>
           </div>
-          <p>Text extracted from flat forms was sent to the classification model as-is, with no check for names, emails, national ID numbers, or similar personal details it might contain. Fixed by porting the same detection logic the team's shared codebase already uses, and confirmed by inspecting the exact text sent to the model during testing: real names and email addresses were replaced with placeholders before leaving the server. <strong>This fix no longer applies</strong> — the 2026-08-03 pivot sends the whole PDF to the model instead of extracted text, which the redaction step can't inspect. See the new high-severity entry above.</p>
+          <p>Text extracted from flat forms was sent to the classification model as-is, with no check for names, emails, national ID numbers, or similar personal details it might contain. Fixed by porting the same detection logic the team's shared codebase already used, and confirmed by inspecting the exact text sent to the model during testing: real names and email addresses were replaced with placeholders before leaving the server. <strong>This fix no longer applies.</strong> The pivot to sending the whole PDF to the model instead of extracted text means the redaction step can no longer inspect the content sent. See the high-severity entry above.</p>
         </div>
 
         <div class="risk low">
@@ -441,7 +441,7 @@
             <b>Checkboxes on real PDFs showed as a text box, and field labels were meaningless</b>
             <span class="sev low">Fixed</span>
           </div>
-          <p>Testing against a real government form with real fillable fields surfaced two separate bugs: checkboxes and multiple-choice fields rendered as a free-text box instead of something you tick, and on a form whose fields were auto-named by whatever tool built it (things like "001", "002"), those meaningless internal names were shown as the question itself. Fixed by rendering the right control per field type, and by finding the actual label text printed next to each field on the page (no AI model involved — a local, position-based lookup) instead of relying on the field's internal name.</p>
+          <p>Testing against a real government form with real fillable fields surfaced two separate bugs: checkboxes and multiple-choice fields rendered as a free-text box instead of a selectable control, and on a form whose fields were auto-named by the tool that produced it (labels such as "001", "002"), those meaningless internal names were shown as the question itself. Fixed by rendering the correct control per field type, and by locating the actual label text printed next to each field on the page, a local position-based lookup with no AI model involved, instead of relying on the field's internal name.</p>
         </div>
       </div>
     </div>
@@ -450,42 +450,42 @@
   <section>
     <div class="num">04</div>
     <div class="body">
-      <h2>Things to keep in mind, lower urgency</h2>
+      <h2>Lower-urgency items to keep in mind</h2>
       <div class="qs">
         <div class="risk low">
           <div class="risk-head">
             <b>Filled-document output only covers two cases</b>
             <span class="sev low">Known gap</span>
           </div>
-          <p>"Confirm and finish" now produces a real download: a genuinely filled PDF for forms with real fillable fields, or a plain question/answer summary for forms that were read as flat text. There's no in-between yet, for example drawing answers onto a flat PDF at their original position, so a flat form's output is a summary document rather than a marked-up copy of the original.</p>
+          <p>Confirming and finishing produces a real download: a genuinely filled PDF for forms with real fillable fields, or a plain question-and-answer summary for forms read as flat text. There is no intermediate case yet, for example drawing answers onto a flat PDF at their original position, so a flat form's output is a summary document rather than a marked-up copy of the original.</p>
         </div>
         <div class="risk low">
           <div class="risk-head">
-            <b>Not yet reconciled with the team's shared code (<code>main</code> branch)</b>
+            <b>Not yet reconciled with the team's shared codebase</b>
             <span class="sev low">Known gap</span>
           </div>
-          <p>This branch was built independently to move quickly for the hackathon. Four of <code>main</code>'s engine packages (form-model, conversation, validate, redact) have since been ported over with their logic unmodified, so the two branches now behave the same way in those areas — but this is still a hand-copy, not a real npm workspace import, so a genuine merge is intentionally scheduled for after the next team sync, not something skipped by accident.</p>
+          <p>This branch was built independently to move quickly during the hackathon. Four of the shared codebase's engine packages (form-model, conversation, validate, redact) have since been ported over with unmodified logic, so behaviour matches in those areas, but this remains a hand-copy rather than a real workspace import. A genuine merge is intentionally scheduled for after the next team sync, not something skipped by accident.</p>
         </div>
         <div class="risk low">
           <div class="risk-head">
             <b>Large forms with repeated grids surface every cell as its own question</b>
             <span class="sev low">Known gap</span>
           </div>
-          <p>A form built as a table (e.g. a per-room property condition checklist, or a per-person schedule) has no concept of "this is one row" in the current field model — every individual box shows up as a separate question in the flow. Real for genuinely large government/legal forms; no grouping heuristic has been built for it yet.</p>
+          <p>A form built as a table, such as a per-room property condition checklist or a per-person schedule, has no concept of "this is one row" in the current field model; every individual box appears as a separate question in the flow. This applies to genuinely large government or legal forms, and no grouping approach has been built for it yet.</p>
         </div>
         <div class="risk low">
           <div class="risk-head">
             <b>No accounts, no saved history between sessions</b>
             <span class="sev low">By design, for now</span>
           </div>
-          <p>Closing the browser tab clears everything. This matches the project's privacy-first goal (nothing is stored on a server) but means there's no way to resume a form later. Worth flagging as a product decision to revisit, not a bug.</p>
+          <p>Closing the browser tab clears everything. This matches the project's privacy-first goal of storing nothing on a server, but means there is no way to resume a form later. This is a product decision worth revisiting, not a bug.</p>
         </div>
       </div>
     </div>
   </section>
 
   <footer>
-    <p>Compiled from real issues found while building and testing the <code>rahul</code> branch. Keep this list up to date as new risks are found or existing ones are resolved. A stale copy is more dangerous than no page at all.</p>
+    <p>Compiled from real issues found while building and testing this application. Keep this list current as new risks are found or existing ones are resolved; a stale copy is more dangerous than no page at all.</p>
   </footer>
 
 </div>

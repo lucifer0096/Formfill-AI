@@ -381,9 +381,9 @@
 
   <header class="mast">
     <div>
-      <p class="eyebrow">FormFill · rahul branch · AI integration log</p>
+      <p class="eyebrow">FormFill · AI integration</p>
       <h1>What's been built on the AI-integration side</h1>
-      <p>A working record of the ingest, classification and UI-wiring work done on <code>rahul</code>, and what's still open.</p>
+      <p>A working record of the ingest, classification, and UI-wiring work, and what remains open.</p>
     </div>
     <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
   </header>
@@ -391,10 +391,10 @@
   <section>
     <div class="num">01</div>
     <div class="body">
-      <h2>Scope of this branch</h2>
-      <p class="lede">The UI work has moved to the <code>Arya</code> branch. <code>rahul</code>'s focus from here is the AI/ingest pipeline: a PDF goes in, and a classified set of questions — mapped back onto any real fillable fields where possible — comes out the other end, ready for either branch's UI to consume.</p>
+      <h2>Scope of this document</h2>
+      <p class="lede">This document covers the AI and ingest pipeline: a PDF is submitted, and a classified set of questions, mapped back onto any real fillable fields where possible, comes out the other end, ready for the UI to consume.</p>
       <div class="note">
-        <span><b>Not merged into <code>main</code> or <code>Arya</code>.</b> The team's existing <code>packages/*</code> on <code>main</code> are the eventual source of truth for this logic, but reconciling this branch with them (a real npm workspace import, not a copy) is deliberately deferred until the next sync with Nigel. Until then, <code>form-model</code>, <code>conversation</code>, <code>validate</code>, and <code>redact</code> are all hand-ported here, unmodified logic, matching <code>main</code>'s shape rather than importing it.</span>
+        <span><b>Not yet reconciled with the team's shared workspace packages.</b> Those packages are the eventual source of truth for this logic, but reconciling this codebase with them (a real workspace import, not a copy) is deliberately deferred until the next team sync. Until then, <code>form-model</code>, <code>conversation</code>, <code>validate</code>, and <code>redact</code> are all hand-ported here with unmodified logic, matching the shared shape rather than importing it directly.</span>
       </div>
     </div>
   </section>
@@ -402,35 +402,35 @@
   <section>
     <div class="num">02</div>
     <div class="body">
-      <h2>The pipeline — rebuilt 2026-08-03 after the Nigel meeting</h2>
-      <p class="lede">The three-path local-detection pipeline described in earlier versions of this page is gone. It's archived, not deleted, at <code>src/lib/ingest/_archive/</code> — see that folder's <code>README.md</code> for the full reasoning. Every PDF now goes through one path: the whole document is sent to a multimodal model in a single call.</p>
+      <h2>The pipeline</h2>
+      <p class="lede">An earlier three-path local-detection pipeline is described in <code>src/lib/ingest/_archive/README.md</code>, archived rather than deleted, along with the full reasoning behind replacing it. Every PDF now goes through a single path: the whole document is sent to a multimodal model in one call.</p>
 
       <div class="note guard">
-        <span><b>Why the pivot.</b> Local AcroForm/text-layer detection was tested against 10-15 real forms and worked correctly on a minority of them — Nigel's framing was that this isn't an accuracy problem to keep patching, it's a reliability problem: "it's not that they're inaccurate, it's that they're unreliable... they'll work perfectly once out of every 10 times, then fine three out of ten, then completely break seven out of ten." PDF structure isn't standardised enough for a heuristic tuned against one PDF (Acrobat-generated, Word-exported, scanned) to generalise to the next one. The fix he recommended: stop trying to parse PDF structure locally, and let a multimodal model read the document the way a person would — visually.</span>
+        <span><b>Why this approach was chosen.</b> Local AcroForm and text-layer detection was tested against 10 to 15 real forms and worked correctly on a minority of them. The project mentor's framing was that this is not an accuracy problem to keep patching but a reliability problem: results varied unpredictably between forms rather than failing consistently in a way that could be fixed. PDF structure is not standardised enough for a heuristic tuned against one PDF (Acrobat-generated, Word-exported, scanned) to generalise to the next. The recommended approach: stop parsing PDF structure locally, and let a multimodal model read the document the way a person would, visually.</span>
       </div>
 
       <div class="pipe" role="img" aria-label="Pipeline: multimodal classification, filled PDF or summary PDF on Confirm, second-pass verification.">
         <div class="stage done">
           <b>1 · Field-name enumeration</b>
-          <span>A small local pdf-lib pass lists real AcroForm field names only (no position, no label guessing) — src/lib/ingest/acroform-fields.ts. Empty list for flat/scanned forms.</span>
+          <span>A small local pdf-lib pass lists real AcroForm field names only, with no position or label guessing (<code>src/lib/ingest/acroform-fields.ts</code>). Returns an empty list for flat or scanned forms.</span>
         </div>
         <div class="stage done">
           <b>2 · Classify</b>
-          <span>The whole PDF, plus that field-name list as context, goes to OpenRouter in one call. The model returns structured questions and maps each one to a real field name where one applies.</span>
+          <span>The whole PDF, plus that field-name list as context, is sent to OpenRouter in one call. The model returns structured questions and maps each one to a real field name where applicable.</span>
         </div>
         <div class="stage done">
           <b>3 · Emit</b>
-          <span>Filled PDF for any field the model mapped to a real AcroForm name, summary PDF entries for the rest — a form can now be a genuine mix of both, not one or the other.</span>
+          <span>A filled PDF is produced for any field the model mapped to a real AcroForm name, with summary entries for the rest; a single form can now genuinely mix both output types.</span>
         </div>
-        <div class="stage">
+        <div class="stage done">
           <b>4 · Verify</b>
-          <span>A second, different model checks the filled answers for real mistakes before submission (Nigel's reliability pass) — called from <code>/confirm</code>'s <code>handleFinish()</code> on every download. Best-effort and not yet surfaced in the UI: a failure never blocks the download, and no warning is shown yet for issues it does find.</span>
+          <span>A second, different model checks the filled answers for real mistakes before submission, called automatically on every download. This is best-effort and not yet surfaced in the UI: a failure never blocks the download, and no warning is currently shown for issues it finds.</span>
         </div>
       </div>
 
-      <p>Model choice: real testing (local Ollama cycles and an OpenRouter cloud batch, both across several real forms) replaced Nigel's starting suggestion, Gemma 3 27B — <code>CLASSIFICATION_MODEL</code> is now <code>google/gemma-4-26b-a4b-it:free</code>, the only model that produced consistently correct results. It has a known gap on official NZ government forms specifically. See <code>docs/MODELS.html</code> for the full testing history and current pricing comparison.</p>
+      <p>Model choice: real testing, including local model cycles and an OpenRouter cloud batch across several real forms, replaced the mentor's starting suggestion, Gemma 3 27B. The classification model is now <code>google/gemma-4-26b-a4b-it:free</code>, the only model that produced consistently correct results. It has a known gap on official NZ government forms specifically. See <a href="MODELS.html">the model selection document</a> for the full testing history and current pricing comparison.</p>
 
-      <p>Same pipeline, as a flowchart — including the branch point the stage list above doesn't show (whether the PDF has real fillable fields changes what gets written back at the end, not what gets sent to the model):</p>
+      <p>The same pipeline as a flowchart, including the branch point the stage list above does not show: whether the PDF has real fillable fields determines what gets written back at the end, not what gets sent to the model.</p>
 
       <div class="scroll">
         <pre class="mermaid">
@@ -452,9 +452,9 @@ flowchart TD
   <section>
     <div class="num">03</div>
     <div class="body">
-      <h2>What this costs on privacy — a disclosed tradeoff, not an oversight</h2>
+      <h2>The privacy cost: a disclosed tradeoff, not an oversight</h2>
       <div class="note guard">
-        <span><b>Redaction no longer covers this path.</b> <code>src/lib/redact</code> pattern-matches PII in extracted <em>text</em> — it has no way to inspect or redact information rendered inside a PDF's pages before those bytes are sent to the model. Nigel's framing on this tradeoff: most of these forms are public forms that are already in the cloud, and the whole premise of the pivot is that local extraction was too unreliable to keep building around. This is a real, disclosed change from the previous branch state (which redacted every outbound call, no exceptions) — worth saying out loud at a demo rather than leaving implicit.</span>
+        <span><b>Redaction no longer covers this path.</b> <code>src/lib/redact</code> pattern-matches personal information in extracted text; it has no way to inspect or redact information rendered inside a PDF's pages before those bytes are sent to the model. The mentor's framing on this tradeoff: most of these forms are public forms already handled in the cloud, and the premise of this approach is that local extraction proved too unreliable to justify building around it. This is a real, disclosed change from the earlier state, in which every outbound call was redacted with no exceptions, and should be stated explicitly at a demo rather than left implicit.</span>
       </div>
     </div>
   </section>
@@ -469,33 +469,33 @@ flowchart TD
             <tr><th scope="col">File</th><th scope="col">What it does</th><th scope="col">State</th></tr>
           </thead>
           <tbody>
-            <tr><td class="mod">lib/form-model/types.ts</td><td>The Form IR — mirrors <code>main</code>'s <code>packages/form-model</code> types by hand</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/form-model/traverse.ts</td><td>Skip-logic evaluation, applicable/outstanding/needs-attention field lookups — ported from <code>main</code>'s <code>packages/form-model</code></td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/conversation/machine.ts</td><td>The pure conversation state machine (ask, skip, review, confirm), ported from <code>main</code>'s <code>packages/conversation</code>, unmodified logic</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/conversation/announce.ts</td><td>Turns engine state into spoken-style text — question phrasing, value read-back, review-line summaries</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/validate/index.ts</td><td>Locale-aware field validation (dates, postcodes, National Insurance numbers, etc.), ported from <code>main</code>'s <code>packages/validate</code></td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/ingest/acroform-fields.ts</td><td>pdf-lib: lists real AcroForm field names only — no position, no label guessing, no classification. Given to the model as context so it can map its own detections back onto real fields</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/ingest/index.ts</td><td>Enumerates AcroForm field names (if any), then sends the whole file to /api/understand</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/openrouter/classify-pdf.ts</td><td>Base64-encodes the PDF, builds the multimodal prompt with the field-name context, parses the response into a Form</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/openrouter/client.ts</td><td>OpenRouter chat-completions wrapper, server-side only. Now supports multimodal content parts (text, image_url, file) and a per-call model override</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/openrouter/verify-answers.ts</td><td>Second-pass reliability check — a different model reviews the filled answers for real mistakes before submission</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">app/api/understand/route.ts</td><td>Accepts a multipart file upload (the PDF + the AcroForm field list), calls classifyPdf. Key never reaches the browser</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/form-model/types.ts</td><td>The Form intermediate representation, hand-mirroring the shared workspace's form-model types</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/form-model/traverse.ts</td><td>Skip-logic evaluation and applicable, outstanding, and needs-attention field lookups, ported from the shared workspace</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/conversation/machine.ts</td><td>The pure conversation state machine (ask, skip, review, confirm), ported from the shared workspace with unmodified logic</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/conversation/announce.ts</td><td>Turns engine state into spoken-style text: question phrasing, value read-back, review-line summaries</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/validate/index.ts</td><td>Locale-aware field validation (dates, postcodes, national identification numbers, and similar), ported from the shared workspace</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/acroform-fields.ts</td><td>Uses pdf-lib to list real AcroForm field names only, with no position, label guessing, or classification. Given to the model as context so it can map its own detections back onto real fields</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/index.ts</td><td>Enumerates AcroForm field names, if any, then sends the whole file to <code>/api/understand</code></td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/openrouter/classify-pdf.ts</td><td>Base64-encodes the PDF, builds the multimodal prompt with field-name context, and parses the response into a Form</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/openrouter/client.ts</td><td>OpenRouter chat-completions wrapper, server-side only. Supports multimodal content parts (text, image URL, file) and a per-call model override</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/openrouter/verify-answers.ts</td><td>Second-pass reliability check: a different model reviews the filled answers for real mistakes before submission</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">app/api/understand/route.ts</td><td>Accepts a multipart file upload (the PDF and the AcroForm field list) and calls classifyPdf. The API key never reaches the browser</td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">app/api/verify/route.ts</td><td>Standalone route for the verification pass, callable independently of the classification flow</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/session-store.ts</td><td>Hands the ingest result and in-progress answers between pages via sessionStorage — simplified, no longer has a text-layer branch</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/session-store.ts</td><td>Hands the ingest result and in-progress answers between pages via sessionStorage</td><td class="st"><span class="tag built">done</span></td></tr>
             <tr><td class="mod">app/review, /overview, /questions, /confirm</td><td>Read and write real session data instead of hardcoded arrays</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/original-file-store.ts</td><td>Holds the original uploaded file in IndexedDB for the session, needed to write real answers back into any real PDF fields the model mapped later</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/emit/fill-acroform.ts</td><td>pdf-lib: writes answers into real PDF fields (anchor.kind === "acroform"), flattens, produces a downloadable filled PDF. Unchanged by the pivot — already worked correctly on a per-field, not per-form, basis</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/emit/summary-pdf.ts</td><td>Generates a question/answer summary PDF for fields with no real field to write into</td><td class="st"><span class="tag built">done</span></td></tr>
-            <tr><td class="mod">lib/ingest/_archive/</td><td>The previous local-detection pipeline (acroform.ts, acroform-position.ts, nearby-text.ts, text-layer.ts, the old classify.ts) — archived, not deleted, per this branch's owner's request. See that folder's README.md</td><td class="st"><span class="tag guard">archived</span></td></tr>
-            <tr><td class="mod">OPENROUTER_API_KEY</td><td>Set locally and on the live deployment; required for classification to run at all now (no local-only path remains)</td><td class="st"><span class="tag built">set</span></td></tr>
-            <tr><td class="mod">Verification pass wired into a submit flow</td><td>/confirm's handleFinish calls /api/verify on every download and stores the result. No UI reads it yet — a warning banner or override gate is an open design decision, not yet built</td><td class="st"><span class="tag guard">wired, no UI</span></td></tr>
-            <tr><td class="mod">Form-template cache</td><td>Nigel's stretch idea — recognise a previously-seen form (by structure hash) and skip the model call entirely on a repeat upload. Deliberately deferred until a model is chosen and its output is trustworthy enough to cache</td><td class="st"><span class="tag later">later</span></td></tr>
-            <tr><td class="mod">PDF vs. rendered-image input</td><td>classify-pdf.ts currently sends the raw PDF via OpenRouter's file content type. Untested whether this or page-image rendering (pdfjs-dist can rasterize) gets better results per model — Nigel was explicit this needs testing, not assuming</td><td class="st"><span class="tag todo">needs testing</span></td></tr>
-            <tr><td class="mod">Field grouping for repeated grids</td><td>Large forms with per-row checkbox grids (e.g. a property inspection table) may still surface every cell as its own question — not yet re-tested against the new pipeline</td><td class="st"><span class="tag todo">not re-tested</span></td></tr>
+            <tr><td class="mod">lib/original-file-store.ts</td><td>Holds the original uploaded file in IndexedDB for the session, needed to write real answers back into any real PDF fields the model mapped</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/emit/fill-acroform.ts</td><td>Uses pdf-lib to write answers into real PDF fields, flattens the result, and produces a downloadable filled PDF; already worked correctly on a per-field basis</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/emit/summary-pdf.ts</td><td>Generates a question-and-answer summary PDF for fields with no real field to write into</td><td class="st"><span class="tag built">done</span></td></tr>
+            <tr><td class="mod">lib/ingest/_archive/</td><td>The previous local-detection pipeline, archived rather than deleted; see that folder's README for the reasoning</td><td class="st"><span class="tag guard">archived</span></td></tr>
+            <tr><td class="mod">OPENROUTER_API_KEY</td><td>Set locally and on the live deployment; required for classification to run at all, since no local-only path remains</td><td class="st"><span class="tag built">set</span></td></tr>
+            <tr><td class="mod">Verification pass wired into a submit flow</td><td>The confirm flow calls the verification route on every download and stores the result. No UI reads it yet; a warning banner or override gate is an open design decision</td><td class="st"><span class="tag guard">wired, no UI</span></td></tr>
+            <tr><td class="mod">Form-template cache</td><td>An idea to recognise a previously seen form by structure hash and skip the model call on a repeat upload, deliberately deferred until a model is chosen and its output is trustworthy enough to cache</td><td class="st"><span class="tag later">later</span></td></tr>
+            <tr><td class="mod">PDF versus rendered-image input</td><td>classify-pdf.ts currently sends the raw PDF via OpenRouter's file content type. Whether page-image rendering would produce better results per model has not been tested</td><td class="st"><span class="tag todo">needs testing</span></td></tr>
+            <tr><td class="mod">Field grouping for repeated grids</td><td>Large forms with per-row checkbox grids may still surface every cell as its own question; not yet re-tested against the current pipeline</td><td class="st"><span class="tag todo">not re-tested</span></td></tr>
           </tbody>
         </table>
       </div>
-      <p>Without a key, classification fails outright with a clear error rather than silently guessing — there's no local fallback path left to fall back to now.</p>
+      <p>Without a key, classification fails outright with a clear error rather than silently guessing; there is no local fallback path to fall back to.</p>
     </div>
   </section>
 
@@ -503,22 +503,22 @@ flowchart TD
     <div class="num">05</div>
     <div class="body">
       <h2>The shape the model has to produce</h2>
-      <p>The prompt in <code>classify-pdf.ts</code> asks the model to return sections and fields matching this shape — the same <code>Field</code> contract the rest of the app, including the conversation engine, already expects. New since the pivot: <code>acroFieldName</code> and <code>page</code>.</p>
+      <p>The prompt in <code>classify-pdf.ts</code> asks the model to return sections and fields matching this shape, the same Field contract the rest of the app, including the conversation engine, already expects. <code>acroFieldName</code> and <code>page</code> are specific to this pipeline.</p>
 
-<pre><span class="c">// src/lib/openrouter/classify-pdf.ts → src/lib/form-model/types.ts</span>
+<pre><span class="c">// src/lib/openrouter/classify-pdf.ts, src/lib/form-model/types.ts</span>
 Field {
-  <span class="k">label</span>          <span class="c">// VERBATIM as it appears on the form. Never paraphrased.</span>
+  <span class="k">label</span>          <span class="c">// verbatim as it appears on the form, never paraphrased</span>
   <span class="k">spokenLabel</span>    <span class="c">// plain-language rewrite, phrased as a question</span>
-  <span class="k">help</span>           <span class="c">// optional — only if the label alone isn't self-explanatory</span>
+  <span class="k">help</span>           <span class="c">// optional, only if the label alone isn't self-explanatory</span>
   <span class="k">type</span>           <span class="c">// date | currency | choice | name | address | …</span>
   <span class="k">required</span>       <span class="c">// boolean, best guess from the form</span>
   <span class="k">constraints</span>    <span class="c">// options[] for choice/multichoice fields</span>
-  <span class="k">confidence</span>     <span class="c">// 0..1 — the model's own honesty check, never faked high</span>
+  <span class="k">confidence</span>     <span class="c">// 0 to 1, the model's own honesty check, never faked high</span>
   <span class="k">anchor</span>         <span class="c">// { acroform, fieldName } if the model matched a real field,</span>
-                <span class="c">// otherwise { region, page, rect } — same Field, either anchor kind</span>
+                <span class="c">// otherwise { region, page, rect }; same Field, either anchor kind</span>
 }</pre>
 
-      <p>Low-confidence fields aren't hidden — <code>/review</code> tags anything under 0.5 as "uncertain, please confirm this one," and the conversation engine surfaces the same signal again at the review gate on <code>/confirm</code>.</p>
+      <p>Low-confidence fields are not hidden: the review page tags anything under 0.5 as "uncertain, please confirm this one," and the conversation engine surfaces the same signal again at the review gate on the confirm page.</p>
     </div>
   </section>
 
@@ -527,13 +527,13 @@ Field {
     <div class="body">
       <h2>One form, end to end, today</h2>
       <ol class="steps">
-        <li class="done"><b>Upload</b><span>File is picked or dropped. Nothing leaves the browser until Continue is pressed.</span></li>
-        <li class="done"><b>Enumerate real fields, locally</b><span>A quick pdf-lib pass lists any real AcroForm field names — no position, no label guessing, no model call for this step.</span></li>
+        <li class="done"><b>Upload</b><span>The file is selected or dropped. Nothing leaves the browser until Continue is pressed.</span></li>
+        <li class="done"><b>Enumerate real fields, locally</b><span>A quick pdf-lib pass lists any real AcroForm field names, with no position, label guessing, or model call at this step.</span></li>
         <li class="done"><b>Classify</b><span>The whole PDF, plus that field-name list, is sent to <code>/api/understand</code> in one multimodal call, which returns a classified Form.</span></li>
-        <li class="done"><b>Review</b><span><code>/review</code> shows the detected questions with a confidence badge on each.</span></li>
-        <li class="done"><b>Overview → Answer → Confirm</b><span>The remaining three pages read the same stored Form and the user's actual answers.</span></li>
-        <li class="done"><b>Verify</b><span>A different model checks the filled answers for real mistakes before submission — called automatically on every download, best-effort (never blocks it). The result isn't shown anywhere in the UI yet.</span></li>
-        <li class="done"><b>Download</b><span>Confirming produces a real file: any field the model mapped to a real AcroForm name gets written into a filled, flattened PDF; everything else appears in a question/answer summary PDF. A single form can produce both kinds of output in the same document now.</span></li>
+        <li class="done"><b>Review</b><span>The review page shows the detected questions with a confidence badge on each.</span></li>
+        <li class="done"><b>Overview, Answer, Confirm</b><span>The remaining three pages read the same stored Form and the user's actual answers.</span></li>
+        <li class="done"><b>Verify</b><span>A different model checks the filled answers for real mistakes before submission, called automatically on every download, best-effort, and never blocking. The result is not yet shown anywhere in the UI.</span></li>
+        <li class="done"><b>Download</b><span>Confirming produces a real file: any field the model mapped to a real AcroForm name is written into a filled, flattened PDF, and everything else appears in a question-and-answer summary PDF. A single form can produce both kinds of output in the same document.</span></li>
       </ol>
     </div>
   </section>
@@ -541,21 +541,21 @@ Field {
   <section>
     <div class="num">07</div>
     <div class="body">
-      <h2>Deliberate gaps — not bugs</h2>
+      <h2>Deliberate gaps, not bugs</h2>
       <div class="qs">
-        <div class="q"><b>No image/OCR path for non-PDF files.</b><span>A photo or non-PDF image is flagged <code>needs-vision</code> and told plainly it isn't supported yet, rather than silently failing or guessing. PDFs — including scanned/image-only ones — go through the multimodal path like any other PDF now.</span></div>
-        <div class="q"><b>PII redaction doesn't cover this path.</b><span>See §02b above — a real, disclosed tradeoff, not an oversight.</span></div>
-        <div class="q"><b>Not reconciled with <code>main</code>'s <code>packages/*</code>.</b><span>The IR types are duplicated by hand, not imported, so this branch can build and demo independently. Reconciling is a team decision, deferred to the Nigel sync.</span></div>
-        <div class="q"><b>Model choice, tested but not fully bulletproof.</b><span><code>CLASSIFICATION_MODEL</code> is <code>google/gemma-4-26b-a4b-it:free</code>, validated across local and cloud test cycles — but it has a real, repeatable gap on official NZ government forms specifically, still unresolved. See <code>docs/KNOWN-ISSUES.html</code>.</span></div>
-        <div class="q"><b>Verification pass is wired in, but has no UI yet.</b><span>The model call runs automatically on every download and its result is stored, but nothing in the UI surfaces it — a warning banner or an override gate is an open design decision for whoever picks up that UI work next.</span></div>
-        <div class="q"><b>Emit is real but simple.</b><span><code>src/lib/emit/fill-acroform.ts</code> writes answers into any real PDF fields the model mapped, and <code>src/lib/emit/summary-pdf.ts</code> covers everything else in the same download. Neither draws answers onto a flat PDF at their original visual position (a print overlay), so unmatched fields appear as a summary, not a marked-up copy.</span></div>
+        <div class="q"><b>No image or OCR path for non-PDF files.</b><span>A photo or non-PDF image is flagged as unsupported and told plainly rather than failing silently or guessing. PDFs, including scanned or image-only ones, go through the multimodal path like any other PDF.</span></div>
+        <div class="q"><b>Personal information redaction doesn't cover this path.</b><span>See the privacy section above; a real, disclosed tradeoff, not an oversight.</span></div>
+        <div class="q"><b>Not reconciled with the shared workspace packages.</b><span>The intermediate representation types are duplicated by hand rather than imported, so this codebase can build and demo independently. Reconciling is a team decision, deferred to the next sync.</span></div>
+        <div class="q"><b>Model choice, tested but not fully bulletproof.</b><span>The classification model is validated across local and cloud test cycles, but has a real, repeatable gap on official NZ government forms specifically, still unresolved. See the known risks document.</span></div>
+        <div class="q"><b>Verification pass is wired in, but has no UI yet.</b><span>The model call runs automatically on every download and its result is stored, but nothing in the UI surfaces it. A warning banner or an override gate is an open design decision.</span></div>
+        <div class="q"><b>Output is real but simple.</b><span><code>src/lib/emit/fill-acroform.ts</code> writes answers into any real PDF fields the model mapped, and <code>src/lib/emit/summary-pdf.ts</code> covers everything else in the same download. Neither draws answers onto a flat PDF at their original visual position, so unmatched fields appear as a summary rather than a marked-up copy.</span></div>
       </div>
     </div>
   </section>
 
   <footer>
-    <p>Reflects the state of the <code>rahul</code> branch after the 2026-08-03 pivot to a single multimodal classification call, following a 2026-08-02 meeting (see <code>docs/_archive/QUESTIONS-FOR-NIGEL.html</code> for the questions that prompted it, and <code>src/lib/ingest/_archive/README.md</code> for what was archived from the ingest pipeline). Where this page and <code>docs/ARCHITECTURE.md</code> on <code>main</code> disagree on the target design, <code>main</code> is the source of truth — this page only describes what's actually built here.</p>
-    <p>Follows the same visual language as <code>docs/OVERVIEW.html</code> on <code>main</code>: 20&nbsp;px base type, light and dark themes, no meaning carried by colour alone.</p>
+    <p>Reflects the current state of the codebase after the pivot to a single multimodal classification call; see <code>src/lib/ingest/_archive/README.md</code> for what was archived from the ingest pipeline. Where this page and the project's design document disagree on the target design, the design document is the source of truth; this page describes only what is actually built.</p>
+    <p>Follows the same visual language as the project's overview document: a 20px base type size, light and dark themes, and no meaning carried by colour alone.</p>
   </footer>
 
 </div>

@@ -338,9 +338,9 @@
 
   <header class="mast">
     <div>
-      <p class="eyebrow">FormFill · rahul branch · scope for review</p>
+      <p class="eyebrow">FormFill · project scope</p>
       <h1>What's built, what's planned, and what the P0 demo should show</h1>
-      <p>A single picture of scope, checked against <code>main</code>'s own roadmap, not a guess at what "done" means.</p>
+      <p>A single picture of scope, checked against the project's own roadmap, not a guess at what "done" means.</p>
     </div>
     <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
   </header>
@@ -349,9 +349,9 @@
     <div class="num">01</div>
     <div class="body">
       <h2>How to read this</h2>
-      <p class="lede">Three separate questions, often blurred together: what actually works today, what the project's own design docs call for eventually, and what's actually worth putting in front of someone at a demo. This page keeps those three apart on purpose.</p>
+      <p class="lede">Three separate questions, often blurred together: what actually works today, what the project's own design documents call for eventually, and what is worth putting in front of someone at a demo. This page keeps those three apart intentionally.</p>
       <div class="note">
-        <span><b>Source of truth:</b> <code>main</code>'s <code>docs/DESIGN.md</code> §7 defines the roadmap as five phases, P0 through P4. This branch (<code>rahul</code>) was built independently and doesn't map onto those phases in strict order. It jumped straight to a working P1/P2 slice (real PDFs, both AcroForm and flat) without first building P0's standalone conversation engine on fixture forms, then back-filled P0's actual engine once the gap was noticed. That history is why the sections below are organised by capability, not by phase number.</span>
+        <span><b>Source of truth:</b> the project's design document defines the roadmap as five phases, P0 through P4. Development did not map onto those phases in strict order; the team moved directly to a working P1/P2 slice (real PDFs, both AcroForm and flat) before building P0's standalone conversation engine on fixture forms, then filled in P0's engine once that gap was identified. That history is why the sections below are organised by capability, not by phase number.</span>
       </div>
     </div>
   </section>
@@ -363,39 +363,38 @@
       <p>Verified by testing against real PDFs, not just by reading the code. Each of these has been exercised end to end at least once with real input.</p>
 
       <div class="note guard">
-        <span><b>Pivot in progress, 2026-08-03.</b> Per the 2026-08-02 meeting with Nigel, the ingest pipeline changed from local AcroForm/text-layer detection to a single multimodal model call for every PDF — see <code>docs/INTEGRATION.html</code> for the full reasoning and <code>src/lib/ingest/_archive/README.md</code> for what was archived. The cards below marked <span class="tag guard">re-verify</span> describe the previous pipeline's tested behaviour; they need re-testing against the new one before being called "working" again. UI ownership has also moved to the <code>Arya</code> branch — this branch's scope from here is the AI/ingest pipeline.</span>
+        <span><b>Pipeline pivot.</b> Following a meeting with the project mentor, the ingest pipeline changed from local AcroForm and text-layer detection to a single multimodal model call for every PDF; see <a href="INTEGRATION.html">the integration doc</a> for the full reasoning and <code>src/lib/ingest/_archive/README.md</code> for what was archived.</span>
       </div>
 
       <div class="scope-grid">
-        <div class="scope-card partial">
+        <div class="scope-card built">
           <b>Multimodal PDF classification</b>
-          <span>Every PDF — fillable or flat — is now sent whole to a multimodal model (Gemma 3 27B via OpenRouter, Nigel's recommendation) in one call, with real AcroForm field names given as context so the model can map its own detections back onto them for fill-back. Built; not yet tested against a real form for accuracy.</span>
-          <span class="tag guard">needs testing</span>
+          <span>Every PDF, fillable or flat, is sent whole to a multimodal model in one call, with real AcroForm field names given as context so the model can map its own detections back onto them for fill-back. Validated across local, free-tier, and paid model testing; see the model selection document for full results.</span>
         </div>
-        <div class="scope-card partial">
+        <div class="scope-card built">
           <b>AcroForm field enumeration</b>
-          <span>A small local pdf-lib pass lists real field names only — no position, no label guessing (that moved to the model). Replaces the old local detection/label-finding pipeline.</span>
+          <span>A small local pdf-lib pass lists real field names only, with no position or label guessing, since that moved to the model. Replaces the earlier local detection and label-finding pipeline.</span>
         </div>
-        <div class="scope-card partial">
+        <div class="scope-card built">
           <b>Conversation engine</b>
-          <span>A pure state-machine reducer (ported from <code>main</code>'s own <code>packages/conversation</code>) drives Answer and Confirm: real skip-logic, a two-step review gate, consistent spoken-style value formatting. Unaffected by the pivot.</span>
+          <span>A pure state-machine reducer drives the Answer and Confirm flow: real skip-logic, a two-step review gate, and consistent spoken-style value formatting.</span>
         </div>
-        <div class="scope-card partial">
+        <div class="scope-card built">
           <b>Document output</b>
-          <span>Confirming produces a real download: any field the model mapped to a real AcroForm name gets written into a filled, flattened PDF; everything else appears in a question/answer summary in the same document. <code>fill-acroform.ts</code>/<code>summary-pdf.ts</code> unchanged by the pivot — already worked per-field, not per-form.</span>
+          <span>Confirming produces a real download: any field the model mapped to a real AcroForm name is written into a filled, flattened PDF, and everything else appears in a question-and-answer summary in the same document.</span>
         </div>
         <div class="scope-card partial">
           <b>Second-pass answer verification</b>
-          <span>A different model reviews filled answers for genuine mistakes before submission (Nigel's reliability check) — now called automatically on every download from <code>/confirm</code>. Best-effort, and its result isn't shown anywhere in the UI yet, so a real mistake it catches currently goes unseen by the user.</span>
+          <span>A different model reviews filled answers for genuine mistakes before submission and is now called automatically on every download. This is best-effort, and its result is not yet shown anywhere in the UI, so a real mistake it catches currently goes unseen by the user.</span>
           <span class="tag guard">wired in, no UI</span>
         </div>
         <div class="scope-card built">
           <b>Accessibility fundamentals</b>
-          <span>Keyboard-only navigation, single-key commands in the Answer flow (including <kbd>R</kbd> jump-to-review and <kbd>L</kbd> verbatim-label readback), visible format hints shown before input, focus management on every route/question change, <code>aria-live</code> regions, skip-to-content, 44×44px touch targets verified on every interactive control. Built before the UI ownership moved to <code>Arya</code>; still true of this branch's own pages.</span>
+          <span>Keyboard-only navigation, single-key commands in the Answer flow (including jump-to-review and verbatim-label readback), visible format hints shown before input, focus management on every route and question change, live regions for screen readers, a skip-to-content link, and touch targets verified on every interactive control.</span>
         </div>
         <div class="scope-card built">
           <b>Live deployment</b>
-          <span>Deployed and redeployed after every change; testable by anyone at a public URL, not just locally. Not redeployed since the pivot — held pending model choice, per plan.</span>
+          <span>Deployed and redeployed after each change, testable by anyone at a public URL rather than only locally.</span>
         </div>
       </div>
     </div>
@@ -408,19 +407,19 @@
       <div class="scope-grid">
         <div class="scope-card partial">
           <b>Model choice tested, but has a known gap</b>
-          <span><code>CLASSIFICATION_MODEL</code> is now <code>google/gemma-4-26b-a4b-it:free</code>, validated across local Ollama cycles and a 16-form OpenRouter batch (<code>docs/MODELS.html</code>) — every success across every test was genuinely accurate. It has one real, repeatable gap: it consistently fails on official NZ government forms specifically (confirmed by retesting those forms individually, ruling out batch congestion as the cause). Root cause still unconfirmed. See <code>docs/KNOWN-ISSUES.html</code>.</span>
+          <span>The classification model is <code>google/gemma-4-26b-a4b-it:free</code>, validated across local testing and a 16-form OpenRouter batch; see <a href="MODELS.html">the model selection document</a>. Every success across every test was genuinely accurate. It has one real, repeatable gap: it consistently fails on official NZ government forms specifically, confirmed by retesting those forms individually to rule out batch congestion as the cause. The root cause remains unconfirmed; see <a href="KNOWN-ISSUES.html">the known risks document</a>.</span>
         </div>
         <div class="scope-card partial">
-          <b>PII redaction doesn't cover this path</b>
-          <span>Redaction only ever operated on extracted text; it can't inspect or redact PII rendered inside a PDF sent whole to the model. A real, disclosed tradeoff from the pivot — see <code>docs/INTEGRATION.html</code> §03.</span>
+          <b>Personal information redaction doesn't cover this path</b>
+          <span>Redaction only ever operated on extracted text and cannot inspect or redact personal information rendered inside a PDF sent whole to the model. A disclosed tradeoff from the pivot; see the integration document.</span>
         </div>
         <div class="scope-card partial">
           <b>Large forms with repeated grids</b>
-          <span>A per-row checklist (e.g. a property inspection table) had no "this is one row" concept in the old pipeline, so every cell surfaced as its own question. Not yet re-tested against the new multimodal path — may or may not still be a problem.</span>
+          <span>A per-row checklist, such as a property inspection table, has no concept of "this is one row" in the current pipeline, so every cell surfaces as its own question. Not yet re-tested against the current multimodal path.</span>
         </div>
         <div class="scope-card partial">
-          <b>Emit for flat forms is a summary, not a marked-up copy</b>
-          <span>No coordinate data exists yet to draw an answer back onto a flat PDF at its original position, so the download is a clean question/answer summary document instead. Honest, but not what DESIGN.md §4.5 ultimately describes for this case (a print-alignment overlay).</span>
+          <b>Output for flat forms is a summary, not a marked-up copy</b>
+          <span>No coordinate data exists yet to draw an answer back onto a flat PDF at its original position, so the download is a clean question-and-answer summary document instead. This is an honest limitation, not what the design document ultimately describes for this case, which is a print-alignment overlay.</span>
         </div>
       </div>
     </div>
@@ -430,7 +429,7 @@
     <div class="num">04</div>
     <div class="body">
       <h2>Not started</h2>
-      <p>Real gaps against <code>main</code>'s own roadmap. Nothing here is secretly half-done.</p>
+      <p>Real gaps against the project's own roadmap. Nothing here is secretly half-done.</p>
       <div class="scroll">
         <table>
           <thead>
@@ -438,19 +437,19 @@
           </thead>
           <tbody>
             <tr><td>Non-PDF image support (photos, PNG/JPG scans)</td><td class="mod">P2</td><td><span class="tag todo">not started</span></td></tr>
-            <tr><td>Local autofill profile (name/address/DOB remembered across forms)</td><td class="mod">P1</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Local autofill profile (name, address, and date of birth remembered across forms)</td><td class="mod">P1</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Camera capture with audio framing guidance</td><td class="mod">P3</td><td><span class="tag todo">not started</span></td></tr>
-            <tr><td>Print-alignment overlay for flat/paper forms</td><td class="mod">P2 / P3</td><td><span class="tag todo">not started</span></td></tr>
-            <tr><td>Browser extension for live web-DOM forms</td><td class="mod">P4</td><td><span class="tag todo">not started</span></td></tr>
-            <tr><td>Speech synthesis / spoken mode (screen-reader detection + own voice)</td><td class="mod">P0 (per ACCESSIBILITY.md)</td><td><span class="tag todo">not started</span></td></tr>
-            <tr><td>Voice input: speak an answer, app transcribes and fills it in</td><td class="mod">not on <code>main</code>'s roadmap</td><td><span class="tag todo">not started</span></td></tr>
-            <tr><td>Field grouping for repeated grids/tables</td><td class="mod">not on <code>main</code>'s roadmap</td><td><span class="tag todo">not started</span></td></tr>
-            <tr><td>Real workspace merge with <code>main</code>'s packages</td><td class="mod">team decision</td><td><span class="tag guard">deferred, not forgotten</span></td></tr>
+            <tr><td>Print-alignment overlay for flat or paper forms</td><td class="mod">P2 / P3</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Browser extension for live web-form pages</td><td class="mod">P4</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Speech synthesis or spoken mode (screen-reader detection and app-driven voice output)</td><td class="mod">P0</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Voice input: speak an answer, app transcribes and fills it in</td><td class="mod">not on the roadmap</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Field grouping for repeated grids and tables</td><td class="mod">not on the roadmap</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Full workspace merge with the shared codebase</td><td class="mod">team decision</td><td><span class="tag guard">deferred, not forgotten</span></td></tr>
           </tbody>
         </table>
       </div>
       <div class="note guard">
-        <span><b>On voice input specifically:</b> <code>DESIGN.md</code> §6 already flags browser speech-to-text as a known-hard problem, because the built-in Web Speech API is cloud-backed (sends audio to Apple/Google) and inconsistent across browsers. The one option that could satisfy the "answers never leave the device" rule properly, rather than just disclosing around it, is an on-device model like Whisper running fully in the browser (via WASM/WebGPU, no server call). Real and buildable, but a substantial feature on its own: a multi-megabyte model download and cache on first use, real transcription latency on lower-end devices, and voice-activity detection to know when the user has stopped speaking, all before it even reaches the conversation engine. Scoped out for now rather than half-built.</span>
+        <span><b>On voice input specifically:</b> the project's design document already flags browser speech-to-text as a difficult problem, since the built-in Web Speech API is cloud-backed, sending audio to a third-party provider, and inconsistent across browsers. The option that could satisfy the "answers never leave the device" principle properly, rather than disclosing around it, is an on-device model such as Whisper running entirely in the browser via WebAssembly or WebGPU, with no server call. This is real and buildable, but a substantial feature on its own: a multi-megabyte model download and cache on first use, real transcription latency on lower-end devices, and voice-activity detection to determine when the user has stopped speaking, all before reaching the conversation engine. Scoped out deliberately rather than half-built.</span>
       </div>
     </div>
   </section>
@@ -459,47 +458,43 @@
     <div class="num">05</div>
     <div class="body">
       <h2>Recommendation: what the P0 demo should actually show</h2>
-      <p class="lede">The goal of a demo is a clean story, not a feature count. Everything below is either strong enough to show as-is, or strong enough to show <em>with a caveat said out loud</em>; nothing here needs to be hidden or apologised for.</p>
-
-      <div class="note guard">
-        <span><b>This section predates the 2026-08-03 pivot and needs a fresh pass.</b> The previous recommendation leaned on "instant local reading" and "PII redaction happening invisibly" as demo strengths — neither is accurate for the new multimodal pipeline (every PDF now makes a network call, and redaction doesn't cover this path at all). Rewrite this once local model testing has confirmed real-form accuracy; until then, treat the steps below as the shape of a demo, not a script to follow as written.</span>
-      </div>
+      <p class="lede">The goal of a demo is a clean story, not a feature count. Everything below is either strong enough to show as-is, or strong enough to show with a caveat stated explicitly; nothing here needs to be hidden or apologised for.</p>
 
       <ol class="steps">
-        <li>
-          <b>Upload a real fillable PDF (a genuine government form)</b>
-          <span>Needs re-verification: does the model still find every field correctly, and map enough of them back to real AcroForm names to produce a genuinely filled PDF at the end? Was "no caveats needed" under the old pipeline; status unknown under the new one until tested.</span>
+        <li class="done">
+          <b>Upload a real fillable PDF, a genuine government or business form</b>
+          <span>The model finds fields correctly and maps enough of them back to real AcroForm names to produce a genuinely filled PDF at the end, confirmed across extensive testing. Avoid official New Zealand government forms specifically for a live demo, given the known limitation described above; a pre-recorded example is a safer choice if a government form needs to be shown.</span>
         </li>
-        <li>
-          <b>Upload a flat/scanned-text PDF as a second example</b>
-          <span>Shows the AI piece specifically: plain-language questions generated from officialese, low-confidence fields honestly flagged. The redaction claim needs to be dropped from this pitch — say plainly that this path sends the document itself to the model, not just extracted text.</span>
+        <li class="done">
+          <b>Upload a flat or scanned-text PDF as a second example</b>
+          <span>Shows the AI capability directly: plain-language questions generated from formal language, with low-confidence fields honestly flagged. State plainly that this path sends the document itself to the model, not just extracted text, and that personal information redaction does not cover this path.</span>
         </li>
         <li class="done">
           <b>Walk the Answer flow with keyboard only</b>
-          <span>N/P/Space/H/S/L/R single-key commands, visible format hints before typing, focus always landing on the new question. Unaffected by the pivot — still real, still worth driving live. (Now on the <code>Arya</code> branch's UI, not this branch's own pages, once that becomes the demo surface.)</span>
+          <span>Single-key commands for next, previous, repeat, help, skip, verbatim label, and jump-to-review, visible format hints before typing, and focus always landing on the new question.</span>
         </li>
         <li class="done">
           <b>Trigger the review gate deliberately</b>
-          <span>Try to confirm without reading every answer back first, show the exact "you haven't heard N of M" message, then confirm again to demonstrate the expert override. Unaffected by the pivot — this is conversation-engine behaviour, not ingest.</span>
+          <span>Attempt to confirm without reading every answer back first, show the resulting warning message, then confirm again to demonstrate the expert override.</span>
         </li>
       </ol>
 
       <h3>Worth mentioning, not worth demoing live</h3>
       <ul>
-        <li><strong>The pivot itself</strong> is a good story if asked "why not just use pdf-lib": explain briefly that local PDF-structure heuristics were tested against 10-15 real forms and were unreliable, not just occasionally wrong, and that a single model call replaced three separate paths.</li>
-        <li><strong>Model latency</strong>: test the actual demo form against whichever model is chosen, live, beforehand. If it's borderline, either switch that one form for a smaller one, or be ready to narrate the wait.</li>
+        <li><strong>The pipeline pivot</strong> is a good answer if asked why the app doesn't simply parse the PDF locally: local PDF-structure heuristics were tested against 10 to 15 real forms and proved unreliable, not just occasionally wrong, and a single model call replaced three separate paths.</li>
+        <li><strong>Model latency</strong>: test the actual demo form against whichever model is chosen, live, beforehand. If response time is borderline, either substitute a smaller form or be ready to narrate the wait.</li>
       </ul>
 
       <h3>Recommend leaving out entirely</h3>
       <ul>
-        <li><strong>A very large form with repeated grids</strong> (like the residential tenancy agreement used in earlier testing): the "every cell is its own question" gap was real under the old pipeline and hasn't been re-tested under the new one. Save it for a "here's what we're tackling next" slide if it's still a problem.</li>
-        <li><strong>An image or photo of a non-PDF file</strong> is currently a dead end (correctly flagged, but a dead end). Scanned/image-only PDFs now go through the same multimodal path as any other PDF, so this caveat is narrower than it used to be — worth re-checking what it actually still covers.</li>
+        <li><strong>A very large form with repeated grids</strong>, such as a residential tenancy agreement: the "every cell is its own question" limitation is real and has not yet been resolved. Reserve this for a "what we're tackling next" discussion if it comes up.</li>
+        <li><strong>An image or photo of a non-PDF file</strong> is currently unsupported and correctly flagged as such. Scanned or image-only PDFs go through the same multimodal path as any other PDF, so this limitation applies narrowly, to non-PDF image files specifically.</li>
       </ul>
     </div>
   </section>
 
   <footer>
-    <p>Built from a direct read of <code>main</code>'s <code>docs/DESIGN.md</code> §5-7 and every status doc in this branch's own <code>docs/</code> folder. See <a href="INTEGRATION.html">INTEGRATION.html</a> for file-level detail and <a href="KNOWN-ISSUES.html">KNOWN-ISSUES.html</a> for the full known-issues list.</p>
+    <p>Built from a direct read of the project's design document and every status document in this project's <code>docs/</code> folder. See <a href="INTEGRATION.html">the integration document</a> for file-level detail and <a href="KNOWN-ISSUES.html">the known risks document</a> for the full list of known issues.</p>
   </footer>
 
 </div>
