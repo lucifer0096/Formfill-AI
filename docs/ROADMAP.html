@@ -383,10 +383,9 @@
           <b>Document output</b>
           <span>Confirming produces a real download: any field the model mapped to a real AcroForm name is written into a filled, flattened PDF, and everything else appears in a question-and-answer summary in the same document.</span>
         </div>
-        <div class="scope-card partial">
+        <div class="scope-card built">
           <b>Second-pass answer verification</b>
-          <span>A different model reviews filled answers for genuine mistakes before submission and is now called automatically on every download. This is best-effort, and its result is not yet shown anywhere in the UI, so a real mistake it catches currently goes unseen by the user.</span>
-          <span class="tag guard">wired in, no UI</span>
+          <span>A different model reviews filled answers for genuine mistakes before submission and is called automatically on every download. If it flags a real issue, a non-blocking warning banner on the confirm page shows it in plain language; the download itself is never blocked by this check.</span>
         </div>
         <div class="scope-card built">
           <b>Accessibility fundamentals</b>

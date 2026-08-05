@@ -167,7 +167,13 @@ export async function callOpenRouterWithUsage(
     }
 
     const data = (await response.json()) as OpenRouterResponseWithUsage;
-    const content = data.choices[0]?.message.content;
+    // A 200 response with a missing/empty `choices` array (not just a
+    // missing message.content) is real, observed behavior — confirmed live
+    // on rahul immediately after a 429 rate-limit event upstream — not a
+    // hypothetical. data.choices[0] on an undefined/empty array throws
+    // before the ?. on .message ever runs, so `choices` itself needs its
+    // own guard, not just the element access.
+    const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error("OpenRouter returned no content.");
     return { content, costUsd: data.usage?.cost };
   }
