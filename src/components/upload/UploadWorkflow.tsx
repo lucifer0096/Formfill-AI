@@ -7,7 +7,7 @@ import Notice from "@/components/ui/Notice";
 import AccessibilityHighlights from "@/components/AccessibilityHighlights";
 import UploadDropzone from "@/components/upload/UploadDropzone";
 import { ingest } from "@/lib/ingest";
-import { saveIngestResult } from "@/lib/session-store";
+import { clearAnswers, saveIngestResult } from "@/lib/session-store";
 import { saveOriginalFile } from "@/lib/original-file-store";
 
 export default function UploadWorkflow() {
@@ -22,6 +22,12 @@ export default function UploadWorkflow() {
     setIsProcessing(true);
     try {
       const result = await ingest(selectedFile);
+      // A new upload starts a genuinely new session — field ids are just
+      // field_0, field_1... regenerated fresh per classification call, so
+      // without this, a leftover AnswerSet from a PREVIOUS upload this tab
+      // session can silently "prefill" the new form's same-numbered fields
+      // with unrelated old answers.
+      clearAnswers();
       if (result.kind === "form") {
         // The original bytes are still needed at Confirm time to write real
         // answers into real fields, for forms that have any (anchor.kind

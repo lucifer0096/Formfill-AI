@@ -91,6 +91,69 @@ function isFieldType(value: string): value is FieldType {
   return (FIELD_TYPES as string[]).includes(value);
 }
 
+const YES_NO_PAIRS = [
+  ["yes", "no"],
+  ["true", "false"],
+];
+
+function yesNoPairKey(value: string): { pair: number; side: 0 | 1 } | null {
+  const normalized = value.trim().toLowerCase();
+  for (let pair = 0; pair < YES_NO_PAIRS.length; pair += 1) {
+    const side = YES_NO_PAIRS[pair].indexOf(normalized);
+    if (side !== -1) return { pair, side: side as 0 | 1 };
+  }
+  return null;
+}
+
+/**
+ * Some models (confirmed on both gemini-2.5-flash-lite and gemma-3-27b-it,
+ * see docs/MODELS.html) occasionally model a single Yes/No question as two
+ * separate `choice` fields — one with a single "Yes" option, one with a
+ * single "No" option — instead of one real choice/boolean field. Left
+ * as-is, that produces two dead-end questions on /questions where
+ * answering one still leaves an unanswerable "is this NOT a new claim"
+ * duplicate. This collapses any adjacent pair like that, within the same
+ * section, back into a single boolean field before IDs are assigned.
+ * Model-output cleanup, not a prompt fix — works regardless of which
+ * model produced the split.
+ */
+function mergeYesNoSplits(fields: ClassifiedField[]): ClassifiedField[] {
+  const merged: ClassifiedField[] = [];
+  for (let i = 0; i < fields.length; i += 1) {
+    const field = fields[i];
+    const next = fields[i + 1];
+    const options = field.options;
+    const nextOptions = next?.options;
+
+    if (
+      next &&
+      field.type === "choice" &&
+      next.type === "choice" &&
+      options?.length === 1 &&
+      nextOptions?.length === 1
+    ) {
+      const a = yesNoPairKey(options[0].value);
+      const b = yesNoPairKey(nextOptions[0].value);
+      if (a && b && a.pair === b.pair && a.side !== b.side) {
+        // Keep whichever half reads as the affirmative phrasing ("Is this a
+        // new claim?" over "Is this NOT a new claim?") as the merged
+        // question, since a positive boolean question reads more naturally.
+        const affirmative = a.side === 0 ? field : next;
+        merged.push({
+          ...affirmative,
+          type: "boolean",
+          options: undefined,
+        });
+        i += 1; // consumed both fields
+        continue;
+      }
+    }
+
+    merged.push(field);
+  }
+  return merged;
+}
+
 export async function classifyPdf(
   fileBytes: ArrayBuffer,
   fileName: string,
@@ -119,7 +182,7 @@ export async function classifyPdf(
   const sections: Section[] = parsed.sections.map((section, sectionIndex) => ({
     id: `section_${sectionIndex}`,
     title: section.title,
-    fields: section.fields.map((f): Field => {
+    fields: mergeYesNoSplits(section.fields).map((f): Field => {
       const id = `field_${fieldIndex++}`;
       const type = isFieldType(f.type) ? f.type : "unknown";
       const anchor: Anchor = f.acroFieldName

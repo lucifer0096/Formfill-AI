@@ -103,6 +103,18 @@ export default function ConfirmPage() {
   const isAcroForm = fields.some((f) => f.anchor.kind === "acroform");
   const allHeard = fields.length > 0 && fields.every((f) => engine.reviewHeard.has(f.id));
 
+  // "Back to questions" used to be a bare /questions link with no ?field=,
+  // which silently restarted from the first question every time regardless
+  // of where the user actually was — resuming on the first field that
+  // still needs an answer (falling back to the very first field once
+  // everything's answered) matches the same ?field= pattern each row's own
+  // "Answer this" / "Read back" button already uses.
+  const firstUnanswered = fields.find((f) => {
+    const a = engine.answers[f.id];
+    return !a || a.state === "empty" || a.state === "skipped";
+  });
+  const backToQuestionsHref = `/questions?field=${encodeURIComponent((firstUnanswered ?? fields[0])?.id ?? "")}`;
+
   // The engine only ever marks an answer "heard" via reviewLine(), which
   // runs when NEXT/PREV move reviewIndex while phase === "reviewing" (see
   // machine.ts) — GOTO (used elsewhere for jumping the asking-phase cursor)
@@ -293,7 +305,7 @@ export default function ConfirmPage() {
       )}
 
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-between">
-        <LinkButton href="/questions" variant="secondary">
+        <LinkButton href={backToQuestionsHref} variant="secondary">
           Back to questions
         </LinkButton>
         <Button

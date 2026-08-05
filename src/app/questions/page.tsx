@@ -146,6 +146,22 @@ export default function QuestionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentField?.id]);
 
+  // Finishing the last question (Next or Skip) moves the engine into
+  // "reviewing" (machine.ts's beginReview, dispatched from advance() once
+  // there are no more fields) — a real, distinct phase from "complete"
+  // (which only ever fires for a form with zero questions at all). This
+  // page has no UI for "reviewing"; that's /confirm's job. Previously the
+  // blank-fallback branch below treated both phases the same way (since
+  // cursor is null in both), which meant finishing the form on /questions
+  // silently dead-ended here instead of taking the user to /confirm.
+  useEffect(() => {
+    if (engine?.phase === "reviewing") {
+      saveAnswers(engine.answers);
+      router.push("/confirm");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine?.phase]);
+
   function dispatch(event: Parameters<typeof step>[1]) {
     if (!engine) return;
     const result = step(engine, event);
@@ -221,6 +237,18 @@ export default function QuestionsPage() {
   }
 
   if (!engine) {
+    return (
+      <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
+        <p role="status" aria-live="polite" className="text-muted">
+          Loading…
+        </p>
+      </main>
+    );
+  }
+
+  if (engine.phase === "reviewing") {
+    // The effect above is already navigating to /confirm — this is only
+    // ever visible for the one render before that push takes effect.
     return (
       <main id="main-content" className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
         <p role="status" aria-live="polite" className="text-muted">

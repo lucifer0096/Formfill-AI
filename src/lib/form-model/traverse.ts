@@ -47,11 +47,26 @@ export function applicableFields(form: Form, answers: AnswerSet): Field[] {
   return allFields(form).filter((f) => conditionMet(f.dependsOn, answers));
 }
 
-/** Required, applicable fields that still have no usable answer. */
+/**
+ * Required, applicable fields that still have no usable answer.
+ *
+ * Signature fields are a deliberate exception: validate() always rejects a
+ * typed value for type === "signature" (never accepted digitally), so Skip
+ * is the only legitimate action /questions offers for one, regardless of
+ * required (see that page's own comment on this). Without this exception,
+ * a required signature field's skipped state was indistinguishable from
+ * "never answered" here, which made confirm() (machine.ts) bounce the user
+ * back to it forever — the form could never actually be confirmed. A
+ * skipped signature is the correct terminal state for that field type, not
+ * an outstanding one.
+ */
 export function outstandingFields(form: Form, answers: AnswerSet): Field[] {
-  return applicableFields(form, answers).filter(
-    (f) => f.required && !isAnswered(answers[f.id]),
-  );
+  return applicableFields(form, answers).filter((f) => {
+    if (!f.required) return false;
+    const answer = answers[f.id];
+    if (f.type === "signature" && answer?.state === "skipped") return false;
+    return !isAnswered(answer);
+  });
 }
 
 /** Fields the user should look at again: low confidence, skipped, or unresolved. */
