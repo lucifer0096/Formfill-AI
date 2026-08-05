@@ -154,25 +154,47 @@ function mergeYesNoSplits(fields: ClassifiedField[]): ClassifiedField[] {
   return merged;
 }
 
+// Matches src/lib/ingest/index.ts's SUPPORTED_IMAGE_TYPES — keep in sync.
+const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png"]);
+
+function isImageMimeType(mimeType: string): boolean {
+  return IMAGE_MIME_TYPES.has(mimeType.toLowerCase());
+}
+
 export async function classifyPdf(
   fileBytes: ArrayBuffer,
   fileName: string,
   acroFields: AcroFormFieldSummary[],
   pageCount: number,
+  mimeType: string = "application/pdf",
 ): Promise<Form> {
   const base64 = Buffer.from(fileBytes).toString("base64");
+  const isImage = isImageMimeType(mimeType);
 
+  // A photo or standalone image scan can never have real AcroForm fields
+  // (those only exist inside a PDF's own structure) — acroFields is always
+  // empty on this path, but the same "no fillable fields" phrasing already
+  // used for a flat/scanned PDF applies just as well here, so no separate
+  // prompt branch is needed for it.
   const fieldContext =
     acroFields.length > 0
       ? `\n\nThis PDF has real fillable fields. Match questions to these where they correspond:\n${JSON.stringify(acroFields, null, 2)}`
       : "\n\nThis PDF has no real fillable fields (a flat/scanned form) — do not include acroFieldName on any field.";
 
+  // OpenRouter's multimodal call shape differs by media kind: a PDF goes
+  // through the `file` content part (its own OCR/text pre-processing step),
+  // an image goes through the standard OpenAI-compatible `image_url` part
+  // with a data URI. Same system prompt, same response shape, same
+  // downstream parsing either way — only how the document reaches the
+  // model changes.
   const content: ChatContentPart[] = [
     { type: "text", text: SYSTEM_PROMPT + fieldContext },
-    {
-      type: "file",
-      file: { filename: fileName, file_data: `data:application/pdf;base64,${base64}` },
-    },
+    isImage
+      ? { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } }
+      : {
+          type: "file",
+          file: { filename: fileName, file_data: `data:application/pdf;base64,${base64}` },
+        },
   ];
 
   const raw = await callOpenRouter([{ role: "user", content }]);
@@ -207,8 +229,8 @@ export async function classifyPdf(
 
   return {
     id: crypto.randomUUID(),
-    title: parsed.title || fileName.replace(/\.pdf$/i, ""),
-    source: "pdf",
+    title: parsed.title || fileName.replace(/\.[a-z0-9]+$/i, ""),
+    source: isImage ? "image" : "pdf",
     locale: "en-GB",
     provenance: {
       capturedAt: new Date().toISOString(),
