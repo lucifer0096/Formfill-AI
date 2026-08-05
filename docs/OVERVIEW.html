@@ -358,7 +358,7 @@
     <div>
       <p class="eyebrow">FormFill · orientation for the build</p>
       <h1>What we are building, and how the pieces fit</h1>
-      <p>A plain-language map of the four design docs — enough to hold the whole system in your head while we write code.</p>
+      <p>A plain-language map of the four design docs, enough to hold the whole system in your head while we write code.</p>
     </div>
     <button id="themeToggle" type="button" aria-pressed="false">Switch theme</button>
   </header>
@@ -367,10 +367,10 @@
     <div class="num">01</div>
     <div class="body">
       <h2>The product in one breath</h2>
-      <p class="lede">A blind person opens a form — a PDF, a scan, a photo of paper, or a web page — and FormFill talks them through it one question at a time, checks their answers, reads everything back, and hands them a correctly filled document. Alone. Without showing their income or their diagnoses to anyone.</p>
-      <p>The docs are emphatic that the goal is <em>not</em> "read the form aloud". Screen readers already do that badly. The goal is <strong>a finished artefact</strong> — a filled PDF in the downloads folder — produced independently and correctly.</p>
+      <p class="lede">A blind person opens a form, whether a PDF, a scan, a photo of paper, or a web page, and FormFill talks them through it one question at a time, checks their answers, reads everything back, and hands them a correctly filled document. Alone. Without showing their income or their diagnoses to anyone.</p>
+      <p>The docs are emphatic that the goal is <em>not</em> "read the form aloud". Screen readers already do that badly. The goal is <strong>a finished artefact</strong>, a filled PDF in the downloads folder, produced independently and correctly.</p>
       <div class="note">
-        <span><b>Why this matters for coding decisions:</b> when a trade-off comes up, the tie-breaker is almost always "which option gets a correct, finished form with less help from a sighted person". That's why, for example, autofill <em>offers</em> a value instead of silently filling it — a stale address the user can't see is a real harm on a benefits claim.</span>
+        <span><b>Why this matters for coding decisions:</b> when a trade-off comes up, the tie-breaker is almost always "which option gets a correct, finished form with less help from a sighted person". That's why, for example, autofill <em>offers</em> a value instead of silently filling it: a stale address the user can't see is a real harm on a benefits claim.</span>
       </div>
     </div>
   </section>
@@ -380,7 +380,7 @@
     <div class="body">
       <h2>The one idea that makes the codebase small</h2>
       <p>Three ways a form gets in (PDF, photo, web page) times three ways it gets out (filled PDF, print overlay, live web page) would normally mean nine separate code paths, each with its own bugs.</p>
-      <p>Instead, every input is converted immediately into <strong>one shared data structure — the Form IR</strong> ("intermediate representation"). Everything in the middle of the app only ever sees that structure. It has no idea whether the form came from a scanner or a website.</p>
+      <p>Instead, every input is converted immediately into <strong>one shared data structure, the Form IR</strong> ("intermediate representation"). Everything in the middle of the app only ever sees that structure. It has no idea whether the form came from a scanner or a website.</p>
 
       <div class="pipe" role="img" aria-label="Pipeline: source-specific ingest, into a source-agnostic core, into source-specific emit.">
         <div class="stage">
@@ -397,18 +397,18 @@
         </div>
       </div>
 
-      <p>The trick that lets the core stay ignorant: each field carries an <strong><code>anchor</code></strong> — a small tag saying where this field came from and therefore how to write a value back. That is the only source-specific thing that survives into the core.</p>
+      <p>The trick that lets the core stay ignorant: each field carries an <strong><code>anchor</code></strong>, a small tag saying where this field came from and therefore how to write a value back. That is the only source-specific thing that survives into the core.</p>
 
 <pre><span class="c">// The shape everything else depends on (packages/form-model)</span>
 Field {
   <span class="k">label</span>        <span class="c">// VERBATIM from the form. Never paraphrased.</span>
-  <span class="k">spokenLabel</span>  <span class="c">// plain-language rewrite — what gets read aloud</span>
+  <span class="k">spokenLabel</span>  <span class="c">// plain-language rewrite: what gets read aloud</span>
   <span class="k">help</span>         <span class="c">// what the question is actually asking</span>
   <span class="k">type</span>         <span class="c">// date | currency | choice | signature | …</span>
   <span class="k">required</span>     <span class="c">// boolean</span>
   <span class="k">constraints</span>  <span class="c">// maxLength, pattern, min, max, options</span>
   <span class="k">sensitivity</span>  <span class="c">// none | pii | sensitive  ← gates what may leave the device</span>
-  <span class="k">confidence</span>   <span class="c">// 0..1 — how sure we are we read it right</span>
+  <span class="k">confidence</span>   <span class="c">// 0..1, how sure we are we read it right</span>
   <span class="k">anchor</span>       <span class="c">// ← the only source-specific part:</span>
                <span class="c">//   { acroform, fieldName }  a real PDF form field</span>
                <span class="c">//   { region, page, rect }   a box on a flat scan</span>
@@ -416,7 +416,7 @@ Field {
   <span class="k">dependsOn</span>    <span class="c">// skip-logic: only ask this if…</span>
 }</pre>
 
-      <p><strong>Answers are stored separately from the form.</strong> That isn't a style choice — it's what makes "structure may go to the cloud, answers never do" enforceable in code rather than merely promised, because the two are never in the same object.</p>
+      <p><strong>Answers are stored separately from the form.</strong> That isn't a style choice, it's what makes "structure may go to the cloud, answers never do" enforceable in code rather than merely promised, because the two are never in the same object.</p>
     </div>
   </section>
 
@@ -427,17 +427,17 @@ Field {
       <p>Most design decisions in this project fall out of three commitments. If a piece of code breaks one of these, it's a bug even if it works.</p>
 
       <div class="note guard">
-        <span><b>1 · Answers never leave the device.</b> Form <em>structure</em> (labels, boxes, layout) may be sent to Claude to be understood — after personal data is stripped out and replaced with placeholders like <code>⟨PERSON_1⟩</code>. Answers are handled entirely by local code. There is no server database and no accounts at all, so there is nothing to breach.</span>
+        <span><b>1 · Answers never leave the device.</b> Form <em>structure</em> (labels, boxes, layout) may be sent to Claude to be understood, after personal data is stripped out and replaced with placeholders like <code>⟨PERSON_1⟩</code>. Answers are handled entirely by local code. There is no server database and no accounts at all, so there is nothing to breach.</span>
       </div>
       <div class="note guard">
-        <span><b>2 · Never the only voice in the room.</b> If the user has a screen reader, our app must be acoustically <em>silent</em> and speak only through ARIA live regions. If they don't, our app must speak. Getting this wrong gives you either two voices talking over each other or a mute app — both completely unusable. Enforced mechanically: exactly one file in the whole codebase may call <code>speechSynthesis.speak()</code>, and a lint rule blocks the rest.</span>
+        <span><b>2 · Never the only voice in the room.</b> If the user has a screen reader, our app must be acoustically <em>silent</em> and speak only through ARIA live regions. If they don't, our app must speak. Getting this wrong gives you either two voices talking over each other or a mute app, both completely unusable. Enforced mechanically: exactly one file in the whole codebase may call <code>speechSynthesis.speak()</code>, and a lint rule blocks the rest.</span>
       </div>
       <div class="note guard">
         <span><b>3 · Nothing is submitted without read-back.</b> Every answer is read back, in order, before anything is written or submitted. This gate cannot be skipped. On a benefits or immigration form, a mis-parsed question has real consequences.</span>
       </div>
 
       <h3>Plus one structural rule you'll hit while coding</h3>
-      <p>The <code>conversation</code> package may not import any ingest or emit package, and may not touch the DOM. It is a pure function: <code>(Form, Answers, Event) → (Answers, Announcements)</code>. That's what lets the most important logic in the product be tested exhaustively without a browser — and it's why the announcement transcripts are snapshot-tested. A change in what the user <em>hears</em> shows up as a reviewable diff.</p>
+      <p>The <code>conversation</code> package may not import any ingest or emit package, and may not touch the DOM. It is a pure function: <code>(Form, Answers, Event) → (Answers, Announcements)</code>. That's what lets the most important logic in the product be tested exhaustively without a browser, and it's why the announcement transcripts are snapshot-tested. A change in what the user <em>hears</em> shows up as a reviewable diff.</p>
     </div>
   </section>
 
@@ -447,15 +447,15 @@ Field {
       <h2>One form, end to end</h2>
       <p>What actually happens when someone opens a PDF:</p>
       <ol class="steps">
-        <li><b>Capture</b><span>The file lands in the browser. Nothing is uploaded — the PDF bytes never leave the machine.</span></li>
+        <li><b>Capture</b><span>The file lands in the browser. Nothing is uploaded: the PDF bytes never leave the machine.</span></li>
         <li><b>Look for real form fields</b><span>Many government PDFs have proper embedded fields (an "AcroForm"). If so, we build the Form IR straight from them and <strong>make no network call at all</strong>. This is the entire first shipping phase.</span></li>
-        <li><b>Otherwise: extract, redact, understand</b><span>Pull out text and box positions on-device, strip anything personal into typed placeholders, send only that redacted structure to <code>/api/understand</code>, get back sections, field types and plain-language rewrites, then restore the placeholders locally.</span></li>
-        <li><b>Converse</b><span>The state machine walks the fields one at a time. Each one is announced, answered by typing or dictation or an autofill offer, and validated locally and immediately. Skip-logic means irrelevant branches are never read aloud — saving someone forty questions they don't need is worth more than any other optimisation here.</span></li>
+        <li><b>Otherwise, extract, redact, understand</b><span>Pull out text and box positions on-device, strip anything personal into typed placeholders, send only that redacted structure to <code>/api/understand</code>, get back sections, field types and plain-language rewrites, then restore the placeholders locally.</span></li>
+        <li><b>Converse</b><span>The state machine walks the fields one at a time. Each one is announced, answered by typing or dictation or an autofill offer, and validated locally and immediately. Skip-logic means irrelevant branches are never read aloud, since saving someone forty questions they don't need is worth more than any other optimisation here.</span></li>
         <li><b>Review</b><span>Linear read-back of every field and answer, with a count of anything skipped or uncertain. Mandatory.</span></li>
-        <li><b>Emit</b><span>Real form fields get values written exactly. Flat scans get text drawn at the detected coordinates. Paper additionally gets a print-alignment overlay. Web forms get filled — but <em>the user presses submit, not us</em>.</span></li>
+        <li><b>Emit</b><span>Real form fields get values written exactly. Flat scans get text drawn at the detected coordinates. Paper additionally gets a print-alignment overlay. Web forms get filled, but <em>the user presses submit, not us</em>.</span></li>
       </ol>
       <div class="note">
-        <span><b>Why a Web Worker keeps coming up:</b> OCR takes seconds. On the main thread that freezes the UI <em>and</em> stalls the speech queue — the voice cuts out mid-sentence. So everything CPU-heavy runs in a worker, and the app can keep saying "I'm reading page two of four…".</span>
+        <span><b>Why a Web Worker keeps coming up:</b> OCR takes seconds. On the main thread that freezes the UI <em>and</em> stalls the speech queue, so the voice cuts out mid-sentence. So everything CPU-heavy runs in a worker, and the app can keep saying "I'm reading page two of four…".</span>
       </div>
     </div>
   </section>
@@ -464,20 +464,23 @@ Field {
     <div class="num">05</div>
     <div class="body">
       <h2>The codebase, and where it actually stands</h2>
-      <p>It's a monorepo: one repository, many small packages, npm workspaces tying them together. Here is every planned module and its real state today.</p>
+      <div class="note guard">
+        <span><b>Historical plan, not current status.</b> The module breakdown below reflects the original monorepo architecture as planned in the early design docs. The project has since moved to a simpler single-app structure. For the current, accurate implementation status, see <a href="INTEGRATION.html">INTEGRATION.html</a> and <a href="ROADMAP.html">ROADMAP.html</a>.</span>
+      </div>
+      <p>It's a monorepo: one repository, many small packages, npm workspaces tying them together. Here is every planned module and its real state as originally scoped.</p>
       <div class="scroll">
         <table>
           <thead>
             <tr><th scope="col">Module</th><th scope="col">What it does</th><th scope="col">State</th></tr>
           </thead>
           <tbody>
-            <tr><td class="mod">form-model</td><td>The Form IR — types, schemas, traversal helpers</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
+            <tr><td class="mod">form-model</td><td>The Form IR: types, schemas, traversal helpers</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
             <tr><td class="mod">conversation</td><td>The state machine. Pure, no DOM, no I/O</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
-            <tr><td class="mod">validate</td><td>Local field validation — dates, postcodes, email</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
+            <tr><td class="mod">validate</td><td>Local field validation: dates, postcodes, email</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
             <tr><td class="mod">redact</td><td>Finds personal data and swaps in placeholders</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
             <tr><td class="mod">speech</td><td>The only sanctioned caller of speech synthesis</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
             <tr><td class="mod">fixtures</td><td>Hand-authored test forms to develop against</td><td class="st"><span class="tag built">scaffolded</span></td></tr>
-            <tr><td class="mod">apps/web</td><td>The Next.js app — the thing you'd actually open</td><td class="st"><span class="tag todo">not started</span></td></tr>
+            <tr><td class="mod">apps/web</td><td>The Next.js app, the thing you'd actually open</td><td class="st"><span class="tag todo">not started</span></td></tr>
             <tr><td class="mod">profile</td><td>Encrypted local profile + autofill matching</td><td class="st"><span class="tag todo">not started</span></td></tr>
             <tr><td class="mod">ingest-pdf</td><td>Reads PDFs: text, geometry, embedded fields</td><td class="st"><span class="tag todo">not started</span></td></tr>
             <tr><td class="mod">emit-pdf</td><td>Writes the filled PDF back out</td><td class="st"><span class="tag todo">not started</span></td></tr>
@@ -486,15 +489,15 @@ Field {
           </tbody>
         </table>
       </div>
-      <p>"Scaffolded" means the package exists with a few source files and, in three cases, real tests — not that it's finished. <code>npm test</code> and <code>npm run typecheck</code> work today. <code>npm run dev</code> does not: it points at <code>apps/web</code>, which doesn't exist yet.</p>
+      <p>"Scaffolded" means the package exists with a few source files and, in three cases, real tests, not that it's finished. These statuses describe the original plan at the time it was written; see the note above for where things actually stand now.</p>
 
       <h3>The order of work, and why</h3>
       <ul>
-        <li><strong>P0 — Skeleton.</strong> Form IR, conversation engine, review gate, accessible shell, fixture forms. Built <em>before</em> any file parsing, because the conversation <em>is</em> the product.</li>
-        <li><strong>P1 — PDFs with real form fields.</strong> Highest fidelity, zero OCR risk, no network call. The first genuinely useful thing.</li>
-        <li><strong>P2 — Flat PDFs and scans.</strong> On-device OCR and model-based classification. Unlocks most real-world forms.</li>
-        <li><strong>P3 — Camera capture.</strong> Guiding someone who can't see the lens to frame a page by audio alone. The hardest problem in the product; deliberately deferred.</li>
-        <li><strong>P4 — Browser extension.</strong> Live web forms, reusing everything above.</li>
+        <li><strong>P0, Skeleton.</strong> Form IR, conversation engine, review gate, accessible shell, fixture forms. Built <em>before</em> any file parsing, because the conversation <em>is</em> the product.</li>
+        <li><strong>P1, PDFs with real form fields.</strong> Highest fidelity, zero OCR risk, no network call. The first genuinely useful thing.</li>
+        <li><strong>P2, Flat PDFs and scans.</strong> On-device OCR and model-based classification. Unlocks most real-world forms.</li>
+        <li><strong>P3, Camera capture.</strong> Guiding someone who can't see the lens to frame a page by audio alone. The hardest problem in the product; deliberately deferred.</li>
+        <li><strong>P4, Browser extension.</strong> Live web forms, reusing everything above.</li>
       </ul>
     </div>
   </section>
@@ -506,14 +509,14 @@ Field {
       <p>Terms that will come up constantly between us. Knowing these makes the rest of the conversation fast.</p>
       <dl class="gloss">
         <div><dt>Form IR</dt><dd>The single normalised description of a form that the whole core operates on. "IR" = intermediate representation.</dd></div>
-        <div><dt>anchor</dt><dd>The tag on each field saying how to write a value back to its origin — a PDF field name, a rectangle on a page, or a CSS selector.</dd></div>
+        <div><dt>anchor</dt><dd>The tag on each field saying how to write a value back to its origin, whether a PDF field name, a rectangle on a page, or a CSS selector.</dd></div>
         <div><dt>AcroForm</dt><dd>A PDF with genuine, machine-readable form fields, as opposed to a flat picture of a form. The easy, high-fidelity path.</dd></div>
         <div><dt>flat PDF</dt><dd>A PDF that's really just an image. No fields, often no usable text. Needs OCR and geometry.</dd></div>
         <div><dt>spokenLabel</dt><dd>The plain-language rewrite of an officialese question. The verbatim original is always one keystroke away and never discarded.</dd></div>
-        <div><dt>announcement</dt><dd>Something the app needs the user to know, emitted by the engine as data — text plus a priority. The UI decides whether that becomes speech or an ARIA live region.</dd></div>
-        <div><dt>sr mode / spoken mode</dt><dd>The two mutually exclusive modes. In <code>sr</code> mode the app is silent; in <code>spoken</code> mode it talks. When unsure, default to silent — silence is recoverable, double-speech drives users away.</dd></div>
-        <div><dt>redaction recall</dt><dd>The share of real personal data our detectors catch. CI gates on recall, not accuracy: a false positive costs a slightly worse result, a miss is a leak.</dd></div>
-        <div><dt>fail closed</dt><dd>If redaction can't complete, we do <em>not</em> send the request. Degrade to local heuristics and say so.</dd></div>
+        <div><dt>announcement</dt><dd>Something the app needs the user to know, emitted by the engine as data: text plus a priority. The UI decides whether that becomes speech or an ARIA live region.</dd></div>
+        <div><dt>sr mode / spoken mode</dt><dd>The two mutually exclusive modes. In <code>sr</code> mode the app is silent; in <code>spoken</code> mode it talks. When unsure, default to silent, since silence is recoverable and double-speech drives users away.</dd></div>
+        <div><dt>redaction recall</dt><dd>The share of real personal data our detectors catch. CI gates on recall, not accuracy, since a false positive costs a slightly worse result, but a miss is a leak.</dd></div>
+        <div><dt>fail closed</dt><dd>If redaction can't complete, we do <em>not</em> send the request; degrade to local heuristics and say so.</dd></div>
         <div><dt>sensitivity</dt><dd>Per-field: <code>none</code>, <code>pii</code>, or <code>sensitive</code>. Sensitive fields are hard-blocked from cloud speech recognition, from logs, and from crash reports.</dd></div>
         <div><dt>announcement transcript</dt><dd>A snapshot test of everything the user would hear for a given form. Reviewing it means reading it as if listening.</dd></div>
       </dl>
@@ -529,15 +532,15 @@ Field {
         <div class="q"><b>UK first or US first?</b><span>This is the one with real code consequences right now. It determines the PII detectors (NI number vs SSN), the validators (postcode vs ZIP), and which fixture forms we build against. Everything in <code>redact</code> and <code>validate</code> branches off it.</span></div>
         <div class="q"><b>Does the app shell come next, or more engine?</b><span>Right now there is logic but nothing to open in a browser. We could scaffold <code>apps/web</code> so you can hear the conversation working, or keep hardening the engine against fixtures first.</span></div>
         <div class="q"><b>Is full offline mode a v1 requirement?</b><span>The PDF-with-real-fields path already needs no network. A full offline mode (installable app, local models) is a bigger commitment.</span></div>
-        <div class="q"><b>Support-worker mode?</b><span>One of the four personas is a support worker helping twenty clients a week. A supervised mode is genuinely useful — and sits awkwardly against "answers never leave the device".</span></div>
+        <div class="q"><b>Support-worker mode?</b><span>One of the four personas is a support worker helping twenty clients a week. A supervised mode is genuinely useful, and sits awkwardly against "answers never leave the device".</span></div>
         <div class="q"><b>Compliance floor.</b><span>WCAG 2.2 AA is assumed throughout. Whether EN 301 549 or Section 508 conformance is a formal target depends on whether public-sector procurement is in view.</span></div>
       </div>
     </div>
   </section>
 
   <footer>
-    <p>Summarised from <code>ARCHITECTURE.md</code>, <code>DESIGN.md</code>, <code>ACCESSIBILITY.md</code> and <code>PRIVACY.md</code> (all draft v0.1, 29 July 2026). Those remain the source of truth; where this page and a doc disagree, the doc wins.</p>
-    <p>This page follows FormFill's own accessibility spec — 20&nbsp;px base type, <code>rem</code> units throughout, 44&nbsp;px targets, visible focus rings, light and dark themes, no meaning carried by colour alone.</p>
+    <p>Summarised from <code>ARCHITECTURE.md</code>, <code>DESIGN.md</code>, <code>ACCESSIBILITY.md</code> and <code>PRIVACY.md</code>, all early draft versions. Those remain the source of truth; where this page and a doc disagree, the doc wins.</p>
+    <p>This page follows FormFill's own accessibility spec: 20&nbsp;px base type, <code>rem</code> units throughout, 44&nbsp;px targets, visible focus rings, light and dark themes, no meaning carried by colour alone.</p>
   </footer>
 
 </div>

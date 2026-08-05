@@ -373,7 +373,7 @@
     <div class="num">02</div>
     <div class="body">
       <h2>What happens behind the "Upload" step</h2>
-      <p>The moment someone continues past the upload page, the whole PDF is sent to an AI model in a single call, which reads it the way a person would — the AI is shown the actual document, not just text pulled out of it. A quick, free, local check first lists any real clickable fields the PDF already has (the kind you could type straight into in Adobe Acrobat), so the model can match its own questions back onto them where they exist. Photos and non-PDF images aren't supported yet — FormFill tells the person clearly rather than failing silently or guessing.</p>
+      <p>The moment someone continues past the upload page, the whole PDF is sent to an AI model in a single call, which reads it the way a person would: the AI is shown the actual document, not just text pulled out of it. A quick, free, local check first lists any real clickable fields the PDF already has (the kind you could type straight into in Adobe Acrobat), so the model can match its own questions back onto them where they exist. Photos and non-PDF images aren't supported yet; FormFill tells the person clearly rather than failing silently or guessing.</p>
     </div>
   </section>
 
@@ -384,7 +384,7 @@
       <p>The AI model is asked to do one job: group the form into sections and turn each part into a clear question a person could answer, whether or not the PDF has real fillable fields underneath.</p>
       <p>For example, the model turns the officialese <em>"Applicant's declaration of relevant prior interests"</em> into the plain question <em>"Have you had a financial interest in this before?"</em>, while keeping the original wording available too. It's never hidden.</p>
       <div class="note guard">
-        <span><b>What's sent to the AI:</b> the whole PDF file itself, not just extracted text — this is a deliberate tradeoff (an earlier, text-only approach turned out to be unreliable across real forms) with a real privacy cost: information rendered inside the PDF can't be automatically hidden from the model the way plain text could be. See <a href="KNOWN-ISSUES.html">the known-risks doc</a>. Whatever the person later types as an answer is never sent anywhere.</span>
+        <span><b>What's sent to the AI:</b> the whole PDF file itself, not just extracted text. This is a deliberate tradeoff (an earlier, text-only approach turned out to be unreliable across real forms) with a real privacy cost: information rendered inside the PDF can't be automatically hidden from the model the way plain text could be. See <a href="KNOWN-ISSUES.html">the known-risks doc</a>. Whatever the person later types as an answer is never sent anywhere.</span>
       </div>
       <p>See <a href="MODELS.html">the model &amp; pricing doc</a> for which AI model does this, what it costs, and how it was tested.</p>
     </div>
