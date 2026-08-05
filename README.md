@@ -80,7 +80,7 @@ Next.js (App Router, Turbopack) · React · Tailwind CSS · Atkinson Hyperlegibl
 
 The Answer/Confirm flow runs on a pure conversation-engine reducer in `src/lib/conversation/` (hand-copied from the original `packages/conversation`, `form-model`, and `validate` design during development on `rahul`, not imported as workspace packages) — real skip-logic, locale-aware validation, and a two-step review gate instead of a simpler independent implementation.
 
-Model choice isn't finalised yet — `google/gemma-4-26b-a4b-it:free` (via OpenRouter) is the current best-tested candidate, though it has a known gap on NZ government forms specifically. See [`docs/MODELS.html`](docs/MODELS.html) for the full testing history and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) for current known risks.
+Model choice isn't finalised yet — `google/gemma-4-26b-a4b-it:free` (via OpenRouter) is the current default, though it has a known gap on NZ government forms specifically. A head-to-head against 7 paid models (2026-08-05) confirmed paying resolves that gap, and found `google/gemma-3-27b-it` (Nigel's original recommendation), `anthropic/claude-haiku-4.5`, and `mistralai/mistral-small-3.2-24b-instruct` show no accuracy regression — some cheaper/faster paid models do. See [`docs/MODELS.html`](docs/MODELS.html) for the full testing history and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) for current known risks.
 
 A second, independent model call can review filled answers for real mistakes before submission (`src/lib/openrouter/verify-answers.ts`, `/api/verify`) — built and callable, not yet wired into the submit flow.
 

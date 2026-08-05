@@ -316,7 +316,16 @@
           <span class="sev high">High</span>
         </div>
         <p>Local testing (see <a href="MODELS.html">MODELS.html §04/§04b</a>) found three working local models across two forms: <code>gemma3:4b</code>, <code>qwen2.5vl:7b</code>, and <code>gemma4:26b</code> (the mentor-recommended model) — all produced genuinely correct results. A 16-form cloud batch (<a href="MODELS.html">MODELS.html §04c/§04d</a>) then found <code>google/gemma-4-26b-a4b-it:free</code> succeeding on 6/16, with the rest assumed to be free-tier congestion under batch load. A follow-up round retried those 10 failures one at a time, with real gaps between each, to test that theory (<a href="MODELS.html">MODELS.html §04e</a>): <strong>6 of the 10 failed again, even alone</strong> — and every one of those 6 is an official NZ government form (Inland Revenue, Internal Affairs, Immigration NZ, Work and Income). Every form that succeeded once retried alone was <em>not</em> a government form. This is a 6-for-6 vs. 3-for-3 split, strong enough to treat as a genuine pattern rather than coincidence, though the exact cause (length, layout density, something about how these specific PDFs are built) isn't confirmed.</p>
-        <div class="fix"><b>Status:</b> open, and higher-priority than initially thought — this isn't a load/capacity problem that resolves itself, it's a repeatable gap on exactly the category of form (government paperwork) this product exists to help with. Next step: investigate whether a longer timeout specifically for these forms resolves it, or whether it's a genuine model-capability limit requiring a different model for this form category.</div>
+        <div class="fix"><b>Status:</b> partially resolved. A paid model (<code>google/gemini-2.5-flash</code>) was tested directly against the worst-affected form (a 26-page NZ citizenship application that timed out 3 times on the free tier) and succeeded in 5.3 seconds — strong evidence the failure was free-tier capacity/rate-limiting, not a genuine limit on what the model can handle. Paying for a model is a real, confirmed fix for this specific issue if the demo needs to use a long/dense or government form. See the entry below on paid-model accuracy tradeoffs before picking which paid model, though — not every paid option is a clean upgrade.</div>
+      </div>
+
+      <div class="risk medium">
+        <div class="risk-head">
+          <b>Not every paid model is a clean upgrade over the free one</b>
+          <span class="sev medium">Medium</span>
+        </div>
+        <p>A head-to-head comparison (<a href="MODELS.html">MODELS.html §06b</a>, 2026-08-05) ran the free model against 7 paid candidates on the same 5 real forms. Every paid model was 15–35× faster for 1–4 cents per form — a clear, unambiguous win. But two real accuracy problems showed up <em>only</em> in certain paid models, never in the free model across the same forms: three models (both Gemini variants, and Qwen2.5-VL) returned the exact same confidence score for every field on at least one form — sometimes every form — which silently defeats the low-confidence flagging this product relies on to keep a blind or low-vision user safe from a wrong guess. Separately, <code>gpt-4o-mini</code> silently dropped 16 of 23 real questions on one form (no error, just missing), and <code>gemini-2.5-flash-lite</code> repeated a structural bug seen earlier — splitting one Yes/No question into two disconnected fields.</p>
+        <div class="fix"><b>Recommendation:</b> if switching to a paid model, three came back clean on every form tested — <code>anthropic/claude-haiku-4.5</code>, <code>google/gemma-3-27b-it</code> (the mentor's original recommendation), and <code>mistralai/mistral-small-3.2-24b-instruct</code>. Of those, the latter two are meaningfully cheaper per form. Avoid picking a paid model purely on speed or price without checking this table first — the cheapest/fastest options in this comparison were also the ones with real accuracy problems.</div>
       </div>
 
       <div class="risk medium">
@@ -355,6 +364,14 @@
       <p>Listed for transparency. These happened during development and are resolved, not currently live issues.</p>
 
       <div class="qs">
+        <div class="risk low">
+          <div class="risk-head">
+            <b>A model wrapping its answer in markdown could crash reading the form entirely</b>
+            <span class="sev low">Fixed</span>
+          </div>
+          <p>Every AI prompt in this app explicitly says "no markdown fencing," but not every model actually follows that. Found directly while comparing 7 paid models on 2026-08-05: <code>anthropic/claude-haiku-4.5</code> wrapped its answer in a code block on every single one of 5 real test forms, despite being told not to. The code that reads the model's answer had no defense against this — it would have failed outright with a technical error instead of showing a form, the day any model (not just this one) decided to add formatting. Fixed by having the app strip that wrapping automatically before reading the answer, regardless of which model sends it.</p>
+        </div>
+
         <div class="risk low">
           <div class="risk-head">
             <b>The live site was quietly using an untested, paid model instead of the free one that was actually tested</b>

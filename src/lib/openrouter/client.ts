@@ -26,14 +26,21 @@ const longRunningAgent = new Agent({
 });
 
 /**
- * Nigel's original recommendation was google/gemma-3-27b-it, but real-form
- * testing (docs/MODELS.html §04-§04e: 3 local model cycles, a 16-form cloud
- * batch, and a follow-up single-file retry round) never actually validated
- * that model — all of it tested the Gemma 4 family instead.
- * google/gemma-4-26b-a4b-it:free is the only model that produced
- * consistently accurate, genuinely-tested results, and it's free. Known
- * gap: reliably fails on official NZ government forms specifically — see
- * docs/KNOWN-ISSUES.html.
+ * Nigel's original recommendation was google/gemma-3-27b-it. Real-form
+ * testing (docs/MODELS.html §04-§04e) validated the Gemma 4 family first —
+ * google/gemma-4-26b-a4b-it:free produced consistently accurate results
+ * and it's free, but has a known gap: reliably fails on official NZ
+ * government forms specifically (see docs/KNOWN-ISSUES.html).
+ *
+ * A later head-to-head (MODELS.html §06b, 2026-08-05) tested Nigel's
+ * original pick directly: gemma-3-27b-it came back clean on every one of
+ * 5 real forms (no accuracy regression vs. the free model), and paid
+ * models in general resolved the free model's timeout problem on long
+ * forms (confirmed: a 26-page form that failed 3× free succeeded in 5.3s
+ * on a paid model). If switching to paid for reliability on long/complex
+ * forms, gemma-3-27b-it is the evidence-backed choice — not every paid
+ * model tested was a clean upgrade (some showed real accuracy
+ * regressions, see KNOWN-ISSUES.html).
  */
 export const CLASSIFICATION_MODEL = "google/gemma-4-26b-a4b-it:free";
 

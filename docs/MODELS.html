@@ -724,6 +724,104 @@
   </section>
 
   <section>
+    <div class="num">06b</div>
+    <div class="body">
+      <h2>Free vs. paid, head to head — 2026-08-05</h2>
+      <p class="lede">Prompted by a real question: does paying for a model actually fix the free model's known gap on long/dense forms, and if it does, is the free model's <em>accuracy</em> still competitive, or is speed the only thing free is winning on? Ran <code>google/gemma-4-26b-a4b-it:free</code> (already validated) against 7 paid candidates, all 8 models on the same 5 real forms.</p>
+
+      <div class="note guard">
+        <span><b>Total cost:</b> $0.21 across 35 paid calls (7 models × 5 forms) — see the per-model breakdown below. Estimated at ~$0.35 beforehand; came in under that.</span>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Model</th>
+              <th scope="col">Avg. time (5 forms)</th>
+              <th scope="col">Total cost (5 forms)</th>
+              <th scope="col">Confidence calibration</th>
+              <th scope="col">Structural bugs found</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mod">google/gemma-4-26b-a4b-it:free</td>
+              <td class="num">90.2s</td>
+              <td class="num">$0</td>
+              <td>Real — 2–4 distinct confidence values on every form</td>
+              <td>None across 128 fields checked</td>
+            </tr>
+            <tr>
+              <td class="mod">anthropic/claude-haiku-4.5</td>
+              <td class="num">7.7s</td>
+              <td class="num">$0.0714</td>
+              <td>Real — 3–4 distinct values on every form, the most consistent of any paid model</td>
+              <td>None</td>
+            </tr>
+            <tr>
+              <td class="mod">google/gemma-3-27b-it (Nigel's pick)</td>
+              <td class="num">3.6s</td>
+              <td class="num">$0.0280</td>
+              <td>Real — 1–5 distinct values, mostly good</td>
+              <td>None</td>
+            </tr>
+            <tr>
+              <td class="mod">mistralai/mistral-small-3.2-24b-instruct</td>
+              <td class="num">3.4s</td>
+              <td class="num">$0.0268</td>
+              <td>Real — 2–3 distinct values consistently</td>
+              <td>None</td>
+            </tr>
+            <tr>
+              <td class="mod">google/gemini-2.5-flash</td>
+              <td class="num">2.8s</td>
+              <td class="num">$0.0268</td>
+              <td class="st"><span class="tag guard">Weak</span> — collapsed to a single confidence value (all fields identical) on 2 of 5 forms</td>
+              <td>None</td>
+            </tr>
+            <tr>
+              <td class="mod">openai/gpt-4o-mini</td>
+              <td class="num">2.8s</td>
+              <td class="num">$0.0202</td>
+              <td>Real — 2–5 distinct values</td>
+              <td class="st"><span class="tag todo">Yes</span> — returned only 7 of 23 real fields on Criminal history consent form (missed ~70% of the form)</td>
+            </tr>
+            <tr>
+              <td class="mod">google/gemini-2.5-flash-lite</td>
+              <td class="num">3.3s</td>
+              <td class="num">$0.0049</td>
+              <td class="st"><span class="tag guard">Weak</span> — collapsed to a single value on 3 of 5 forms, worse than the full Flash model</td>
+              <td class="st"><span class="tag todo">Yes</span> — split a single Yes/No question into two disconnected boolean fields on acc-form</td>
+            </tr>
+            <tr>
+              <td class="mod">qwen/qwen2.5-vl-72b-instruct</td>
+              <td class="num">4.3s</td>
+              <td class="num">$0.0317</td>
+              <td class="st"><span class="tag todo">Broken</span> — a single confidence value (no variation at all) on <b>every one of the 5 forms</b></td>
+              <td>None</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note built">
+        <span><b>Speed and cost:</b> every paid model here is 15–35× faster than the free model, at a cost of roughly 1–4 cents per form. This is the clearest, most unambiguous result — paid models genuinely solve the free model's biggest weakness (timing out on long/dense forms, confirmed separately on a 26-page form that failed 3 times on the free tier and succeeded in 5.3s with Gemini 2.5 Flash).</span>
+      </div>
+
+      <div class="note guard">
+        <span><b>Accuracy is not simply "better because paid."</b> Two real, repeatable problems showed up only in paid models, never in the free model across the same 5 forms:
+        <br><br>
+        <b>Confidence calibration collapse.</b> The whole point of a confidence score is flagging genuinely uncertain fields for a closer look (<code>/review</code> tags anything under 0.5). Three paid models — both Gemini variants and Qwen2.5-VL — returned the exact same confidence value for every field on at least one form, sometimes every form. That's not real calibration, it's a constant. If this ships, low-confidence flagging silently stops meaning anything for any form processed by one of these three.
+        <br><br>
+        <b>Missed and mis-structured fields.</b> <code>gpt-4o-mini</code> silently dropped 16 of 23 real questions on one form — no error, no low confidence, just gone. <code>gemini-2.5-flash-lite</code> split a single Yes/No question into two separate disconnected boolean fields (the same structural bug flagged earlier from a single-form test) — a real usability problem, since nothing stops someone answering "yes" to both halves.</span>
+      </div>
+
+      <p><b>Read after this comparison:</b> <code>claude-haiku-4.5</code>, <code>gemma-3-27b-it</code> (Nigel's original pick), and <code>mistral-small-3.2-24b</code> are the three paid models that showed <em>no</em> accuracy regression against the free model across all 5 forms — all real confidence variation, zero structural bugs. Of those three, <code>gemma-3-27b-it</code> and <code>mistral-small-3.2-24b</code> are meaningfully cheaper per form than Claude Haiku. If switching to a paid model for the demo, one of those three is the evidence-backed choice — not simply "whichever is fastest or cheapest," since two of the cheapest/fastest options (the Gemini variants, Qwen) are exactly the ones with real accuracy problems.</p>
+    </div>
+  </section>
+
+  <section>
     <div class="num">07</div>
     <div class="body">
       <h2>If a different classification model turns out to work better</h2>
