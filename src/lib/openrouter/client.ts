@@ -86,6 +86,22 @@ export async function callOpenRouter(
   return result.content;
 }
 
+// Statuses observed to be transient in real testing (docs/MODELS.html
+// §04c-§04e): 429 (free-tier rate limit — models_a-31b was rate-limited on
+// 14/16 attempts in the cloud batch, but the *same* files succeeded on
+// retry once alone), 502 (OpenRouter's Mistral-OCR PDF pre-processing step
+// going down independently of any model — confirmed by a retry succeeding
+// on the exact file that failed), 504 (upstream timeout/gateway). Not
+// retried: 400/401/403 (bad request, auth, permission — retrying changes
+// nothing) or a missing/malformed response body (a model or parsing
+// problem, not a network one).
+const RETRYABLE_STATUSES = new Set([429, 502, 504]);
+const RETRY_DELAY_MS = 3_000;
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /** Same as callOpenRouter but also surfaces OpenRouter's reported per-call cost, for tooling that needs to track real spend (e.g. scripts/online-test-lib.ts). */
 export async function callOpenRouterWithUsage(
   messages: ChatMessage[],
@@ -98,29 +114,45 @@ export async function callOpenRouterWithUsage(
     );
   }
 
-  const response = await undiciFetch(OPENROUTER_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: options?.model ?? CLASSIFICATION_MODEL,
-      messages,
-      response_format: { type: "json_object" },
-      usage: { include: true },
-    }),
-    dispatcher: longRunningAgent,
-    signal: options?.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined,
-  });
+  for (let attempt = 0; attempt <= 1; attempt += 1) {
+    if (attempt > 0) await sleep(RETRY_DELAY_MS);
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`OpenRouter request failed (${response.status}): ${body}`);
+    const response = await undiciFetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: options?.model ?? CLASSIFICATION_MODEL,
+        messages,
+        response_format: { type: "json_object" },
+        usage: { include: true },
+      }),
+      dispatcher: longRunningAgent,
+      signal: options?.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined,
+    }).catch((error): null => {
+      // A thrown network/timeout error (not an HTTP status — e.g. the
+      // AbortSignal firing, or a genuine connection failure). Treated the
+      // same as a retryable status code below: null signals "try again if
+      // there's an attempt left," and the real error is re-thrown once
+      // attempts are exhausted.
+      if (attempt === 0) return null;
+      throw error instanceof Error ? error : new Error(String(error));
+    });
+    if (response === null) continue;
+
+    if (!response.ok) {
+      if (attempt === 0 && RETRYABLE_STATUSES.has(response.status)) continue;
+      const body = await response.text();
+      throw new Error(`OpenRouter request failed (${response.status}): ${body}`);
+    }
+
+    const data = (await response.json()) as OpenRouterResponseWithUsage;
+    const content = data.choices[0]?.message.content;
+    if (!content) throw new Error("OpenRouter returned no content.");
+    return { content, costUsd: data.usage?.cost };
   }
 
-  const data = (await response.json()) as OpenRouterResponseWithUsage;
-  const content = data.choices[0]?.message.content;
-  if (!content) throw new Error("OpenRouter returned no content.");
-  return { content, costUsd: data.usage?.cost };
+  throw new Error("OpenRouter request failed after retry.");
 }
