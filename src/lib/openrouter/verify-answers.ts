@@ -1,5 +1,5 @@
 import type { AnswerSet, Field } from "@/lib/form-model/types";
-import { callOpenRouter, VERIFICATION_MODEL } from "./client";
+import { callOpenRouter, parseJsonResponse, VERIFICATION_MODEL } from "./client";
 
 /**
  * Second-pass reliability check per the 2026-08-02 meeting with Nigel:
@@ -62,7 +62,7 @@ export async function verifyAnswers(fields: Field[], answers: AnswerSet): Promis
     { model: VERIFICATION_MODEL },
   );
 
-  const parsed = JSON.parse(raw) as VerificationResult;
+  const parsed = parseJsonResponse<VerificationResult>(raw);
   return {
     ok: Boolean(parsed.ok) && (parsed.issues?.length ?? 0) === 0,
     issues: Array.isArray(parsed.issues) ? parsed.issues : [],

@@ -156,3 +156,20 @@ export async function callOpenRouterWithUsage(
 
   throw new Error("OpenRouter request failed after retry.");
 }
+
+/**
+ * Every prompt in this app says "no markdown fencing," but not every model
+ * honors that — confirmed directly: anthropic/claude-haiku-4.5 wrapped its
+ * JSON in ```json fences on 5/5 real test calls (2026-08-05 paid-model
+ * comparison), despite the instruction. A bare JSON.parse(raw) on that
+ * output throws, which is exactly the kind of thing that should degrade
+ * gracefully (or at least fail with a clear cause) rather than crash
+ * classification/verification outright the day a model's behavior changes.
+ * Strips a single leading/trailing fenced code block (```json or ```) if
+ * present, then parses — a no-op for a model that already complies.
+ */
+export function parseJsonResponse<T>(raw: string): T {
+  const fenced = raw.trim().match(/^```(?:json)?\s*\n([\s\S]*?)\n?```$/i);
+  const cleaned = fenced ? fenced[1] : raw;
+  return JSON.parse(cleaned) as T;
+}

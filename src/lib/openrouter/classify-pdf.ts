@@ -1,6 +1,6 @@
 import type { Field, FieldType, Form, Section, Anchor } from "@/lib/form-model/types";
 import { formatHintFor } from "@/lib/form-model/format-hint";
-import { callOpenRouter, type ChatContentPart } from "./client";
+import { callOpenRouter, parseJsonResponse, type ChatContentPart } from "./client";
 import type { AcroFormFieldSummary } from "@/lib/ingest/acroform-fields";
 
 const FIELD_TYPES: FieldType[] = [
@@ -113,7 +113,7 @@ export async function classifyPdf(
   ];
 
   const raw = await callOpenRouter([{ role: "user", content }]);
-  const parsed = JSON.parse(raw) as ClassificationResponse;
+  const parsed = parseJsonResponse<ClassificationResponse>(raw);
 
   let fieldIndex = 0;
   const sections: Section[] = parsed.sections.map((section, sectionIndex) => ({
