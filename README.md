@@ -18,7 +18,7 @@ This repository's `main` branch is the real, working codebase. The AI/ingest pip
 | `/help` | How a form session works, keyboard shortcuts, FAQ |
 | `/accessibility` | What's supported today and what's still in progress |
 
-Every uploaded PDF is read by an AI model (via OpenRouter) rather than parsed locally. This replaced an earlier local-parsing approach that turned out to be unreliable across real forms. Requires `OPENROUTER_API_KEY`, see [Getting started](#getting-started). Full reasoning and tradeoffs, including a disclosed gap where PII redaction doesn't cover this path, are in [`docs/INTEGRATION.html`](docs/INTEGRATION.html) and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html). Non-PDF files (photos, other image formats) aren't supported yet.
+Every uploaded PDF, PNG, or JPG is read by an AI model (via OpenRouter) rather than parsed locally. This replaced an earlier local-parsing approach that turned out to be unreliable across real forms. Requires `OPENROUTER_API_KEY`, see [Getting started](#getting-started). Full reasoning and tradeoffs, including a disclosed gap where PII redaction doesn't cover this path, are in [`docs/INTEGRATION.html`](docs/INTEGRATION.html) and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html). Other file formats aren't supported yet.
 
 Confirming on `/confirm` downloads a real document: any field the model mapped to a real AcroForm field name gets written into a filled, flattened PDF; everything else appears as a question/answer summary in the same document.
 

@@ -346,13 +346,12 @@
         <div class="fix"><b>Status:</b> fixed in <code>src/lib/openrouter/client.ts</code>, the production code every model call goes through, by using <code>undici</code>'s <code>fetch</code> directly with an explicit, generous timeout agent, removing the conflict between two different timeout systems.</div>
       </div>
 
-      <div class="risk medium">
+      <div class="risk low">
         <div class="risk-head">
           <b>Scanned photos and image-only forms aren't supported</b>
-          <span class="sev medium">Medium</span>
+          <span class="sev low">Fixed</span>
         </div>
-        <p>Only PDFs work today, whether they have real fillable fields or are flat PDFs with readable text. A photo of a paper form, or a scanned image with no text layer, is detected and clearly flagged as unsupported rather than failing silently.</p>
-        <div class="fix"><b>Recommendation:</b> for any demo, use a real PDF of either kind above, not a photo.</div>
+        <p>PNG and JPG uploads now go through the same classification pipeline as a flat PDF: the whole image is sent to the model in one call, with no AcroForm fields to enumerate since none exist for a photo. Confirming produces a plain question-and-answer summary document, the same fallback already used for a PDF with no fillable fields, since there is no real form structure to write values back into. Only formats outside PDF, PNG, and JPG still show the plain "can't read this yet" message.</p>
       </div>
     </div>
   </section>

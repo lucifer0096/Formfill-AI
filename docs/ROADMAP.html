@@ -372,6 +372,10 @@
           <span>Every PDF, fillable or flat, is sent whole to a multimodal model in one call, with real AcroForm field names given as context so the model can map its own detections back onto them for fill-back. Validated across local, free-tier, and paid model testing; see the model selection document for full results.</span>
         </div>
         <div class="scope-card built">
+          <b>Image upload support</b>
+          <span>A PNG or JPG photo or scan is sent to the same classification model, the same way a flat PDF already is. No AcroForm fields exist for a photo, so confirming always produces a question-and-answer summary document rather than a filled PDF, the same fallback a flat PDF with no fillable fields already uses.</span>
+        </div>
+        <div class="scope-card built">
           <b>AcroForm field enumeration</b>
           <span>A small local pdf-lib pass lists real field names only, with no position or label guessing, since that moved to the model. Replaces the earlier local detection and label-finding pipeline.</span>
         </div>
@@ -435,7 +439,6 @@
             <tr><th scope="col">Capability</th><th scope="col">Roadmap phase</th><th scope="col">Status</th></tr>
           </thead>
           <tbody>
-            <tr><td>Non-PDF image support (photos, PNG/JPG scans)</td><td class="mod">P2</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Local autofill profile (name, address, and date of birth remembered across forms)</td><td class="mod">P1</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Camera capture with audio framing guidance</td><td class="mod">P3</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Print-alignment overlay for flat or paper forms</td><td class="mod">P2 / P3</td><td><span class="tag todo">not started</span></td></tr>
@@ -476,6 +479,10 @@
           <b>Trigger the review gate deliberately</b>
           <span>Attempt to confirm without reading every answer back first, show the resulting warning message, then confirm again to demonstrate the expert override.</span>
         </li>
+        <li class="done">
+          <b>Optional: upload a photo instead of a PDF</b>
+          <span>A PNG or JPG goes through the same classification pipeline as any flat PDF, confirmed working end to end. Worth showing only if time allows; it demonstrates the same capability as the flat-PDF example above rather than something new.</span>
+        </li>
       </ol>
 
       <h3>Worth mentioning, not worth demoing live</h3>
@@ -487,7 +494,6 @@
       <h3>Recommend leaving out entirely</h3>
       <ul>
         <li><strong>A very large form with repeated grids</strong>, such as a residential tenancy agreement: the "every cell is its own question" limitation is real and has not yet been resolved. Reserve this for a "what we're tackling next" discussion if it comes up.</li>
-        <li><strong>An image or photo of a non-PDF file</strong> is currently unsupported and correctly flagged as such. Scanned or image-only PDFs go through the same multimodal path as any other PDF, so this limitation applies narrowly, to non-PDF image files specifically.</li>
       </ul>
     </div>
   </section>

@@ -373,7 +373,7 @@
     <div class="num">02</div>
     <div class="body">
       <h2>What happens behind the "Upload" step</h2>
-      <p>The moment someone continues past the upload page, the whole PDF is sent to an AI model in a single call, which reads it the way a person would: the AI is shown the actual document, not just text pulled out of it. A quick, free, local check first lists any real clickable fields the PDF already has (the kind you could type straight into in Adobe Acrobat), so the model can match its own questions back onto them where they exist. Photos and non-PDF images aren't supported yet; FormFill tells the person clearly rather than failing silently or guessing.</p>
+      <p>The moment someone continues past the upload page, the whole file is sent to an AI model in a single call, which reads it the way a person would: the AI is shown the actual document, not just text pulled out of it. For a PDF, a quick, free, local check first lists any real clickable fields it already has (the kind you could type straight into in Adobe Acrobat), so the model can match its own questions back onto them where they exist. A photo or a PNG or JPG scan goes through the same model in the same way, though there is no equivalent local check, since a photo has no such fields to find. Any other file type still gets a plain "can't read this yet" message rather than a silent failure or a guess.</p>
     </div>
   </section>
 
@@ -422,7 +422,7 @@
         <span><b>Flat forms (the common case):</b> a plain summary document listing every question and answer. This isn't a marked-up copy of the original form, since there's no reliable way yet to know exactly where on the page each answer should be drawn.</span>
       </div>
       <div class="note guard">
-        <span><b>Only PDF uploads are handled.</b> A scanned or image-only PDF is still read by the AI model the same way as any other PDF. A photo or non-PDF image file isn't supported yet.</span>
+        <span><b>PDF, PNG, and JPG uploads are handled.</b> A scanned or image-only PDF is read by the AI model the same way as any other PDF, and a PNG or JPG photo goes through the same model directly. Since a photo has no real fillable fields, it always produces the plain summary document described above, never a filled copy. Any other file type isn't supported yet.</span>
       </div>
       <p>See <a href="KNOWN-ISSUES.html">the known-risks doc</a> for a fuller list of current limitations and what could go wrong in a live demo.</p>
     </div>
