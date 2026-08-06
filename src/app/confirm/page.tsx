@@ -20,6 +20,8 @@ import {
 import { speakValue, type Announcement } from "@/lib/conversation/announce";
 import { applicableFields } from "@/lib/form-model/traverse";
 import type { VerificationResult } from "@/lib/openrouter/verify-answers";
+import { speak } from "@/lib/speech";
+import { useRegisterReadAloud } from "@/lib/speech/use-global-read-aloud";
 
 function downloadBytes(bytes: Uint8Array, fileName: string) {
   // pdf-lib's Uint8Array is typed against ArrayBufferLike (can include
@@ -88,6 +90,23 @@ export default function ConfirmPage() {
   // as "verification didn't run" from the caller's point of view.
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const headingRef = useRouteFocus<HTMLHeadingElement>();
+
+  // Computed unconditionally, before the early return below, for the same
+  // reason questions/page.tsx's registeredQuestionText is: a hook can't be
+  // called only inside one render branch. Reads answers straight off
+  // engine.answers rather than the fields/speakValue helpers used further
+  // down (those are only computed after the early return), so this stays
+  // safe even while engine is still null.
+  const registeredAnswersText = engine
+    ? applicableFields(engine.form, engine.answers)
+      .map((f) => {
+        const answer = engine.answers[f.id];
+        const isAnswered = answer && answer.state !== "skipped";
+        return `${f.spokenLabel} ${isAnswered ? speakValue(f, answer.value, engine.locale) : "not answered"}.`;
+      })
+      .join(" ")
+    : "";
+  useRegisterReadAloud(registeredAnswersText);
 
   if (!engine) {
     return (
@@ -268,11 +287,20 @@ export default function ConfirmPage() {
                   type="button"
                   variant="secondary"
                   aria-pressed={isAnswered ? isHeard : undefined}
-                  onClick={() =>
-                    isAnswered
-                      ? readBackField(field.id)
-                      : router.push(`/questions?field=${encodeURIComponent(field.id)}`)
-                  }
+                  onClick={() => {
+                    if (!isAnswered) {
+                      router.push(`/questions?field=${encodeURIComponent(field.id)}`);
+                      return;
+                    }
+                    // "Read back" now actually speaks the answer aloud, not
+                    // just a silent state change — the manual Read Aloud
+                    // control per docs/ACCESSIBILITY.md §1.1's safe
+                    // fallback, added to the same button rather than a
+                    // second one next to it, since this button's name
+                    // already promised audio it never delivered.
+                    speak(`${field.spokenLabel} ${value}`);
+                    readBackField(field.id);
+                  }}
                 >
                   {isAnswered ? (isHeard ? "Heard ✓" : "Read back") : "Answer this"}
                 </Button>

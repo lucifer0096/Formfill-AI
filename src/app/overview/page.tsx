@@ -3,6 +3,8 @@
 import { useSyncExternalStore } from "react";
 import Card from "@/components/ui/Card";
 import LinkButton from "@/components/ui/LinkButton";
+import ReadAloudButton from "@/components/ui/ReadAloudButton";
+import { useRegisterReadAloud } from "@/lib/speech/use-global-read-aloud";
 import ProgressTrail from "@/components/ProgressTrail";
 import { loadWorkingForm } from "@/lib/session-store";
 import { useRouteFocus } from "@/lib/use-route-focus";
@@ -25,6 +27,26 @@ export default function FormOverviewPage() {
   );
   const headingRef = useRouteFocus<HTMLHeadingElement>();
 
+  // Computed unconditionally, before the early return below, so the hook
+  // that registers this for Ctrl+Alt+S runs on every render regardless of
+  // whether sections has loaded yet — same reasoning as the equivalent
+  // comment in questions/page.tsx and confirm/page.tsx.
+  const totalFields = sections?.reduce((sum, s) => sum + s.fields.length, 0) ?? 0;
+  const estimatedMinutes = Math.max(2, Math.round(totalFields * 0.6));
+  const summaryText = sections
+    ? `${sections.length} ${sections.length === 1 ? "section" : "sections"}, ${totalFields} ${
+        totalFields === 1 ? "question" : "questions"
+      } in total, taking about ${estimatedMinutes} minutes. ${sections
+        .map(
+          (section, index) =>
+            `${section.title ?? `Section ${index + 1}`}: ${section.fields.length} ${
+              section.fields.length === 1 ? "question" : "questions"
+            }.`,
+        )
+        .join(" ")}`
+    : "";
+  useRegisterReadAloud(summaryText);
+
   if (!sections) {
     return (
       <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
@@ -34,9 +56,6 @@ export default function FormOverviewPage() {
       </main>
     );
   }
-
-  const totalFields = sections.reduce((sum, s) => sum + s.fields.length, 0);
-  const estimatedMinutes = Math.max(2, Math.round(totalFields * 0.6));
 
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
@@ -56,6 +75,9 @@ export default function FormOverviewPage() {
           {totalFields === 1 ? "question" : "questions"} in total. This should take about{" "}
           {estimatedMinutes} minutes.
         </p>
+        <div className="mt-4">
+          <ReadAloudButton text={summaryText} />
+        </div>
       </section>
 
       <Card as="section" aria-labelledby="sections-heading" tabIndex={0} className="mt-8">

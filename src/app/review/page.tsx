@@ -5,6 +5,8 @@ import Card from "@/components/ui/Card";
 import LinkButton from "@/components/ui/LinkButton";
 import Notice from "@/components/ui/Notice";
 import ProgressTrail from "@/components/ProgressTrail";
+import ReadAloudButton from "@/components/ui/ReadAloudButton";
+import { useRegisterReadAloud } from "@/lib/speech/use-global-read-aloud";
 import { loadIngestResult, PLACEHOLDER_FIELDS, type StoredIngest } from "@/lib/session-store";
 import { useRouteFocus } from "@/lib/use-route-focus";
 import type { Field, FieldType } from "@/lib/form-model/types";
@@ -84,6 +86,12 @@ export default function ReviewFieldsPage() {
 function ReviewFields({ fields }: { fields: Field[] }) {
   const headingRef = useRouteFocus<HTMLHeadingElement>();
   const lowConfidenceCount = fields.filter((field) => bandFor(field.confidence) === "low").length;
+  const summaryText = `We found ${fields.length} ${fields.length === 1 ? "question" : "questions"} on your form.${
+    lowConfidenceCount > 0
+      ? ` ${lowConfidenceCount} ${lowConfidenceCount === 1 ? "needs" : "need"} a closer look.`
+      : ""
+  }`;
+  useRegisterReadAloud(summaryText);
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
       <ProgressTrail current={2} />
@@ -101,6 +109,9 @@ function ReviewFields({ fields }: { fields: Field[] }) {
           We found {fields.length} {fields.length === 1 ? "question" : "questions"} on your form.
           Check the list below before we build the full overview.
         </p>
+        <div className="mt-4">
+          <ReadAloudButton text={summaryText} />
+        </div>
       </section>
 
       <Card as="section" aria-labelledby="fields-heading" tabIndex={0} className="mt-8">
