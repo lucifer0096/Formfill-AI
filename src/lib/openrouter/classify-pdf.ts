@@ -199,6 +199,15 @@ export async function classifyPdf(
 
   const raw = await callOpenRouter([{ role: "user", content }]);
   const parsed = parseJsonResponse<ClassificationResponse>(raw);
+  // A malformed or truncated model response (confirmed live: a genuinely
+  // empty `{}` body, no "sections" key at all) previously crashed with a
+  // raw TypeError on the next line instead of failing the way every other
+  // classification error already does — thrown as a real Error, caught by
+  // /api/understand's own try/catch, surfaced to the user as "we couldn't
+  // read that file" rather than an unhandled 500.
+  if (!Array.isArray(parsed.sections)) {
+    throw new Error("The model returned a response with no sections.");
+  }
 
   let fieldIndex = 0;
   const sections: Section[] = parsed.sections.map((section, sectionIndex) => ({
