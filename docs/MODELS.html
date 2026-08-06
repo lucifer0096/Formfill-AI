@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FormFill — AI Model Choice & Pricing</title>
+<title>MFIF — AI Model Choice & Pricing</title>
 <style>
   :root {
     --paper:      #F7F7F4;
@@ -276,7 +276,7 @@
 
   <header class="mast">
     <div>
-      <p class="eyebrow">FormFill · AI model selection</p>
+      <p class="eyebrow">MFIF · AI model selection</p>
       <h1>Which AI model reads your forms, and what it costs</h1>
       <p>An overview of the model selection process behind form classification, and the tradeoffs between the available options.</p>
     </div>
@@ -337,7 +337,7 @@
     <div class="num">02</div>
     <div class="body">
       <h2>How the model is accessed: OpenRouter</h2>
-      <p>Rather than signing up with one AI company directly, FormFill goes through <strong>OpenRouter</strong>, a single service that gives access to models from many different providers (OpenAI, Google, Anthropic, Meta, and others) through one connection and one bill.</p>
+      <p>Rather than signing up with one AI company directly, MFIF goes through <strong>OpenRouter</strong>, a single service that gives access to models from many different providers (OpenAI, Google, Anthropic, Meta, and others) through one connection and one bill.</p>
       <ul>
         <li><strong>Flexibility:</strong> switching models is a one-line change in the code, not a new integration.</li>
         <li><strong>Price comparison in one place:</strong> every model's cost is visible side by side, so the cheapest option that still does the job well can be picked deliberately.</li>
@@ -349,7 +349,7 @@
   <section>
     <div class="num">03</div>
     <div class="body">
-      <h2>What FormFill targets today</h2>
+      <h2>What MFIF targets today</h2>
       <p><code>src/lib/openrouter/client.ts</code> targets <strong><code>google/gemma-4-26b-a4b-it:free</code></strong> for classification: free, and the only model validated as consistently accurate across real-form testing. It has one known limitation, detailed in section 4e below and in the paid-model comparison in section 6b.</p>
       <div class="note built">
         <span><b>Local test set, chosen to cover different sizes and architecture families:</b> <code>gemma3:4b</code>, <code>gemma4:e4b</code>, <code>gemma4:26b</code>, <code>qwen2.5vl:3b</code>, <code>qwen2.5vl:7b</code>, <code>llama3.2-vision:11b</code>, and <code>minicpm-v</code> (a document-OCR specialist, included since reading a form is closer to OCR than general image captioning). The second-pass answer-verification step (section 6, "The second model: answer verification") is text-only and doesn't need vision; see that section for its own model choice.</span>

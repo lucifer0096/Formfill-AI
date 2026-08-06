@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FormFill — Known Risks &amp; Limitations</title>
+<title>MFIF — Known Risks &amp; Limitations</title>
 <style>
   :root {
     --paper:      #F7F7F4;
@@ -281,7 +281,7 @@
 
   <header class="mast">
     <div>
-      <p class="eyebrow">FormFill · known risks</p>
+      <p class="eyebrow">MFIF · known risks</p>
       <h1>Things that can break, and what to do about them</h1>
       <p>A plain list of real risks found while building and testing. These are things that actually happened, not hypotheticals.</p>
     </div>
@@ -344,6 +344,15 @@
         </div>
         <p>A retry round surfaced a bare "fetch failed" on one form after 76 seconds, well under the app's own intended 2-minute limit. The root cause: Node's built-in <code>fetch</code> is built on <code>undici</code>, whose default network agent has its own separate 300-second header timeout that can behave unpredictably under real network conditions, independent of any timeout this app sets deliberately. The same underlying issue was previously found and fixed in the local model-testing tooling.</p>
         <div class="fix"><b>Status:</b> fixed in <code>src/lib/openrouter/client.ts</code>, the production code every model call goes through, by using <code>undici</code>'s <code>fetch</code> directly with an explicit, generous timeout agent, removing the conflict between two different timeout systems.</div>
+      </div>
+
+      <div class="risk low">
+        <div class="risk-head">
+          <b>A malformed model response crashed classification instead of failing gracefully</b>
+          <span class="sev low">Fixed</span>
+        </div>
+        <p>Confirmed live on a real fillable form with a real 16-field AcroForm structure: the model occasionally returns a genuinely empty response body with no <code>sections</code> key at all, which crashed with a raw error instead of the clear "we couldn't read that file" message every other classification failure already shows. Before this was understood, the symptom looked like a field write-back problem, fields showing generic placeholder labels or landing blank, but the field write-back logic itself was already correct throughout; it writes each answer into the exact real PDF field its anchor names.</p>
+        <div class="fix"><b>Status:</b> fixed in <code>src/lib/openrouter/classify-pdf.ts</code>, which now checks the response actually contains a <code>sections</code> array before proceeding, and fails with a clear error otherwise. Re-verified directly against the same 16-field form afterward: every detected field mapped correctly onto its real field name.</div>
       </div>
 
       <div class="risk medium">
