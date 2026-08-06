@@ -11,7 +11,7 @@ const STEPS = [
   },
   {
     title: "Review extracted fields",
-    body: "FormFill reads the form and shows you what it found. Each field is tagged with how confident it is — anything uncertain is flagged so you know to double-check it.",
+    body: "MFIF reads the form and shows you what it found. Each field is tagged with how confident it is — anything uncertain is flagged so you know to double-check it.",
   },
   {
     title: "Form overview",
@@ -42,11 +42,11 @@ const KEYBOARD_SHORTCUTS = [
 
 const FAQS = [
   {
-    q: "Do I need a screen reader to use FormFill?",
-    a: "No. FormFill works fully by keyboard and standard browser focus, with or without a screen reader running.",
+    q: "Do I need a screen reader to use MFIF?",
+    a: "No. MFIF works fully by keyboard and standard browser focus, with or without a screen reader running.",
   },
   {
-    q: "Can FormFill read a question or answer aloud to me?",
+    q: "Can MFIF read a question or answer aloud to me?",
     a: "Yes. A Read aloud button appears on most pages, and Ctrl+Alt+S reads the current page aloud from anywhere, using your browser's own built-in voice. This is a manual, on-demand feature: nothing speaks automatically, so it never talks over a screen reader you already have running.",
   },
   {
@@ -78,7 +78,7 @@ export default function HelpPage() {
           Help
         </h1>
         <p className="mt-3 text-lg text-muted">
-          How FormFill works, and how to get through a form quickly by keyboard.
+          How MFIF works, and how to get through a form quickly by keyboard.
         </p>
       </section>
 
