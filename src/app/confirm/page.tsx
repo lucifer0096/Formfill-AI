@@ -119,7 +119,15 @@ export default function ConfirmPage() {
   }
 
   const fields = applicableFields(engine.form, engine.answers);
-  const isAcroForm = fields.some((f) => f.anchor.kind === "acroform");
+  // A field can be real-PDF-fillable either through its own field-level
+  // anchor, or (a Yes/No question printed as two separate real checkboxes)
+  // only through per-option acroFieldName mappings on constraints.options —
+  // see src/lib/emit/fill-acroform.ts for why that second path exists.
+  // Missing this here would incorrectly fall through to the plain summary
+  // output for a form whose only real mapping is the per-option kind.
+  const isAcroForm = fields.some(
+    (f) => f.anchor.kind === "acroform" || (f.constraints.options ?? []).some((o) => o.acroFieldName),
+  );
   const allHeard = fields.length > 0 && fields.every((f) => engine.reviewHeard.has(f.id));
 
   // "Back to questions" used to be a bare /questions link with no ?field=,

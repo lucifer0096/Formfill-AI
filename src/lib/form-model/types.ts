@@ -45,6 +45,18 @@ export interface Choice {
   value: string;
   label: string;
   spokenLabel?: string;
+  /**
+   * Real AcroForm checkbox field name this specific option maps to, when a
+   * choice/multichoice/boolean question is represented on the real PDF as
+   * several independent checkbox fields rather than one field with several
+   * values (e.g. a Yes/No question printed as two separate checkboxes,
+   * "☐ Yes  ☐ No", each its own AcroForm field). The field-level
+   * anchor.fieldName on Field itself remains the mapping for a single real
+   * field with multiple values (a radio group, a dropdown); this is for the
+   * case that can't be represented that way at all. Omitted when the
+   * option doesn't correspond to its own separate real field.
+   */
+  acroFieldName?: string;
 }
 
 export interface Constraints {
