@@ -13,7 +13,7 @@
  * fields — there's no longer a single "AcroForm form" vs "flat form"
  * distinction at the whole-form level.
  */
-const DB_NAME = "formfill-original-file";
+const DB_NAME = "mfif-original-file";
 const STORE_NAME = "file";
 const KEY = "current";
 

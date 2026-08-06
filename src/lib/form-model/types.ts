@@ -6,7 +6,7 @@
  * imported) because this branch isn't wired into the npm workspace yet — see
  * the repo reconciliation plan. Keep this in sync by hand until that merge
  * happens; at that point this file should be deleted in favour of the real
- * `@formfill/form-model` package.
+ * `@mfif/form-model` package.
  */
 
 export type FieldType =

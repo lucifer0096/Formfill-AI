@@ -1,4 +1,4 @@
-# FormFill — Architecture
+# MFIF — Architecture
 
 **Status:** Draft v0.1 · 2026-07-29
 **Companion docs:** [DESIGN.md](./DESIGN.md) · [ACCESSIBILITY.md](./ACCESSIBILITY.md) · [PRIVACY.md](./PRIVACY.md)
@@ -84,7 +84,7 @@ packages/
 
 ## 4. Runtime topology
 
-FormFill is a **local-first web app with one narrow server responsibility.**
+MFIF is a **local-first web app with one narrow server responsibility.**
 
 ```
 ┌─ Browser ────────────────────────────────────────────────────────┐
@@ -136,7 +136,7 @@ file → worker
              └─▶ zod-validate the IR; any field failing → type 'unknown', confidence 0
 ```
 
-The AcroForm short-circuit matters: for a large share of real government PDFs, **FormFill never makes a network call at all.** P1 ships on this path alone.
+The AcroForm short-circuit matters: for a large share of real government PDFs, **MFIF never makes a network call at all.** P1 ships on this path alone.
 
 ### 5.2 The conversation engine
 

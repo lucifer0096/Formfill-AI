@@ -1,9 +1,9 @@
-# FormFill — Privacy & Data-Flow Contract
+# MFIF — Privacy & Data-Flow Contract
 
 **Status:** Draft v0.1 · 2026-07-29
 **Model:** hybrid — on-device extraction and redaction, cloud understanding of redacted structure only.
 
-FormFill handles benefits claims, medical intake, immigration paperwork and mortgage applications. The privacy model is not a compliance checkbox; it is the reason a user would trust this app instead of asking a relative for help. It has to be simple enough to state in one sentence and strong enough to survive scrutiny.
+MFIF handles benefits claims, medical intake, immigration paperwork and mortgage applications. The privacy model is not a compliance checkbox; it is the reason a user would trust this app instead of asking a relative for help. It has to be simple enough to state in one sentence and strong enough to survive scrutiny.
 
 > **The one-sentence promise:** *Your answers never leave your device. Only the blank structure of the form is ever sent for analysis, with anything personal stripped out first.*
 
@@ -93,7 +93,7 @@ Everything the user owns is local.
 ## 6. Regulatory
 
 - **UK GDPR / EU GDPR:** the operator is a controller for the minimal structural data transiting `/api/understand`; special-category data (health, benefits) is excluded from transit by §2 and §3 by design. Data minimisation is architectural, not procedural.
-- **HIPAA:** FormFill is not a covered entity, but medical intake forms are a target use case. Answers-never-leave-device means no PHI transits the service; do not weaken this without a BAA and a redesign.
+- **HIPAA:** MFIF is not a covered entity, but medical intake forms are a target use case. Answers-never-leave-device means no PHI transits the service; do not weaken this without a BAA and a redesign.
 - **DPIA** required before public launch given the vulnerable-user population and the sensitivity of target documents.
 - **Accessibility as compliance:** EN 301 549 / Section 508 conformance is likely a procurement requirement for any public-sector deployment. See [ACCESSIBILITY.md](./ACCESSIBILITY.md).
 
@@ -101,7 +101,7 @@ Everything the user owns is local.
 
 Spoken on first run, and always available under `Ctrl`+`Alt`+`P`:
 
-> *"FormFill reads forms on your device. To understand a new form's layout, it may send the blank form's wording to our server — never your answers, and never anything that identifies you. Your answers and your saved details stay on this device, encrypted. Nobody at FormFill can see them."*
+> *"MFIF reads forms on your device. To understand a new form's layout, it may send the blank form's wording to our server — never your answers, and never anything that identifies you. Your answers and your saved details stay on this device, encrypted. Nobody at MFIF can see them."*
 
 If that sentence ever stops being literally true, the architecture changed and this document is now a lie. Treat any PR that weakens it as a breaking change requiring explicit sign-off.
 

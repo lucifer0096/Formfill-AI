@@ -1,4 +1,4 @@
-# FormFill — Design Document
+# MFIF — Design Document
 
 **Status:** Draft v0.1 · 2026-07-29
 **Companion docs:** [ARCHITECTURE.md](./ARCHITECTURE.md) · [ACCESSIBILITY.md](./ACCESSIBILITY.md) · [PRIVACY.md](./PRIVACY.md)
