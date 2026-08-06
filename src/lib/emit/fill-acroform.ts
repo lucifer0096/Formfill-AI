@@ -65,6 +65,18 @@ export async function fillAcroForm(
     const acroField = form.getFieldMaybe(field.anchor.fieldName);
     if (!acroField) continue;
 
+    // The model's option.value and the real PDF's own option string don't
+    // always agree on casing (e.g. the model writes "Yes", the real field's
+    // option is "yes") — .select() below matches exactly and throws
+    // otherwise, which the surrounding catch swallows silently, so this
+    // failure previously had zero visible signal that anything went wrong.
+    // Resolving against the field's own real getOptions() first, same
+    // reasoning as the per-option checkbox matching above, means a case
+    // difference no longer silently drops the selection.
+    function resolveOption(raw: string, options: string[]): string {
+      return options.find((o) => o.toLowerCase() === raw.toLowerCase()) ?? raw;
+    }
+
     try {
       if (acroField instanceof PDFTextField) {
         acroField.setText(String(value));
@@ -72,11 +84,22 @@ export async function fillAcroForm(
         if (value === true || (typeof value === "string" && value.toLowerCase() === "yes")) acroField.check();
         else acroField.uncheck();
       } else if (acroField instanceof PDFRadioGroup) {
-        acroField.select(String(value));
+        acroField.select(resolveOption(String(value), acroField.getOptions()));
       } else if (acroField instanceof PDFDropdown) {
-        acroField.select(String(value));
+        acroField.select(resolveOption(String(value), acroField.getOptions()));
       } else if (acroField instanceof PDFOptionList) {
-        acroField.select(Array.isArray(value) ? value[0] ?? "" : String(value));
+        // A genuine multichoice answer (Answer.value: string[]) previously
+        // only ever wrote its first selected value — value[0] — silently
+        // dropping every other selection. select() itself accepts an array
+        // when the option list has multiselect enabled; when it doesn't,
+        // pdf-lib's own error on a >1-length array is exactly the signal
+        // that the model over-selected for a genuinely single-select real
+        // field, which the catch below already handles the same way every
+        // other mismatch is handled.
+        const realOptions = acroField.getOptions();
+        const rawValues = Array.isArray(value) ? value : [String(value)];
+        const resolved = rawValues.map((v) => resolveOption(v, realOptions));
+        acroField.select(acroField.isMultiselect() ? resolved : (resolved[0] ?? ""));
       }
     } catch {
       // A value that doesn't match the field's constraints (e.g. an option
