@@ -42,7 +42,7 @@ const longRunningAgent = new Agent({
  * model tested was a clean upgrade (some showed real accuracy
  * regressions, see KNOWN-ISSUES.html).
  */
-export const CLASSIFICATION_MODEL = "google/gemma-3-27b-it";
+export const CLASSIFICATION_MODEL = "google/gemma-4-26b-a4b-it:free";
 
 /**
  * A second, independent model used only to sanity-check a filled-out form
