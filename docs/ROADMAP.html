@@ -372,6 +372,10 @@
           <span>Every PDF, fillable or flat, is sent whole to a multimodal model in one call, with real AcroForm field names given as context so the model can map its own detections back onto them for fill-back. Validated across local, free-tier, and paid model testing; see the model selection document for full results.</span>
         </div>
         <div class="scope-card built">
+          <b>Image upload support</b>
+          <span>A PNG or JPG photo or scan is sent to the same classification model, the same way a flat PDF already is. No AcroForm fields exist for a photo, so confirming always produces a question-and-answer summary document rather than a filled PDF, the same fallback a flat PDF with no fillable fields already uses.</span>
+        </div>
+        <div class="scope-card built">
           <b>AcroForm field enumeration</b>
           <span>A small local pdf-lib pass lists real field names only, with no position or label guessing, since that moved to the model. Replaces the earlier local detection and label-finding pipeline.</span>
         </div>
@@ -390,6 +394,10 @@
         <div class="scope-card built">
           <b>Accessibility fundamentals</b>
           <span>Keyboard-only navigation, single-key commands in the Answer flow (including jump-to-review and verbatim-label readback), visible format hints shown before input, focus management on every route and question change, live regions for screen readers, a skip-to-content link, and touch targets verified on every interactive control.</span>
+        </div>
+        <div class="scope-card built">
+          <b>Manual read-aloud speech</b>
+          <span>A Read aloud button on every core page, plus a global <code>Ctrl+Alt+S</code> shortcut, speaks that page's content using the browser's built-in speech synthesis. Deliberately manual only, since the app cannot yet detect whether a screen reader is already running; automatic mode switching remains a separate, not-started item below.</span>
         </div>
         <div class="scope-card built">
           <b>Live deployment</b>
@@ -435,12 +443,11 @@
             <tr><th scope="col">Capability</th><th scope="col">Roadmap phase</th><th scope="col">Status</th></tr>
           </thead>
           <tbody>
-            <tr><td>Non-PDF image support (photos, PNG/JPG scans)</td><td class="mod">P2</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Local autofill profile (name, address, and date of birth remembered across forms)</td><td class="mod">P1</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Camera capture with audio framing guidance</td><td class="mod">P3</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Print-alignment overlay for flat or paper forms</td><td class="mod">P2 / P3</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Browser extension for live web-form pages</td><td class="mod">P4</td><td><span class="tag todo">not started</span></td></tr>
-            <tr><td>Speech synthesis or spoken mode (screen-reader detection and app-driven voice output)</td><td class="mod">P0</td><td><span class="tag todo">not started</span></td></tr>
+            <tr><td>Automatic screen-reader detection and mode switching for spoken mode</td><td class="mod">P0</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Voice input: speak an answer, app transcribes and fills it in</td><td class="mod">not on the roadmap</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Field grouping for repeated grids and tables</td><td class="mod">not on the roadmap</td><td><span class="tag todo">not started</span></td></tr>
             <tr><td>Full workspace merge with the shared codebase</td><td class="mod">team decision</td><td><span class="tag guard">deferred, not forgotten</span></td></tr>

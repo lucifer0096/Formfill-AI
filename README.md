@@ -82,7 +82,9 @@ A second, independent model call reviews filled answers for real mistakes before
 
 ## Accessibility
 
-This is not a bolt-on feature. It's the point of the product. Every page follows: keyboard-first navigation with single-key commands on `/questions` (`N`/`P`/`Space`/`H`/`S`, plus `L` to read a field's label as printed and `R` to jump straight to `/confirm` for review), visible format hints shown before input rather than only after a failed submit, focus moved to the new heading on every route and question change, visible focus rings, semantic landmarks and headings, `aria-live` status regions for dynamic updates, and a skip-to-content link.
+This is not a bolt-on feature. It's the point of the product. Every page follows: keyboard-first navigation with single-key commands on `/questions` (`N`/`P`/`Space`/`H`/`S`, plus `L` to read a field's label as printed and `R` to jump straight to `/confirm` for review), a manual `Ctrl`+`Alt`+`S` read-aloud shortcut that speaks the current page's content on any page via the browser's own speech synthesis, visible format hints shown before input rather than only after a failed submit, focus moved to the new heading on every route and question change, visible focus rings, semantic landmarks and headings, `aria-live` status regions for dynamic updates, and a skip-to-content link.
+
+Read-aloud is deliberately manual only: nothing speaks automatically, since the app has no way yet to detect whether a screen reader is already running, and speaking on top of one would be worse than not speaking at all. See [`docs/ACCESSIBILITY.md`](docs/ACCESSIBILITY.md) §1 for the full spoken-mode spec, of which this is the safe first slice.
 
 See [`docs/ACCESSIBILITY.html`](docs/ACCESSIBILITY.html) for what's implemented versus what's still a known gap, checked section by section against the project's normative accessibility spec.
 
