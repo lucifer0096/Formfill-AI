@@ -2,26 +2,27 @@
   "name": "formfill",
   "version": "0.1.0",
   "private": true,
-  "description": "Helping visually impaired people fill out forms, independently.",
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
   "scripts": {
-    "dev": "npm run dev --workspace=@formfill/web",
-    "build": "npm run build --workspace=@formfill/web",
-    "start": "npm run start --workspace=@formfill/web",
-    "lint": "npm run lint --workspace=@formfill/web",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc --build"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "next": "16.2.12",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.4.624",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
-  },
-  "engines": {
-    "node": ">=20"
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.12",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
