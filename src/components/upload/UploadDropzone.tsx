@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { speak } from "@/lib/speech";
 
 const ACCEPTED_TYPES = ".pdf,.png,.jpg,.jpeg";
 const MAX_SIZE_MB = 50;
@@ -29,6 +30,12 @@ export default function UploadDropzone({
         ? `${file.name} selected, ${(file.size / (1024 * 1024)).toFixed(1)} megabytes.`
         : "No file selected."
     );
+    // Team-requested for hackathon day: a spoken confirmation naming the
+    // file as soon as it's chosen or dropped, distinct from the sr-only
+    // live region above (that only reaches someone with a real screen
+    // reader already running; this uses the app's own manual speech
+    // module, the same one Read Aloud and Ctrl+Alt+S already use).
+    if (file) speak(`${file.name} has been uploaded.`);
   }
 
   return (
