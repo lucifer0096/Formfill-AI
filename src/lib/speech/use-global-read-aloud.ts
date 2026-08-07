@@ -36,6 +36,14 @@ export function useGlobalReadAloudShortcut(): void {
       const isTyping = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA";
       if (isTyping) return;
 
+      // If any modal dialog is ever open (a real role="dialog"/aria-modal
+      // element, none exist in the app today), suspend this the same way
+      // it's already suspended while typing — a global shortcut firing
+      // speech on top of whatever that dialog is doing on its own would be
+      // exactly the kind of two-things-talking-at-once bug this file
+      // exists to prevent.
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+
       event.preventDefault();
       if (isSpeaking()) {
         stopSpeaking();

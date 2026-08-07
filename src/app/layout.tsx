@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Atkinson_Hyperlegible, Inter } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import GlobalReadAloudShortcut from "@/components/GlobalReadAloudShortcut";
-import SpeechModePrompt from "@/components/SpeechModePrompt";
 import "./globals.css";
 
 const atkinsonHyperlegible = Atkinson_Hyperlegible({
@@ -38,7 +37,6 @@ export default function RootLayout({
         </a>
         <Navbar />
         <GlobalReadAloudShortcut />
-        <SpeechModePrompt />
         {children}
       </body>
     </html>
