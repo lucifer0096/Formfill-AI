@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -107,6 +107,16 @@ export default function ConfirmPage() {
       .join(" ")
     : "";
   useRegisterReadAloud(registeredAnswersText);
+
+  // Team-requested for hackathon day: speak the review-gate warning aloud
+  // (e.g. "Press C again to confirm anyway" after confirming without
+  // hearing every answer), same reasoning and pattern as the equivalent
+  // effect in questions/page.tsx — this already renders as text via the
+  // Notice component further down; this speaks the exact same text.
+  const gateWarningText = engine ? (lastAnnouncements.find((a) => a.kind === "error")?.text ?? "") : "";
+  useEffect(() => {
+    if (gateWarningText) speak(gateWarningText);
+  }, [gateWarningText]);
 
   if (!engine) {
     return (

@@ -8,6 +8,7 @@ import LinkButton from "@/components/ui/LinkButton";
 import ReadAloudButton from "@/components/ui/ReadAloudButton";
 import ProgressTrail from "@/components/ProgressTrail";
 import { useRegisterReadAloud } from "@/lib/speech/use-global-read-aloud";
+import { speak } from "@/lib/speech";
 import { loadAnswers, loadWorkingForm, saveAnswers } from "@/lib/session-store";
 import {
   initialState,
@@ -140,6 +141,20 @@ export default function QuestionsPage() {
   const registeredQuestionText =
     lastAnnouncements.find((a) => a.kind === "question")?.text ?? currentField?.spokenLabel ?? "";
   useRegisterReadAloud(registeredQuestionText);
+
+  // Team-requested for hackathon day: speak validation/required-field
+  // errors aloud, not just show them as text (existing role="alert" below
+  // only reaches a real screen reader already running, same gap the
+  // manual Read Aloud module exists to cover elsewhere). Every one of
+  // these already flows through the engine as an Announcement with
+  // kind: "error" (machine.ts) — this speaks the exact same text already
+  // rendered, not a new message. Keyed on the text itself so re-dispatching
+  // the SAME error (e.g. submitting the same empty required field twice)
+  // still speaks again each time, since the user needs to hear it again.
+  const errorText = lastAnnouncements.find((a) => a.kind === "error")?.text ?? "";
+  useEffect(() => {
+    if (errorText) speak(errorText);
+  }, [errorText]);
 
   const inputValue =
     editedFor === currentField?.id
