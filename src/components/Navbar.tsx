@@ -5,8 +5,8 @@ export default function Navbar() {
   return (
     <header className="bg-black text-white">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-2">
-        <Link href="/" className="flex items-center gap-2" aria-label="MFIF home">
-          <Image src="/logo.png" alt="MFIF logo" width={120} height={80} priority />
+        <Link href="/" className="flex items-center gap-2" aria-label="FormFill home">
+          <Image src="/logo.png" alt="FormFill logo" width={120} height={80} priority />
         </Link>
         <nav aria-label="Primary">
           <ul className="flex items-center gap-8 text-lg font-medium">

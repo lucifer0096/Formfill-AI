@@ -16,9 +16,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MFIF — Myform IFill",
+  title: "FormFill",
   description:
-    "MFIF (Myform IFill) helps blind and low vision users fill out PDF forms and scanned form images.",
+    "FormFill helps blind and low vision users fill out PDF forms and scanned form images.",
 };
 
 export default function RootLayout({

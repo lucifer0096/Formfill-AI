@@ -6,8 +6,8 @@ import type { AnswerSet, Field, Form } from "@/lib/form-model/types";
  * session, and PRIVACY.md's "answers never leave the device" bar means we
  * should default to the least persistent option that works.
  */
-const INGEST_KEY = "mfif:ingest";
-const ANSWERS_KEY = "mfif:answers";
+const INGEST_KEY = "formfill:ingest";
+const ANSWERS_KEY = "formfill:answers";
 
 export type StoredIngest = { kind: "form"; form: Form } | { kind: "needs-vision"; fileName: string };
 

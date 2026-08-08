@@ -1,4 +1,4 @@
-# MFIF — Accessibility Specification
+# FormFill — Accessibility Specification
 
 **Status:** Draft v0.1 · 2026-07-29
 **Conformance target:** WCAG 2.2 **AA** minimum, AAA where cheap. EN 301 549 / Section 508 alignment assumed.
@@ -9,7 +9,7 @@ This is a **normative spec**, not advice. For an app whose users are blind, acce
 
 ## 1. The two-audience problem
 
-MFIF must serve two populations with directly conflicting needs:
+FormFill must serve two populations with directly conflicting needs:
 
 | | **Screen-reader users** (Priya) | **No-screen-reader users** (Alan) |
 |---|---|---|
@@ -94,7 +94,7 @@ These are the users who are *not* using a screen reader, and they are the majori
 - **Themes:** light, dark, and high-contrast; respect `prefers-color-scheme` and `prefers-contrast`. Honour Windows High Contrast / forced-colors mode — no `background-image`-only affordances.
 - **Motion:** respect `prefers-reduced-motion`; no animation is required to understand state.
 - **Never colour alone** to convey meaning — errors carry an icon and text (WCAG **1.4.1**).
-- **No time limits** anywhere in MFIF's own UI (WCAG **2.2.1**). Where the *underlying* web form imposes one, detect it, warn early, and offer to extend or save a draft.
+- **No time limits** anywhere in FormFill's own UI (WCAG **2.2.1**). Where the *underlying* web form imposes one, detect it, warn early, and offer to extend or save a draft.
 
 ## 5. Forms & errors
 

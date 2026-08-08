@@ -1,6 +1,6 @@
-# MFIF
+# FormFill
 
-MFIF helps blind and low-vision users fill out PDF forms and scanned form images through an accessible, guided workflow. Upload a form, answer questions one at a time by keyboard or screen reader, and get a completed document back.
+FormFill helps blind and low-vision users fill out PDF forms and scanned form images through an accessible, guided workflow. Upload a form, answer questions one at a time by keyboard or screen reader, and get a completed document back.
 
 **Live deployment:** [formfill-main.vercel.app](https://formfill-main.vercel.app). Known gap: fails on official NZ government forms, see [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html).
 

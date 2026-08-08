@@ -43,7 +43,7 @@ const SUPPORTED = [
 const IN_PROGRESS = [
   {
     title: "Automatic screen-reader vs. spoken-aloud modes",
-    body: "MFIF doesn't yet detect whether you're using a screen reader and switch automatically. A manual Read aloud control is available on every page in the meantime — see above — but it has to be triggered on purpose rather than starting on its own.",
+    body: "FormFill doesn't yet detect whether you're using a screen reader and switch automatically. A manual Read aloud control is available on every page in the meantime — see above — but it has to be triggered on purpose rather than starting on its own.",
   },
   {
     title: "Spoken format hints before you type",
@@ -66,7 +66,7 @@ export default function AccessibilityPage() {
           Accessibility
         </h1>
         <p className="mt-3 text-lg text-muted">
-          MFIF is built for people who are blind or have low vision. Here&apos;s what&apos;s
+          FormFill is built for people who are blind or have low vision. Here&apos;s what&apos;s
           supported today, and what we&apos;re still working on — stated plainly rather than
           assumed.
         </p>
