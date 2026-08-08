@@ -301,27 +301,41 @@ export default function ConfirmPage() {
                   <p className="font-medium">{field.spokenLabel}</p>
                   <p className="text-sm text-muted">{value}</p>
                 </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  aria-pressed={isAnswered ? isHeard : undefined}
-                  onClick={() => {
-                    if (!isAnswered) {
-                      router.push(`/questions?field=${encodeURIComponent(field.id)}`);
-                      return;
-                    }
-                    // "Read back" now actually speaks the answer aloud, not
-                    // just a silent state change — the manual Read Aloud
-                    // control per docs/ACCESSIBILITY.md §1.1's safe
-                    // fallback, added to the same button rather than a
-                    // second one next to it, since this button's name
-                    // already promised audio it never delivered.
-                    speak(`${field.spokenLabel} ${value}`);
-                    readBackField(field.id);
-                  }}
-                >
-                  {isAnswered ? (isHeard ? "Heard ✓" : "Read back") : "Answer this"}
-                </Button>
+                <div className="flex shrink-0 gap-2">
+                  {isAnswered && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        saveAnswers(engine.answers);
+                        router.push(`/questions?field=${encodeURIComponent(field.id)}`);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    aria-pressed={isAnswered ? isHeard : undefined}
+                    onClick={() => {
+                      if (!isAnswered) {
+                        router.push(`/questions?field=${encodeURIComponent(field.id)}`);
+                        return;
+                      }
+                      // "Read back" now actually speaks the answer aloud, not
+                      // just a silent state change — the manual Read Aloud
+                      // control per docs/ACCESSIBILITY.md §1.1's safe
+                      // fallback, added to the same button rather than a
+                      // second one next to it, since this button's name
+                      // already promised audio it never delivered.
+                      speak(`${field.spokenLabel} ${value}`);
+                      readBackField(field.id);
+                    }}
+                  >
+                    {isAnswered ? (isHeard ? "Heard ✓" : "Read back") : "Answer this"}
+                  </Button>
+                </div>
               </li>
             );
           })}
