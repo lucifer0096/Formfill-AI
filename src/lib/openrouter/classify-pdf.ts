@@ -25,6 +25,8 @@ const FIELD_TYPES: FieldType[] = [
 
 const SYSTEM_PROMPT = `You read a PDF form (attached) and turn it into a structured list of questions a person would need to answer to fill it out.
 
+First, write a short, plain-language description of what this specific form is for and who typically needs to fill it out, based only on what is actually printed on the form. Two to three sentences, written for someone who cannot see the form and has never seen it before. Never invent a purpose the form does not state; if the form's purpose genuinely is not clear from its content, say so plainly rather than guessing confidently.
+
 If a list of the PDF's real fillable field names is provided below, match each question you find to the correct real field name whenever the visual field on the page corresponds to one of them — this lets the app write the answer back into the real PDF field later. If a question has no matching real field name (the form has no fillable fields, or this particular question isn't one), omit acroFieldName for it.
 
 Group the content into logical SECTIONS (e.g. "Personal details", "Contribution rate") and, within each section, individual FIELDS (one per question a person would need to answer).
@@ -45,6 +47,7 @@ Do not invent fields that aren't on the form. Do not merge unrelated questions t
 Respond with ONLY a JSON object of this exact shape, no markdown fencing, no commentary:
 {
   "title": "string, the form's own title if visible, otherwise a short descriptive name",
+  "description": "string, 2-3 plain-language sentences on what this form is for and who needs it",
   "sections": [
     {
       "title": "string",
@@ -90,6 +93,7 @@ interface ClassifiedSection {
 
 interface ClassificationResponse {
   title?: string;
+  description?: string;
   sections: ClassifiedSection[];
 }
 
@@ -157,6 +161,7 @@ function normalizeClassificationResponse(parsed: unknown): ClassificationRespons
 
   return {
     title: typeof obj.title === "string" ? obj.title : undefined,
+    description: typeof obj.description === "string" ? obj.description : undefined,
     sections,
   };
 }
@@ -300,6 +305,7 @@ export async function classifyPdf(
   return {
     id: crypto.randomUUID(),
     title: parsed.title || fileName.replace(/\.[a-z0-9]+$/i, ""),
+    description: parsed.description,
     source: isImage ? "image" : "pdf",
     locale: "en-GB",
     provenance: {
