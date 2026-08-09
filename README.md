@@ -54,7 +54,7 @@ npm run lint    # eslint
 
 ## Testing models before picking one
 
-Classification runs on `google/gemma-3-27b-it` by default (see [Stack](#stack) below); `scripts/` has three standalone tools (not part of the app, never deployed) that were used to compare vision models against real forms before settling on it, and remain useful for testing any future change. All three send the exact same system prompt used in `src/lib/openrouter/classify-pdf.ts`.
+Classification runs on the free-tier `google/gemma-4-26b-a4b-it:free` by default (see [Stack](#stack) below); `scripts/` has three standalone tools (not part of the app, never deployed) that were used to compare vision models against real forms before settling on it, and remain useful for testing any future change. All three send the exact same system prompt used in `src/lib/openrouter/classify-pdf.ts`.
 
 ```bash
 # Local (Ollama) — fully offline, no cost, but CPU-only inference is slow (minutes/form)
@@ -76,11 +76,11 @@ Next.js (App Router, Turbopack) · React · Tailwind CSS · Atkinson Hyperlegibl
 
 The Answer/Confirm flow runs on a pure conversation-engine reducer in `src/lib/conversation/` (hand-copied from the original `packages/conversation`, `form-model`, and `validate` design, not imported as workspace packages), giving real skip-logic, locale-aware validation, and a two-step review gate instead of a simpler independent implementation.
 
-Classification (`CLASSIFICATION_MODEL` in `src/lib/openrouter/client.ts`) runs on `google/gemma-3-27b-it` (via OpenRouter, paid), switched from the free-tier `google/gemma-4-26b-a4b-it:free` for hackathon-day reliability: the free tier has a known gap on official NZ government forms specifically, and shares a rate-limited pool that can fail transiently under load. A head-to-head against 7 paid models confirmed `google/gemma-3-27b-it` (the mentor's original recommendation), `anthropic/claude-haiku-4.5`, and `mistralai/mistral-small-3.2-24b-instruct` all show no accuracy regression versus the free tier; some cheaper/faster paid models do. See [`docs/MODELS.html`](docs/MODELS.html) for the full testing history and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) for current known risks.
+Classification (`CLASSIFICATION_MODEL` in `src/lib/openrouter/client.ts`) runs on the free-tier `google/gemma-4-26b-a4b-it:free`. It has one known limitation: it reliably fails on official NZ government forms specifically (see [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html)) and shares a rate-limited pool that can fail transiently under load. A paid model (`google/gemma-3-27b-it`) was used during the hackathon itself for live-demo reliability; a head-to-head against 7 paid models confirmed that one, `anthropic/claude-haiku-4.5`, and `mistralai/mistral-small-3.2-24b-instruct` all show no accuracy regression versus the free tier, so any of those three is the evidence-based choice if paid reliability is needed again. See [`docs/MODELS.html`](docs/MODELS.html) for the full testing history.
 
 Alongside the questions it detects, the classification call also generates a short plain-language description of what the form is for, shown at the top of `/review`.
 
-A second, independent model call (`VERIFICATION_MODEL`, currently `anthropic/claude-haiku-4.5` — deliberately a different model family from classification) reviews filled answers for real mistakes before submission (`src/lib/openrouter/verify-answers.ts`, `/api/verify`), wired into the `/confirm` flow.
+A second, independent model call (`VERIFICATION_MODEL`, currently the free-tier `nvidia/nemotron-3-super-120b-a12b:free` — deliberately a different model family from classification) reviews filled answers for real mistakes before submission (`src/lib/openrouter/verify-answers.ts`, `/api/verify`), wired into the `/confirm` flow.
 
 ## Accessibility
 

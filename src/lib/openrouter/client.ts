@@ -37,12 +37,13 @@ const longRunningAgent = new Agent({
  * 5 real forms (no accuracy regression vs. the free model), and paid
  * models in general resolved the free model's timeout problem on long
  * forms (confirmed: a 26-page form that failed 3× free succeeded in 5.3s
- * on a paid model). If switching to paid for reliability on long/complex
- * forms, gemma-3-27b-it is the evidence-backed choice — not every paid
- * model tested was a clean upgrade (some showed real accuracy
- * regressions, see KNOWN-ISSUES.html).
+ * on a paid model). That reliability was worth paying for during the
+ * hackathon itself, where a failed live demo call had real cost; now that
+ * the hackathon is over, back to the free tier — the known NZ-government-
+ * form gap and shared-rate-limit risk are an acceptable tradeoff outside
+ * a live-demo setting. See docs/KNOWN-ISSUES.html for that gap's details.
  */
-export const CLASSIFICATION_MODEL = "google/gemma-3-27b-it";
+export const CLASSIFICATION_MODEL = "google/gemma-4-26b-a4b-it:free";
 
 /**
  * A second, independent model used only to sanity-check a filled-out form
@@ -52,17 +53,14 @@ export const CLASSIFICATION_MODEL = "google/gemma-3-27b-it";
  * Text-only (no vision) and low-token (just field labels + answers), so
  * cost stays low regardless of which model is used.
  *
- * Switched from the free-tier nvidia/nemotron-3-super-120b-a12b:free to
- * this paid model for hackathon-day reliability, matching the same
- * switch made to CLASSIFICATION_MODEL: avoids the free tier's shared
- * rate-limit risk. Genuinely different model family from
- * CLASSIFICATION_MODEL (google/gemma-3-27b-it), preserving the actual
- * point of a second, independent check rather than picking the same
- * model for both passes. One of the 3 paid models validated with no
- * accuracy regression in the earlier 7-model comparison (see
- * docs/MODELS.html).
+ * Back to the free-tier nvidia/nemotron-3-super-120b-a12b:free now that
+ * the hackathon is over (see CLASSIFICATION_MODEL's comment for the same
+ * reasoning) — the earlier switch to a paid model was specifically for
+ * hackathon-day reliability. Still a genuinely different model family
+ * from CLASSIFICATION_MODEL, preserving the actual point of a second,
+ * independent check rather than picking the same model for both passes.
  */
-export const VERIFICATION_MODEL = "anthropic/claude-haiku-4.5";
+export const VERIFICATION_MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
