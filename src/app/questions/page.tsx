@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import LinkButton from "@/components/ui/LinkButton";
+import ReadAloudButton from "@/components/ui/ReadAloudButton";
 import ProgressTrail from "@/components/ProgressTrail";
+import { useRegisterReadAloud } from "@/lib/speech/use-global-read-aloud";
+import { speak } from "@/lib/speech";
 import { loadAnswers, loadWorkingForm, saveAnswers } from "@/lib/session-store";
 import {
   initialState,
@@ -128,6 +131,30 @@ export default function QuestionsPage() {
   const currentField = engine?.cursor ? fieldById(engine.form, engine.cursor) : undefined;
   const showHelp = helpOpenFor === currentField?.id;
   const showVerbatim = verbatimOpenFor === currentField?.id;
+
+  // Computed unconditionally, before any early return below, so the hook
+  // that registers this for Ctrl+Alt+S runs on every render regardless of
+  // which branch this component ends up taking — calling a hook only
+  // inside one of those branches would violate React's rules of hooks.
+  // Empty string when there's genuinely nothing to read (still loading, or
+  // between questions) rather than stale text from a previous question.
+  const registeredQuestionText =
+    lastAnnouncements.find((a) => a.kind === "question")?.text ?? currentField?.spokenLabel ?? "";
+  useRegisterReadAloud(registeredQuestionText);
+
+  // Team-requested for hackathon day: speak validation/required-field
+  // errors aloud, not just show them as text (existing role="alert" below
+  // only reaches a real screen reader already running, same gap the
+  // manual Read Aloud module exists to cover elsewhere). Every one of
+  // these already flows through the engine as an Announcement with
+  // kind: "error" (machine.ts) — this speaks the exact same text already
+  // rendered, not a new message. Keyed on the text itself so re-dispatching
+  // the SAME error (e.g. submitting the same empty required field twice)
+  // still speaks again each time, since the user needs to hear it again.
+  const errorText = lastAnnouncements.find((a) => a.kind === "error")?.text ?? "";
+  useEffect(() => {
+    if (errorText) speak(errorText);
+  }, [errorText]);
 
   const inputValue =
     editedFor === currentField?.id
@@ -481,7 +508,14 @@ export default function QuestionsPage() {
             </p>
           )}
 
-          <div className="mt-6 flex flex-wrap gap-4">
+          {/*
+            A fixed grid instead of flex-wrap keeps this row of up to 6
+            buttons (count varies: Skip only shows for optional fields, the
+            signature case swaps Next out entirely) from wrapping raggedly
+            depending on how many render — same fix Arya's answer-flow page
+            independently arrived at for its own, smaller button set.
+          */}
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
             {field.type === "signature" ? (
               // No typed value is ever valid here (see the comment above) —
               // Skip is the real "Next" for this field type, so it's the
@@ -498,6 +532,7 @@ export default function QuestionsPage() {
             <Button type="button" variant="secondary" onClick={goToPrevious}>
               Previous
             </Button>
+            <ReadAloudButton text={registeredQuestionText} />
             <Button
               type="button"
               variant="secondary"

@@ -171,6 +171,7 @@ export const PLACEHOLDER_FIELDS: Field[] = [
 const PLACEHOLDER_FORM: Form = {
   id: "placeholder",
   title: "Sample form",
+  description: "A sample form used to preview this page directly, without uploading a real document first.",
   source: "pdf",
   locale: "en-GB",
   provenance: {

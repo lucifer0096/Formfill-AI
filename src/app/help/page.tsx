@@ -30,11 +30,14 @@ const STEPS = [
 const KEYBOARD_SHORTCUTS = [
   { keys: "Tab / Shift+Tab", action: "Move between controls on any page" },
   { keys: "Enter / Space", action: "Activate the focused button or link" },
+  { keys: "Ctrl+Alt+S", action: "Read the current page aloud, or stop reading if it's already speaking. Works on any page" },
   { keys: "N", action: "Next question (on the Answer questions page)" },
   { keys: "P", action: "Previous question (on the Answer questions page)" },
   { keys: "Space", action: "Repeat the current question" },
   { keys: "H", action: "Show or hide help for the current question" },
   { keys: "S", action: "Skip the current question, if it's optional" },
+  { keys: "L", action: "Read the field's label exactly as printed on the original form" },
+  { keys: "R", action: "Jump straight to the review page" },
 ];
 
 const FAQS = [
@@ -43,12 +46,16 @@ const FAQS = [
     a: "No. FormFill works fully by keyboard and standard browser focus, with or without a screen reader running.",
   },
   {
+    q: "Can FormFill read a question or answer aloud to me?",
+    a: "Yes. A Read aloud button appears on most pages, and Ctrl+Alt+S reads the current page aloud from anywhere, using your browser's own built-in voice. This is a manual, on-demand feature: nothing speaks automatically, so it never talks over a screen reader you already have running.",
+  },
+  {
     q: "What file types are supported?",
-    a: "PDF, PNG, and JPG. PDFs with real fillable fields are read directly. Flat PDFs (scans, or forms without fillable fields) have their text read and turned into questions automatically. Scanned images are not fully supported yet.",
+    a: "PDF, PNG, and JPG. PDFs with real fillable fields are read directly and mapped back onto those fields. Flat PDFs, scans, and PNG or JPG photos are all read by the same AI model and turned into questions automatically.",
   },
   {
     q: "Is my information sent anywhere?",
-    a: "The file itself never leaves your browser. If a form needs to be classified into questions, only the extracted text — not the file — is sent for that one step.",
+    a: "The blank form itself (the PDF, PNG, or JPG file, not your answers) is sent to an AI model to be read into questions. Your typed answers are never sent anywhere and stay only in your browser for the current session.",
   },
   {
     q: "Can I go back and change an answer?",

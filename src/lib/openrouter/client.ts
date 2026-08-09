@@ -42,25 +42,27 @@ const longRunningAgent = new Agent({
  * model tested was a clean upgrade (some showed real accuracy
  * regressions, see KNOWN-ISSUES.html).
  */
-export const CLASSIFICATION_MODEL = "google/gemma-4-26b-a4b-it:free";
+export const CLASSIFICATION_MODEL = "google/gemma-3-27b-it";
 
 /**
  * A second, independent model used only to sanity-check a filled-out form
- * before final output (Nigel's "different model checks the work" reliability
- * pass) — deliberately not the same model that did the classification, so
- * the same blind spot can't pass its own check. Text-only (no vision) and
- * low-token (just field labels + answers), so a free model is a strong fit.
+ * before final output (the mentor's "different model checks the work"
+ * reliability pass) — deliberately not the same model that did the
+ * classification, so the same blind spot can't pass its own check.
+ * Text-only (no vision) and low-token (just field labels + answers), so
+ * cost stays low regardless of which model is used.
  *
- * Nigel suggested a free DeepSeek model specifically, but no DeepSeek
- * listing on OpenRouter is currently free (checked 2026-08-04 against the
- * live models API — cheapest paid is deepseek/deepseek-v4-flash-0731 at
- * $0.09/M in). nvidia/nemotron-3-super-120b-a12b:free is the closest
- * substitute that still satisfies the actual requirement: free, genuinely
- * different model family from CLASSIFICATION_MODEL (Gemma), and large
- * enough (120B) to be a real reasoning check rather than a token-saving
- * shortcut. Revisit if a free DeepSeek tier appears later.
+ * Switched from the free-tier nvidia/nemotron-3-super-120b-a12b:free to
+ * this paid model for hackathon-day reliability, matching the same
+ * switch made to CLASSIFICATION_MODEL: avoids the free tier's shared
+ * rate-limit risk. Genuinely different model family from
+ * CLASSIFICATION_MODEL (google/gemma-3-27b-it), preserving the actual
+ * point of a second, independent check rather than picking the same
+ * model for both passes. One of the 3 paid models validated with no
+ * accuracy regression in the earlier 7-model comparison (see
+ * docs/MODELS.html).
  */
-export const VERIFICATION_MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
+export const VERIFICATION_MODEL = "anthropic/claude-haiku-4.5";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";

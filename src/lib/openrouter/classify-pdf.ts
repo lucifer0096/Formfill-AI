@@ -25,6 +25,8 @@ const FIELD_TYPES: FieldType[] = [
 
 const SYSTEM_PROMPT = `You read a PDF form (attached) and turn it into a structured list of questions a person would need to answer to fill it out.
 
+First, write a short, plain-language description of what this specific form is for and who typically needs to fill it out, based only on what is actually printed on the form. Two to three sentences, written for someone who cannot see the form and has never seen it before. Never invent a purpose the form does not state; if the form's purpose genuinely is not clear from its content, say so plainly rather than guessing confidently.
+
 If a list of the PDF's real fillable field names is provided below, match each question you find to the correct real field name whenever the visual field on the page corresponds to one of them — this lets the app write the answer back into the real PDF field later. If a question has no matching real field name (the form has no fillable fields, or this particular question isn't one), omit acroFieldName for it.
 
 Group the content into logical SECTIONS (e.g. "Personal details", "Contribution rate") and, within each section, individual FIELDS (one per question a person would need to answer).
@@ -35,8 +37,8 @@ For each field, output:
 - "help": (optional) one sentence explaining what the question is actually asking, only if the label alone is not self-explanatory.
 - "type": one of ${FIELD_TYPES.join(", ")}
 - "required": boolean, best guess — true unless there's a clear signal it's optional
-- "options": if type is "choice" or "multichoice", an array of {"value": string, "label": string} for each option visible on the form (checkbox options, Yes/No, a list of choices)
-- "acroFieldName": the matching real AcroForm field name, if one was given to you and it matches this question. Omit otherwise.
+- "options": if type is "choice", "multichoice", or "boolean", an array of {"value": string, "label": string, "acroFieldName": string or omit} for each option visible on the form (checkbox options, Yes/No, a list of choices). IMPORTANT: a single Yes/No question is always ONE field with two options, never two separate fields — even when the real PDF represents "Yes" and "No" as two independent checkboxes rather than one field. In that case, give each option its own "acroFieldName" (the specific checkbox field for that one option), and omit the top-level "acroFieldName" on the field itself. Only set the field-level "acroFieldName" when one single real field (a radio group, a dropdown, one checkbox) covers the whole question.
+- "acroFieldName": the matching real AcroForm field name, if one real field covers this whole question. Omit if the mapping is per-option instead (see above), or if there is no match at all.
 - "page": the 1-indexed page number this question appears on
 - "confidence": 0 to 1, your genuine confidence this is a real, correctly-identified question and its type is correct. Use LOW confidence (below 0.5) for anything ambiguous, hard to read, or where you are guessing at structure. Never fake high confidence.
 
@@ -45,6 +47,7 @@ Do not invent fields that aren't on the form. Do not merge unrelated questions t
 Respond with ONLY a JSON object of this exact shape, no markdown fencing, no commentary:
 {
   "title": "string, the form's own title if visible, otherwise a short descriptive name",
+  "description": "string, 2-3 plain-language sentences on what this form is for and who needs it",
   "sections": [
     {
       "title": "string",
@@ -55,7 +58,7 @@ Respond with ONLY a JSON object of this exact shape, no markdown fencing, no com
           "help": "string or omit",
           "type": "one of the allowed types",
           "required": boolean,
-          "options": [{"value": "string", "label": "string"}] or omit,
+          "options": [{"value": "string", "label": "string", "acroFieldName": "string or omit"}] or omit,
           "acroFieldName": "string or omit",
           "page": number,
           "confidence": number
@@ -65,13 +68,19 @@ Respond with ONLY a JSON object of this exact shape, no markdown fencing, no com
   ]
 }`;
 
+interface ClassifiedOption {
+  value: string;
+  label: string;
+  acroFieldName?: string;
+}
+
 interface ClassifiedField {
   label: string;
   spokenLabel: string;
   help?: string;
   type: string;
   required: boolean;
-  options?: { value: string; label: string }[];
+  options?: ClassifiedOption[];
   acroFieldName?: string;
   page?: number;
   confidence: number;
@@ -84,11 +93,77 @@ interface ClassifiedSection {
 
 interface ClassificationResponse {
   title?: string;
+  description?: string;
   sections: ClassifiedSection[];
 }
 
 function isFieldType(value: string): value is FieldType {
   return (FIELD_TYPES as string[]).includes(value);
+}
+
+/**
+ * The model's response is asserted to be a ClassificationResponse by
+ * parseJsonResponse<T>'s type parameter, but that's a compile-time cast, not
+ * a runtime check — the model is free to return anything shaped like valid
+ * JSON, correct or not. Three separate crashes were found and fixed
+ * one-by-one today (an empty {} body with no sections, an empty choices
+ * array upstream in client.ts, and the field-mapping fallout from both):
+ * same root cause each time, code trusting the response shape without
+ * checking it. This walks the whole shape defensively once, instead of
+ * leaving that same gap open in every field a malformed response could
+ * still hit (a section with no fields array, a field that isn't an object
+ * at all, and so on) — none of which crashed live yet, but all of which
+ * are the exact same class of bug already found three times.
+ *
+ * Deliberately permissive, not strict: a genuinely malformed field is
+ * dropped rather than the whole response rejected, so one bad field in an
+ * otherwise-good 20-field response doesn't take the other 19 down with it.
+ */
+function normalizeClassificationResponse(parsed: unknown): ClassificationResponse {
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("The model returned a response that wasn't a JSON object.");
+  }
+  const obj = parsed as Record<string, unknown>;
+  if (!Array.isArray(obj.sections)) {
+    throw new Error("The model returned a response with no sections.");
+  }
+
+  const sections: ClassifiedSection[] = obj.sections
+    .filter((s): s is Record<string, unknown> => Boolean(s) && typeof s === "object")
+    .map((s) => ({
+      title: typeof s.title === "string" ? s.title : "",
+      fields: Array.isArray(s.fields)
+        ? s.fields
+            .filter((f): f is Record<string, unknown> => Boolean(f) && typeof f === "object")
+            .filter((f) => typeof f.label === "string" && typeof f.spokenLabel === "string")
+            .map((f) => ({
+              label: f.label as string,
+              spokenLabel: f.spokenLabel as string,
+              help: typeof f.help === "string" ? f.help : undefined,
+              type: typeof f.type === "string" ? f.type : "unknown",
+              required: Boolean(f.required),
+              options: Array.isArray(f.options)
+                ? f.options
+                    .filter((o): o is Record<string, unknown> => Boolean(o) && typeof o === "object")
+                    .filter((o) => typeof o.value === "string" && typeof o.label === "string")
+                    .map((o) => ({
+                      value: o.value as string,
+                      label: o.label as string,
+                      acroFieldName: typeof o.acroFieldName === "string" ? o.acroFieldName : undefined,
+                    }))
+                : undefined,
+              acroFieldName: typeof f.acroFieldName === "string" ? f.acroFieldName : undefined,
+              page: typeof f.page === "number" ? f.page : undefined,
+              confidence: typeof f.confidence === "number" ? f.confidence : 0.3,
+            }))
+        : [],
+    }));
+
+  return {
+    title: typeof obj.title === "string" ? obj.title : undefined,
+    description: typeof obj.description === "string" ? obj.description : undefined,
+    sections,
+  };
 }
 
 const YES_NO_PAIRS = [
@@ -198,7 +273,7 @@ export async function classifyPdf(
   ];
 
   const raw = await callOpenRouter([{ role: "user", content }]);
-  const parsed = parseJsonResponse<ClassificationResponse>(raw);
+  const parsed = normalizeClassificationResponse(parseJsonResponse<unknown>(raw));
 
   let fieldIndex = 0;
   const sections: Section[] = parsed.sections.map((section, sectionIndex) => ({
@@ -230,6 +305,7 @@ export async function classifyPdf(
   return {
     id: crypto.randomUUID(),
     title: parsed.title || fileName.replace(/\.[a-z0-9]+$/i, ""),
+    description: parsed.description,
     source: isImage ? "image" : "pdf",
     locale: "en-GB",
     provenance: {

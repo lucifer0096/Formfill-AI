@@ -1,10 +1,13 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import LinkButton from "@/components/ui/LinkButton";
 import Notice from "@/components/ui/Notice";
 import ProgressTrail from "@/components/ProgressTrail";
+import ReadAloudButton from "@/components/ui/ReadAloudButton";
+import { useRegisterReadAloud } from "@/lib/speech/use-global-read-aloud";
 import { loadIngestResult, PLACEHOLDER_FIELDS, type StoredIngest } from "@/lib/session-store";
 import { useRouteFocus } from "@/lib/use-route-focus";
 import type { Field, FieldType } from "@/lib/form-model/types";
@@ -70,7 +73,13 @@ export default function ReviewFieldsPage() {
   }
 
   if (stored?.kind === "form") {
-    return <ReviewFields fields={stored.form.sections.flatMap((s) => s.fields)} />;
+    return (
+      <ReviewFields
+        fields={stored.form.sections.flatMap((s) => s.fields)}
+        title={stored.form.title}
+        description={stored.form.description}
+      />
+    );
   }
 
   if (stored?.kind === "needs-vision") {
@@ -81,9 +90,26 @@ export default function ReviewFieldsPage() {
   return <ReviewFields fields={PLACEHOLDER_FIELDS} />;
 }
 
-function ReviewFields({ fields }: { fields: Field[] }) {
+function ReviewFields({
+  fields,
+  title,
+  description,
+}: {
+  fields: Field[];
+  title?: string;
+  description?: string;
+}) {
+  const router = useRouter();
   const headingRef = useRouteFocus<HTMLHeadingElement>();
   const lowConfidenceCount = fields.filter((field) => bandFor(field.confidence) === "low").length;
+  const summaryText = `${description ? `${description} ` : ""}We found ${fields.length} ${
+    fields.length === 1 ? "question" : "questions"
+  } on your form.${
+    lowConfidenceCount > 0
+      ? ` ${lowConfidenceCount} ${lowConfidenceCount === 1 ? "needs" : "need"} a closer look.`
+      : ""
+  }`;
+  useRegisterReadAloud(summaryText);
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
       <ProgressTrail current={2} />
@@ -97,10 +123,19 @@ function ReviewFields({ fields }: { fields: Field[] }) {
         >
           Review extracted fields
         </h1>
+        {description && (
+          <p className="mt-3 text-base text-foreground">
+            {title && <span className="font-semibold">{title}. </span>}
+            {description}
+          </p>
+        )}
         <p className="mt-3 text-lg text-muted">
           We found {fields.length} {fields.length === 1 ? "question" : "questions"} on your form.
           Check the list below before we build the full overview.
         </p>
+        <div className="mt-4">
+          <ReadAloudButton text={summaryText} />
+        </div>
       </section>
 
       <Card as="section" aria-labelledby="fields-heading" tabIndex={0} className="mt-8">
@@ -121,21 +156,24 @@ function ReviewFields({ fields }: { fields: Field[] }) {
           {fields.map((field) => {
             const band = bandFor(field.confidence);
             return (
-              <li
-                key={field.id}
-                className="flex items-start justify-between gap-4 py-4 first:pt-0 last:pb-0"
-              >
-                <div>
-                  <p className="font-medium">{field.spokenLabel}</p>
-                  <p className="text-sm text-muted">{TYPE_LABEL[field.type]}</p>
-                </div>
-                <span
-                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
-                    band === "low" ? "bg-accent-strong/10 text-accent-strong" : "bg-muted/10 text-muted"
-                  }`}
+              <li key={field.id}>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/questions?field=${encodeURIComponent(field.id)}`)}
+                  className="flex w-full items-start justify-between gap-4 py-4 text-left first:pt-0 last:pb-0 hover:bg-muted/5 focus-visible:outline-3 focus-visible:outline-accent-strong rounded-md px-2 -mx-2"
                 >
-                  {CONFIDENCE_LABEL[band]}
-                </span>
+                  <div>
+                    <p className="font-medium">{field.spokenLabel}</p>
+                    <p className="text-sm text-muted">{TYPE_LABEL[field.type]}</p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+                      band === "low" ? "bg-accent-strong/10 text-accent-strong" : "bg-muted/10 text-muted"
+                    }`}
+                  >
+                    {CONFIDENCE_LABEL[band]}
+                  </span>
+                </button>
               </li>
             );
           })}

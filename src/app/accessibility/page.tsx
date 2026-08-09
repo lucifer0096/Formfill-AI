@@ -12,7 +12,11 @@ const SUPPORTED = [
   },
   {
     title: "Single-key shortcuts while answering questions",
-    body: "N, P, Space, H and S move between questions, repeat a question, or show help — without needing to tab to a button first. These are automatically turned off while you're typing, so they never interfere with your answer.",
+    body: "N, P, Space, H, S, L and R move between questions, repeat a question, show help, read the field's original printed label, or jump to review — without needing to tab to a button first. These are automatically turned off while you're typing, so they never interfere with your answer.",
+  },
+  {
+    title: "Read aloud, on any page",
+    body: "A Read aloud button, or the Ctrl+Alt+S shortcut, reads the current page's content aloud using your browser's built-in voice. It's manual and on-demand only — nothing speaks automatically, so it never talks over a screen reader you already have running.",
   },
   {
     title: "Focus moves with you",
@@ -30,16 +34,16 @@ const SUPPORTED = [
     title: "High-contrast, resizable text",
     body: "Text and interface colours are checked against WCAG contrast requirements, and the layout is built with relative units so browser zoom and text-size settings work as expected.",
   },
+  {
+    title: "Reading forms from photos or scans",
+    body: "PDF forms with real fillable fields, flat PDFs, and PNG or JPG photos are all supported today, read by the same AI model.",
+  },
 ];
 
 const IN_PROGRESS = [
   {
-    title: "Screen-reader vs. spoken-aloud modes",
-    body: "FormFill doesn't yet detect whether you're using a screen reader and adjust automatically. If you use a screen reader, its own reading of the page is currently your primary source of information.",
-  },
-  {
-    title: "Reading forms from photos or scans",
-    body: "PDF forms with real fillable fields, and flat PDFs, are supported today. Scanned photos and image-only forms are not yet — you'll see a clear message rather than a silent failure if you try.",
+    title: "Automatic screen-reader vs. spoken-aloud modes",
+    body: "FormFill doesn't yet detect whether you're using a screen reader and switch automatically. A manual Read aloud control is available on every page in the meantime — see above — but it has to be triggered on purpose rather than starting on its own.",
   },
   {
     title: "Spoken format hints before you type",

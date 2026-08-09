@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -20,6 +20,8 @@ import {
 import { speakValue, type Announcement } from "@/lib/conversation/announce";
 import { applicableFields } from "@/lib/form-model/traverse";
 import type { VerificationResult } from "@/lib/openrouter/verify-answers";
+import { speak } from "@/lib/speech";
+import { useRegisterReadAloud } from "@/lib/speech/use-global-read-aloud";
 
 function downloadBytes(bytes: Uint8Array, fileName: string) {
   // pdf-lib's Uint8Array is typed against ArrayBufferLike (can include
@@ -89,6 +91,33 @@ export default function ConfirmPage() {
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const headingRef = useRouteFocus<HTMLHeadingElement>();
 
+  // Computed unconditionally, before the early return below, for the same
+  // reason questions/page.tsx's registeredQuestionText is: a hook can't be
+  // called only inside one render branch. Reads answers straight off
+  // engine.answers rather than the fields/speakValue helpers used further
+  // down (those are only computed after the early return), so this stays
+  // safe even while engine is still null.
+  const registeredAnswersText = engine
+    ? applicableFields(engine.form, engine.answers)
+      .map((f) => {
+        const answer = engine.answers[f.id];
+        const isAnswered = answer && answer.state !== "skipped";
+        return `${f.spokenLabel} ${isAnswered ? speakValue(f, answer.value, engine.locale) : "not answered"}.`;
+      })
+      .join(" ")
+    : "";
+  useRegisterReadAloud(registeredAnswersText);
+
+  // Team-requested for hackathon day: speak the review-gate warning aloud
+  // (e.g. "Press C again to confirm anyway" after confirming without
+  // hearing every answer), same reasoning and pattern as the equivalent
+  // effect in questions/page.tsx — this already renders as text via the
+  // Notice component further down; this speaks the exact same text.
+  const gateWarningText = engine ? (lastAnnouncements.find((a) => a.kind === "error")?.text ?? "") : "";
+  useEffect(() => {
+    if (gateWarningText) speak(gateWarningText);
+  }, [gateWarningText]);
+
   if (!engine) {
     return (
       <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
@@ -100,7 +129,15 @@ export default function ConfirmPage() {
   }
 
   const fields = applicableFields(engine.form, engine.answers);
-  const isAcroForm = fields.some((f) => f.anchor.kind === "acroform");
+  // A field can be real-PDF-fillable either through its own field-level
+  // anchor, or (a Yes/No question printed as two separate real checkboxes)
+  // only through per-option acroFieldName mappings on constraints.options —
+  // see src/lib/emit/fill-acroform.ts for why that second path exists.
+  // Missing this here would incorrectly fall through to the plain summary
+  // output for a form whose only real mapping is the per-option kind.
+  const isAcroForm = fields.some(
+    (f) => f.anchor.kind === "acroform" || (f.constraints.options ?? []).some((o) => o.acroFieldName),
+  );
   const allHeard = fields.length > 0 && fields.every((f) => engine.reviewHeard.has(f.id));
 
   // "Back to questions" used to be a bare /questions link with no ?field=,
@@ -264,18 +301,41 @@ export default function ConfirmPage() {
                   <p className="font-medium">{field.spokenLabel}</p>
                   <p className="text-sm text-muted">{value}</p>
                 </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  aria-pressed={isAnswered ? isHeard : undefined}
-                  onClick={() =>
-                    isAnswered
-                      ? readBackField(field.id)
-                      : router.push(`/questions?field=${encodeURIComponent(field.id)}`)
-                  }
-                >
-                  {isAnswered ? (isHeard ? "Heard ✓" : "Read back") : "Answer this"}
-                </Button>
+                <div className="flex shrink-0 gap-2">
+                  {isAnswered && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        saveAnswers(engine.answers);
+                        router.push(`/questions?field=${encodeURIComponent(field.id)}`);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    aria-pressed={isAnswered ? isHeard : undefined}
+                    onClick={() => {
+                      if (!isAnswered) {
+                        router.push(`/questions?field=${encodeURIComponent(field.id)}`);
+                        return;
+                      }
+                      // "Read back" now actually speaks the answer aloud, not
+                      // just a silent state change — the manual Read Aloud
+                      // control per docs/ACCESSIBILITY.md §1.1's safe
+                      // fallback, added to the same button rather than a
+                      // second one next to it, since this button's name
+                      // already promised audio it never delivered.
+                      speak(`${field.spokenLabel} ${value}`);
+                      readBackField(field.id);
+                    }}
+                  >
+                    {isAnswered ? (isHeard ? "Heard ✓" : "Read back") : "Answer this"}
+                  </Button>
+                </div>
               </li>
             );
           })}

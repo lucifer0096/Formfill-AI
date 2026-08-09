@@ -429,6 +429,8 @@
             <tr><td>Required signature question had no way past it</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
             <tr><td>Previous discarded an unsaved answer, and revisiting a question showed it empty</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
             <tr><td>"Read back" never actually marked an answer as heard</td><td class="mod">/confirm</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>"Read back" named an audio action but never actually spoke anything</td><td class="mod">/confirm</td><td class="st"><span class="tag built">fixed</span></td></tr>
+            <tr><td>Manual Read Aloud control and global <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> shortcut, per the spec's safe-fallback rule</td><td class="mod">/review, /overview, /questions, /confirm</td><td class="st"><span class="tag built">built</span></td></tr>
             <tr><td>4.5:1 / 7:1 contrast on non-text UI</td><td class="mod">/review confidence badges</td><td class="st"><span class="tag built">verified, already OK</span></td></tr>
             <tr><td>Format hints shown/spoken before input, not just after a failed submit</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
             <tr><td>Global <kbd>R</kbd> (jump to review) and <kbd>L</kbd> (verbatim label) commands</td><td class="mod">/questions</td><td class="st"><span class="tag built">fixed</span></td></tr>
@@ -451,7 +453,7 @@
       <h2>Known gaps, not yet built</h2>
       <p>Named explicitly so they don't get mistaken for "done" by omission.</p>
       <div class="qs">
-        <div class="q"><b>No <code>sr</code> / <code>spoken</code> mode distinction.</b><span>The spec's two-audience problem, where a screen-reader user needs the app acoustically silent while a non-screen-reader user needs it to speak aloud, isn't implemented yet. Everything here relies on the browser's own screen-reader support via correct markup; there is no <code>speechSynthesis</code> integration, no mode detection, and no <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> toggle. That is <code>packages/speech</code>'s job, not yet wired in.</span></div>
+        <div class="q"><b>No automatic <code>sr</code> / <code>spoken</code> mode distinction.</b><span>The spec's two-audience problem, where a screen-reader user needs the app acoustically silent while a non-screen-reader user needs it to speak aloud, isn't automatically resolved yet: there is no mode detection and no first-run prompt. A manual <b>Read aloud</b> control (button, or the global <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> shortcut) is built and live on <code>/review</code>, <code>/overview</code>, <code>/questions</code>, and <code>/confirm</code>, using the browser's own <code>speechSynthesis</code> through a single dedicated module (<code>src/lib/speech</code>) as the spec's own hard rule requires. It is deliberately manual only, never automatic, so it can never talk over a screen reader already running.</span></div>
         <div class="q"><b>No 400% zoom / reflow testing done.</b><span>The spec's definition-of-done checklist calls for this on every change. Not verified yet.</span></div>
         <div class="q"><b><code>forced-colors</code> / Windows High Contrast mode untested.</b><span>Also part of the per-change checklist; not verified here.</span></div>
         <div class="q"><b>No screen-reader testing with a real assistive technology.</b><span>The spec requires NVDA or VoiceOver testing per change. Everything on this page is markup-level correctness (roles, live regions, focus), not a substitute for that manual pass.</span></div>
@@ -467,10 +469,10 @@
         <li class="done"><b>Full task completable keyboard-only</b><span>Verified by inspection: every control is a real <code>&lt;button&gt;</code>, <code>&lt;input&gt;</code>, or <code>&lt;a&gt;</code>, nothing mouse-only.</span></li>
         <li><b>axe-core: zero violations</b><span>Not run yet.</span></li>
         <li><b>Tested with a real screen reader (NVDA or VoiceOver)</b><span>Not done, see the known gaps above.</span></li>
-        <li><b>Announcement transcript reviewed</b><span>Not applicable in the literal sense: there is no <code>packages/conversation</code> Announcement stream wired in yet, only ARIA live regions read directly by the browser's assistive technology.</span></li>
+        <li><b>Announcement transcript reviewed</b><span>Not done as a formal reviewed transcript, though the underlying <code>Announcement</code> stream is real and wired in (<code>src/lib/conversation/announce.ts</code>). It drives both the ARIA live regions and, now, the manual Read Aloud speech, so a change here shows up in both places at once.</span></li>
         <li><b>400% zoom, no horizontal scroll</b><span>Not verified.</span></li>
         <li><b><code>forced-colors: active</code> renders correctly</b><span>Not verified.</span></li>
-        <li class="done"><b>No new <code>speechSynthesis</code> call site outside <code>packages/speech</code></b><span>True by omission: nothing here calls <code>speechSynthesis</code> at all yet.</span></li>
+        <li class="done"><b>Exactly one <code>speechSynthesis</code> call site in the whole codebase</b><span><code>src/lib/speech/index.ts</code> is the sole call site, matching the spec's hard rule; nothing else in the app calls <code>speechSynthesis</code> directly.</span></li>
       </ol>
     </div>
   </section>

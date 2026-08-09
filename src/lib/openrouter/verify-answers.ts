@@ -62,9 +62,22 @@ export async function verifyAnswers(fields: Field[], answers: AnswerSet): Promis
     { model: VERIFICATION_MODEL },
   );
 
-  const parsed = parseJsonResponse<VerificationResult>(raw);
+  const parsed = parseJsonResponse<unknown>(raw);
+  const obj = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+  // Same defensive-normalization reasoning as classify-pdf.ts's
+  // normalizeClassificationResponse: an issue object with a missing or
+  // non-string field would otherwise reach the confirm page's banner
+  // (src/app/confirm/page.tsx) unvalidated. Verification is already
+  // best-effort and never blocks the download on its own failure, so a
+  // malformed issue is dropped rather than the whole result discarded.
+  const issues: VerificationIssue[] = Array.isArray(obj.issues)
+    ? obj.issues
+        .filter((i): i is Record<string, unknown> => Boolean(i) && typeof i === "object")
+        .filter((i) => typeof i.fieldId === "string" && typeof i.label === "string" && typeof i.concern === "string")
+        .map((i) => ({ fieldId: i.fieldId as string, label: i.label as string, concern: i.concern as string }))
+    : [];
   return {
-    ok: Boolean(parsed.ok) && (parsed.issues?.length ?? 0) === 0,
-    issues: Array.isArray(parsed.issues) ? parsed.issues : [],
+    ok: Boolean(obj.ok) && issues.length === 0,
+    issues,
   };
 }
