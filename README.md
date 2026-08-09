@@ -97,3 +97,27 @@ Deployed at [formfill-main.vercel.app](https://formfill-main.vercel.app) (Vercel
 ```bash
 npx vercel --prod
 ```
+
+## Known limitations
+
+- Classification reliably fails on official NZ government forms specifically (root cause unconfirmed); see [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html).
+- Personal information redaction doesn't cover the AI classification path: the whole document is sent to the model, not just extracted text, so redaction that only ever operated on extracted text can't inspect or redact what's rendered inside the file.
+- A per-row checklist or repeated grid (e.g. a property inspection table) has no concept of "this is one row," so every cell surfaces as its own question.
+- A flat PDF or scanned form with no real AcroForm fields produces a question-and-answer summary document on download, not a marked-up copy of the original — there's no coordinate data yet to draw an answer back onto the page at its original position.
+
+Full detail, plus what's genuinely working vs. only partially, is in [`docs/ROADMAP.html`](docs/ROADMAP.html) and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html).
+
+## Future scope
+
+Not started yet, ordered roughly by how central they are to the product:
+
+- **Automatic screen-reader detection** — switching to spoken mode automatically instead of requiring the manual Read aloud button/`Ctrl+Alt+S` shortcut.
+- **Local autofill profile** — remember name, address, and date of birth across forms so they don't need retyping every session (still user-confirmed before being applied, never silent).
+- **Print-alignment overlay** — for flat/scanned forms, draw answers back onto the original page layout instead of falling back to a plain summary document.
+- **Field grouping for repeated grids and tables** — collapse a per-row checklist into one structured question instead of one question per cell.
+- **Camera capture with audio framing guidance** — photograph a paper form directly in-app, with spoken feedback on framing/focus, instead of requiring a pre-taken photo.
+- **Voice input** — speak an answer instead of typing it. Deliberately not attempted yet: the browser's built-in speech-to-text is cloud-backed (violates the "answers never leave the device" principle) and inconsistent across browsers. An on-device model (e.g. Whisper via WebAssembly/WebGPU) is the approach that would actually satisfy that principle, but is a substantial feature on its own — model download/caching, real transcription latency on low-end devices, and voice-activity detection all need solving first.
+- **Browser extension for live web forms** — extend the same guided-conversation flow to a form on any website, not just an uploaded document.
+- **Full workspace merge** with the shared `packages/*` codebase this branch diverged from — deferred, not forgotten; see [Project structure](#project-structure) above.
+
+See [`docs/ROADMAP.html`](docs/ROADMAP.html) for the full picture, including what's built, what's partially working, and the roadmap phase (P0–P4) each item belongs to.
