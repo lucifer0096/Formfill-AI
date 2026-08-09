@@ -11,10 +11,10 @@ This repository's `main` branch is the real, working codebase. The AI/ingest pip
 | Route | Purpose |
 |---|---|
 | `/` | Upload a form (PDF, PNG, or JPG) |
-| `/review` | Review the fields detected on the form |
+| `/review` | An AI-generated plain-language description of what the form is for, plus the fields detected on it — click any field to jump straight to that question |
 | `/overview` | See the form's sections and estimated completion time |
 | `/questions` | Answer questions one field at a time, skipping any that don't apply |
-| `/confirm` | Mandatory read-back of every answer (hear one twice to override), then download the finished document |
+| `/confirm` | Mandatory read-back of every answer (hear one twice to override); each answered field has an Edit button to jump back and change it; then download the finished document |
 | `/help` | How a form session works, keyboard shortcuts, FAQ |
 | `/accessibility` | What's supported today and what's still in progress |
 
@@ -54,7 +54,7 @@ npm run lint    # eslint
 
 ## Testing models before picking one
 
-Classification model choice isn't finalised yet. `scripts/` has three standalone tools (not part of the app, never deployed) for comparing vision models against real forms before committing to one for production. All three send the exact same system prompt used in `src/lib/openrouter/classify-pdf.ts`.
+Classification runs on `google/gemma-3-27b-it` by default (see [Stack](#stack) below); `scripts/` has three standalone tools (not part of the app, never deployed) that were used to compare vision models against real forms before settling on it, and remain useful for testing any future change. All three send the exact same system prompt used in `src/lib/openrouter/classify-pdf.ts`.
 
 ```bash
 # Local (Ollama) — fully offline, no cost, but CPU-only inference is slow (minutes/form)
@@ -76,9 +76,11 @@ Next.js (App Router, Turbopack) · React · Tailwind CSS · Atkinson Hyperlegibl
 
 The Answer/Confirm flow runs on a pure conversation-engine reducer in `src/lib/conversation/` (hand-copied from the original `packages/conversation`, `form-model`, and `validate` design, not imported as workspace packages), giving real skip-logic, locale-aware validation, and a two-step review gate instead of a simpler independent implementation.
 
-Model choice isn't finalised yet. The current default is `google/gemma-3-27b-it` (via OpenRouter, paid), switched from the free-tier `google/gemma-4-26b-a4b-it:free` for hackathon-day reliability: the free tier has a known gap on official NZ government forms specifically, and shares a rate-limited pool that can fail transiently under load. A head-to-head against 7 paid models confirmed `google/gemma-3-27b-it` (the mentor's original recommendation), `anthropic/claude-haiku-4.5`, and `mistralai/mistral-small-3.2-24b-instruct` all show no accuracy regression versus the free tier; some cheaper/faster paid models do. See [`docs/MODELS.html`](docs/MODELS.html) for the full testing history and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) for current known risks.
+Classification (`CLASSIFICATION_MODEL` in `src/lib/openrouter/client.ts`) runs on `google/gemma-3-27b-it` (via OpenRouter, paid), switched from the free-tier `google/gemma-4-26b-a4b-it:free` for hackathon-day reliability: the free tier has a known gap on official NZ government forms specifically, and shares a rate-limited pool that can fail transiently under load. A head-to-head against 7 paid models confirmed `google/gemma-3-27b-it` (the mentor's original recommendation), `anthropic/claude-haiku-4.5`, and `mistralai/mistral-small-3.2-24b-instruct` all show no accuracy regression versus the free tier; some cheaper/faster paid models do. See [`docs/MODELS.html`](docs/MODELS.html) for the full testing history and [`docs/KNOWN-ISSUES.html`](docs/KNOWN-ISSUES.html) for current known risks.
 
-A second, independent model call reviews filled answers for real mistakes before submission (`src/lib/openrouter/verify-answers.ts`, `/api/verify`), wired into the `/confirm` flow.
+Alongside the questions it detects, the classification call also generates a short plain-language description of what the form is for, shown at the top of `/review`.
+
+A second, independent model call (`VERIFICATION_MODEL`, currently `anthropic/claude-haiku-4.5` — deliberately a different model family from classification) reviews filled answers for real mistakes before submission (`src/lib/openrouter/verify-answers.ts`, `/api/verify`), wired into the `/confirm` flow.
 
 ## Accessibility
 
